@@ -100,7 +100,7 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split("T")[0],
     fromDate: "",
-    toDate: "",   
+    toDate: "",
     shift: "A",
     plant: "",
     costCenter: "",
@@ -162,7 +162,7 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
           setFormData({
             date: doc.date ? doc.date.split(" ")[0] : new Date().toISOString().split("T")[0],
             fromDate: formatDateTimeForInput(doc.from_date),
-            toDate: formatDateTimeForInput(doc.to_date),   
+            toDate: formatDateTimeForInput(doc.to_date),
             shift: doc.shift || "A",
             plant: doc.plant || doc.branch || "",
             costCenter: doc.cost_center || "",
@@ -177,7 +177,7 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
           setFormData(prev => ({
             ...prev,
             date: new Date().toISOString().split("T")[0],
-            fromDate: "", 
+            fromDate: "",
             toDate: "",
             supervisorName: loggedInUserId,
           }))
@@ -208,9 +208,9 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
   const handleSubmit = async () => {
     if (!formData.vehicle) return console.warn("Vehicle required");
     if (["Breakdown", "Idle"].includes(formData.status)) {
-        if (!formData.fromDate || !formData.toDate) {
-            return alert("From Date and To Date are required for Breakdown/Idle status.");
-        }
+      if (!formData.fromDate || !formData.toDate) {
+        return alert("From Date and To Date are required for Breakdown/Idle status.");
+      }
     }
 
     setIsSubmitting(true);
@@ -225,8 +225,8 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
 
       const payload = {
         date: formData.date,
-        from_date: formData.fromDate, 
-        to_date: formData.toDate,  
+        from_date: formData.fromDate,
+        to_date: formData.toDate,
         shift: formData.shift,
         plant: formData.plant,
         cost_center: formData.costCenter,
@@ -254,7 +254,7 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
 
       console.log("Success:", res.data);
       alert("Utilization Log Saved Successfully!");
-      onClose();
+      window.location.reload();
 
     } catch (err: any) {
       if (axios.isAxiosError(err)) {
@@ -268,8 +268,61 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
     }
   };
 
+  const handleUpdate = async () => {
+    if (!record) return alert("Record not found");
+    if (["Breakdown", "Idle"].includes(formData.status)) {
+      if (!formData.fromDate || !formData.toDate) {
+        return alert("From Date and To Date are required for Breakdown/Idle status.");
+      }
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const tokenResp = await fetch(`${FRAPPE_BASE_URL}/api/method/vms.api.get_csrf_token`, {
+        credentials: "include"
+      });
+      const tokenResult = await tokenResp.json();
+      const csrfToken = tokenResult.message;
+      const payload = {
+        date: formData.date,
+        from_date: formData.fromDate,
+        to_date: formData.toDate,
+        shift: formData.shift,
+        plant: formData.plant,
+        cost_center: formData.costCenter,
+        warehouse: formData.warehouse,
+        vehicle: formData.vehicle,
+        supervisor_name: formData.supervisorName,
+        hmr: formData.hmr,
+        status: formData.status,
+      };
+      await axios.put(
+        `${FRAPPE_BASE_URL}/api/resource/${DOCTYPE_NAME}/${encodeURIComponent(record.name)}`,
+        payload,
+        {
+          withCredentials: true,
+          headers: {
+            "X-Frappe-CSRF-Token": csrfToken,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      alert("Utilization Log Updated Successfully!");
+      window.location.reload();
+
+    } catch (err: any) {
+      console.error("Update error:", err.response?.data || err);
+      alert("Failed to update utilization log.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+
   const isBusy = isLoading || isSubmitting
-  const ShowTimeField=["Breakdown","Idle"].includes(formData.status)
+  const ShowTimeField = ["Breakdown", "Idle"].includes(formData.status)
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -324,36 +377,36 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
               </div>
 
               {/* --- NEW: FROM DATE --- */}
-              {ShowTimeField&&(
+              {ShowTimeField && (
                 <>
-              <div className="space-y-1.5">
-                <Label htmlFor="fromDate" className="text-sm font-medium text-gray-700">From Date & Time</Label>
-                <Input
-                  id="fromDate"
-                  name="fromDate"
-                  type="datetime-local"
-                  value={formData.fromDate}
-                  onChange={handleInputChange}
-                  disabled={isBusy}
-                  className="bg-white border-gray-200 focus:ring-1 focus:ring-blue-500"
-                />
-              </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="fromDate" className="text-sm font-medium text-gray-700">From Date & Time</Label>
+                    <Input
+                      id="fromDate"
+                      name="fromDate"
+                      type="datetime-local"
+                      value={formData.fromDate}
+                      onChange={handleInputChange}
+                      disabled={isBusy}
+                      className="bg-white border-gray-200 focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
 
-           
-              <div className="space-y-1.5">
-                <Label htmlFor="toDate" className="text-sm font-medium text-gray-700">To Date & Time</Label>
-                <Input
-                  id="toDate"
-                  name="toDate"
-                  type="datetime-local"
-                  value={formData.toDate}
-                  onChange={handleInputChange}
-                  disabled={isBusy}
-                  className="bg-white border-gray-200 focus:ring-1 focus:ring-blue-500"
-                />
-              </div>
-              </>
-            )}
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="toDate" className="text-sm font-medium text-gray-700">To Date & Time</Label>
+                    <Input
+                      id="toDate"
+                      name="toDate"
+                      type="datetime-local"
+                      value={formData.toDate}
+                      onChange={handleInputChange}
+                      disabled={isBusy}
+                      className="bg-white border-gray-200 focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+                </>
+              )}
 
               {/* Plant */}
               <div className="space-y-1.5">
@@ -467,7 +520,7 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
             variant="outline"
             onClick={onClose}
             disabled={isBusy}
-            className="px-6 border-gray-300 text-gray-700 hover:bg-gray-50"
+            className="px-6 border-gray-300 text-gray-700"
           >
             Cancel
           </Button>
@@ -477,12 +530,24 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
               onClick={handleSubmit}
               disabled={isBusy}
               className="px-6 bg-orange-500 hover:bg-orange-600 text-white font-medium"
-               >
+            >
               {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               {isSubmitting ? "Saving..." : "Save Utilization Log"}
             </Button>
           )}
+
+          {record && (
+            <Button
+              onClick={handleUpdate}
+              disabled={isBusy}
+              className="px-6 bg-blue-600 hover:bg-blue-700 text-white font-medium"
+            >
+              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {isSubmitting ? "Updating..." : "Update Utilization Log"}
+            </Button>
+          )}
         </DialogFooter>
+
       </DialogContent>
     </Dialog>
   )

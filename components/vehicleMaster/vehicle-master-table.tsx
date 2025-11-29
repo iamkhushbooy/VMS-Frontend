@@ -1,23 +1,34 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle
+} from "@/components/ui/dialog"
 import { Search, Loader2, Car } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
 
-// Interface matching the fields from your screenshot
 export interface VehicleRecord {
-  name: string // This is usually the License Plate in Frappe or an ID
+  name: string
   license_plate: string
   make: string
   model: string
   location: string
-  employee: string // Driver/Operator
+  employee: string
   fuel_type: string
   last_odometer: number
-  image: string | null // Added image field
+  image: string | null
 }
 
 interface VehicleTableProps {
@@ -32,35 +43,29 @@ export default function VehicleMasterTable({ onAddVehicle, onSelectVehicle }: Ve
   const [searchTerm, setSearchTerm] = useState("")
   const [records, setRecords] = useState<VehicleRecord[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [selectedNames, setSelectedNames] = useState<string[]>([])
+  const [isActionLoading, setIsActionLoading] = useState(false)
+
   const [previewImage, setPreviewImage] = useState<string | null>(null)
 
   const fetchFrappeData = useCallback(async () => {
     setIsLoading(true)
-
     try {
-      // Added "image" to the fetch list
       const fieldsToFetch = [
-        "name", "license_plate", "make", "model", 
+        "name", "license_plate", "make", "model",
         "location", "employee", "fuel_type", "last_odometer", "image"
       ]
-      const fieldsParam = encodeURIComponent(JSON.stringify(fieldsToFetch))
-      const url = `${FRAPPE_BASE_URL}/api/resource/${DOCTYPE_NAME}?fields=${fieldsParam}&limit_page_length=2000`
-      
-      const response = await fetch(url, {
-        credentials: "include", 
-      })
 
-      if (response.status === 403 || response.status === 401) {
-        alert("Session expired. Please login again.")
-        window.location.href = "/" 
-        return
-      }
+      const url = `${FRAPPE_BASE_URL}/api/resource/${DOCTYPE_NAME}?fields=${encodeURIComponent(
+        JSON.stringify(fieldsToFetch)
+      )}&limit_page_length=2000`
 
-      if (!response.ok) throw new Error(`Frappe API Error: ${response.status}`)
+      const response = await fetch(url, { credentials: "include" })
 
       const result = await response.json()
-      const data = result.data || []
-      setRecords(data) 
+      setRecords(result.data || [])
+      setSelectedNames([])
+
     } catch (error) {
       console.error("Error fetching vehicles:", error)
       setRecords([])
@@ -70,111 +75,212 @@ export default function VehicleMasterTable({ onAddVehicle, onSelectVehicle }: Ve
   }, [])
 
   useEffect(() => {
-    if (!localStorage.getItem("isLoggedIn")) {
-      window.location.href = "/"
-      return
-    }
     fetchFrappeData()
   }, [fetchFrappeData])
 
-  const filteredRecords = records.filter(
-    (r) =>
-      r.license_plate?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.make?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.model?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.location?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.employee?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredRecords = records.filter((r) =>
+    `${r.license_plate} ${r.make} ${r.model} ${r.location} ${r.employee}`
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase())
   )
+  const toggleRowSelection = (name: string, checked: boolean) => {
+    setSelectedNames((prev) =>
+      checked ? [...new Set([...prev, name])] : prev.filter((n) => n !== name)
+    )
+  }
+
+  const allVisibleSelected =
+    filteredRecords.length > 0 &&
+    filteredRecords.every((r) => selectedNames.includes(r.name))
+
+  const handleToggleSelectAll = (checked: boolean) => {
+    setSelectedNames(checked ? filteredRecords.map((r) => r.name) : [])
+  }
+  const handleBulkAction = async (action: "cancel" | "delete") => {
+    if (selectedNames.length === 0) {
+      alert("Please select at least one record.")
+      return
+    }
+
+    if (!window.confirm(`Are you sure you want to ${action.toUpperCase()} ${selectedNames.length} record(s)?`))
+      return
+
+    try {
+      setIsActionLoading(true)
+
+      const tokenResp = await fetch(`${FRAPPE_BASE_URL}/api/method/vms.api.get_csrf_token`, {
+        credentials: "include",
+      })
+      const tokenResult = await tokenResp.json()
+      const csrfToken = tokenResult.message
+
+      const formData = new FormData()
+      formData.append("names", JSON.stringify(selectedNames))
+
+      const methodName =
+        action === "cancel"
+          ? "vms.api.bulk_cancel_vehicle_master"
+          : "vms.api.bulk_delete_vehicle_master"
+
+      const res = await fetch(`${FRAPPE_BASE_URL}/api/method/${methodName}`, {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+        headers: {
+          "X-Frappe-CSRF-Token": csrfToken
+        }
+      })
+
+      const data = await res.json()
+
+      if (!res.ok || data.exc) {
+        alert("Failed to perform action.")
+        return
+      }
+
+      alert(
+        action === "cancel"
+          ? "Selected vehicles cancelled successfully."
+          : "Selected vehicles deleted successfully."
+      )
+
+      await fetchFrappeData()
+    } catch (error) {
+      console.error(error)
+      alert("Something went wrong.")
+    } finally {
+      setIsActionLoading(false)
+    }
+  }
 
   const getImageUrl = (path: string | null) => {
-    if (!path) return null;
-    if (path.startsWith("http")) return path;
-    return `${FRAPPE_BASE_URL}${path}`;
+    if (!path) return null
+    if (path.startsWith("http")) return path
+    return `${FRAPPE_BASE_URL}${path}`
   }
 
   return (
     <div className="flex flex-col gap-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Search by plate, make, model, or location..."
+            placeholder="Search vehicle..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 glass-card text-foreground placeholder:text-muted-foreground focus:bg-white/10"
+            className="pl-10"
           />
         </div>
-        <Button onClick={onAddVehicle} className="glow-button-pink text-white font-semibold">
-          + Add Vehicle
-        </Button>
+
+        {/* Bulk buttons */}
+        <div className="flex gap-2 flex-wrap">
+          <Button
+            variant="outline"
+            disabled={selectedNames.length === 0 || isActionLoading}
+            onClick={() => handleBulkAction("cancel")}
+          >
+            {isActionLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Cancel
+          </Button>
+
+          <Button
+            variant="destructive"
+            disabled={selectedNames.length === 0 || isActionLoading}
+            onClick={() => handleBulkAction("delete")}
+          >
+            {isActionLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Delete
+          </Button>
+
+          <Button onClick={onAddVehicle} className="glow-button-pink text-white">
+            + Add Vehicle
+          </Button>
+        </div>
+
       </div>
 
       {/* Table */}
-      <div className="glass-card overflow-x-auto rounded-md border border-white/10">
+      <div className="glass-card overflow-x-auto rounded-md border">
         <Table>
           <TableHeader>
-            <TableRow className="border-white/10 hover:bg-white/5">
-              <TableHead className="text-primary font-semibold w-[80px]">Image</TableHead>
-              <TableHead className="text-primary font-semibold">License Plate</TableHead>
-              <TableHead className="text-primary font-semibold">Make & Model</TableHead>
-              <TableHead className="text-primary font-semibold">Location</TableHead>
-              <TableHead className="text-primary font-semibold">Employee</TableHead>
-              <TableHead className="text-primary font-semibold">Fuel Type</TableHead>
-              <TableHead className="text-primary font-semibold text-right">Odometer</TableHead>
+            <TableRow>
+              <TableHead className="w-10">
+                <Checkbox
+                  checked={allVisibleSelected}
+                  onCheckedChange={(checked) => handleToggleSelectAll(checked === true)}
+                />
+              </TableHead>
+
+              <TableHead>Image</TableHead>
+              <TableHead>License Plate</TableHead>
+              <TableHead>Make & Model</TableHead>
+              <TableHead>Location</TableHead>
+              <TableHead>Employee</TableHead>
+              <TableHead>Fuel Type</TableHead>
+              <TableHead className="text-right">Odometer</TableHead>
             </TableRow>
           </TableHeader>
+
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8">
-                  <Loader2 className="mr-2 h-6 w-6 animate-spin inline text-primary" /> 
-                  <span className="text-muted-foreground">Loading vehicles...</span>
+                <TableCell colSpan={8} className="text-center py-6">
+                  <Loader2 className="h-6 w-6 animate-spin" />
                 </TableCell>
               </TableRow>
             ) : filteredRecords.length > 0 ? (
               filteredRecords.map((record) => (
                 <TableRow
                   key={record.name}
-                  className="table-row-hover border-white/5 cursor-pointer hover:bg-white/5 transition-colors"
-                  onClick={() => onSelectVehicle(record)}
+                  className="cursor-pointer hover:bg-white/5"
+                  onClick={(e) => {
+                    const t = e.target as HTMLElement
+                    if (t.closest("input")) return
+                    onSelectVehicle(record)
+                  }}
                 >
+                  {/* Row checkbox */}
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={selectedNames.includes(record.name)}
+                      onCheckedChange={(checked) =>
+                        toggleRowSelection(record.name, checked === true)
+                      }
+                    />
+                  </TableCell>
+
                   <TableCell>
-                    <div 
-                      className="w-10 h-10 rounded-md overflow-hidden bg-white/5 border border-white/10 flex items-center justify-center cursor-zoom-in hover:ring-2 hover:ring-primary/50 transition-all"
+                    <div
+                      className="w-10 h-10 rounded-md overflow-hidden bg-white/5 border flex items-center justify-center"
                       onClick={(e) => {
-                        e.stopPropagation();
-                        if (record.image) setPreviewImage(getImageUrl(record.image));
+                        e.stopPropagation()
+                        if (record.image) setPreviewImage(getImageUrl(record.image))
                       }}
                     >
                       {record.image ? (
-                        <img 
-                          src={getImageUrl(record.image)!} 
-                          alt={record.license_plate}
+                        <img
+                          src={getImageUrl(record.image)!}
                           className="w-full h-full object-cover"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = 'none';
-                            (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
-                          }}
                         />
                       ) : (
                         <Car className="w-5 h-5 text-muted-foreground/50" />
                       )}
-                      {/* Fallback icon if image fails to load but URL exists */}
-                      <Car className="w-5 h-5 text-muted-foreground/50 hidden" />
                     </div>
                   </TableCell>
-                  <TableCell className="font-mono font-medium">{record.license_plate}</TableCell>
+
+                  <TableCell>{record.license_plate}</TableCell>
                   <TableCell>{record.make} {record.model}</TableCell>
                   <TableCell>{record.location}</TableCell>
                   <TableCell>{record.employee}</TableCell>
                   <TableCell>{record.fuel_type}</TableCell>
-                  <TableCell className="font-mono text-right">{record.last_odometer?.toLocaleString()}</TableCell>
+                  <TableCell className="text-right">{record.last_odometer}</TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={8} className="text-center py-6">
                   No vehicles found.
                 </TableCell>
               </TableRow>
@@ -185,25 +291,31 @@ export default function VehicleMasterTable({ onAddVehicle, onSelectVehicle }: Ve
 
       {/* Image Preview Modal */}
       <Dialog open={!!previewImage} onOpenChange={() => setPreviewImage(null)}>
-        <DialogContent className="max-w-4xl p-0 bg-transparent border-none shadow-none flex justify-center items-center">
-          <DialogTitle className="sr-only">Vehicle Image Preview</DialogTitle>
+        <DialogContent className="max-w-4xl p-0 bg-transparent border-none">
+          <DialogTitle className="sr-only">Image Preview</DialogTitle>
           {previewImage && (
-            <div className="relative rounded-lg overflow-hidden shadow-2xl bg-black/50">
-              <img 
-                src={previewImage} 
-                alt="Full Preview" 
-                className="max-h-[85vh] w-auto max-w-full object-contain"
-              />
-              <Button 
-                variant="secondary" 
-                size="sm" 
-                className="absolute top-2 right-2 rounded-full opacity-70 hover:opacity-100"
-                onClick={() => setPreviewImage(null)}
-              >
-                Close
-              </Button>
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999]">
+
+              <div className="relative bg-white rounded-2xl shadow-2xl p-4 max-w-4xl w-full mx-4">
+
+                {/* Close Button */}
+                <button
+                  onClick={() => setPreviewImage(null)}
+                  className="absolute top-4 right-4 bg-red-500 text-white text-sm px-3 py-1 rounded-md shadow hover:bg-red-600"
+                >
+                  Close
+                </button>
+
+                {/* Image */}
+                <img
+                  src={previewImage}
+                  className="w-full h-[600px] object-cover rounded-xl shadow-lg"
+                />
+              </div>
+
             </div>
           )}
+
         </DialogContent>
       </Dialog>
     </div>

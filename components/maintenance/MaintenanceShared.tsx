@@ -26,7 +26,7 @@ export function cn(...inputs: ClassValue[]) {
 // --- Constants ---
 export const FRAPPE_BASE_URL = "http://localhost:8000"
 export const MAINTENANCE_DOCTYPE = "Vehicle Log Master"
-export const VEHICLE_DOCTYPE = "Vehicle"
+export const VEHICLE_DOCTYPE = "Vehicle Master"
 export const EMPLOYEE_DOCTYPE = "Employee"
 export const ITEM_DOCTYPE = "Item"
 
