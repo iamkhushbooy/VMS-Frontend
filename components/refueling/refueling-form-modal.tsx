@@ -1,5 +1,4 @@
 "use client"
-
 import React, { useState, useEffect, useCallback } from "react"
 import {
   Dialog,
@@ -49,9 +48,12 @@ interface ModalProps {
   isOpen: boolean
   onClose: () => void
   record: { name: string } | null
+  // ⭐ NEW: Callback to refresh table after save
+  onSuccess?: () => void 
 }
 
-export function RefuelingFormModal({ isOpen, onClose, record }: ModalProps) {
+export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: ModalProps) {
+  // --- Form State ---
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split("T")[0],
     issuerName: "",
@@ -71,9 +73,16 @@ export function RefuelingFormModal({ isOpen, onClose, record }: ModalProps) {
     fuelConsumption: 0,
   })
 
+  // --- UI State ---
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isEditMode, setIsEditMode] = useState(false)
 
+  // --- Frappe Data State ---
+  const [docStatus, setDocStatus] = useState<number>(0)
+  const [currentName, setCurrentName] = useState<string | null>(null)
+
+  // --- Options State ---
   const [issuerOptions, setIssuerOptions] = useState<FrappeDoc[]>([])
   const [companyOptions, setCompanyOptions] = useState<FrappeDoc[]>([])
   const [warehouseOptions, setWarehouseOptions] = useState<FrappeDoc[]>([])
@@ -81,72 +90,79 @@ export function RefuelingFormModal({ isOpen, onClose, record }: ModalProps) {
   const [costCenterOptions, setCostCenterOptions] = useState<FrappeDoc[]>([])
   const [vehicleOptions, setVehicleOptions] = useState<VehicleDoc[]>([])
 
-  const [docStatus, setDocStatus] = useState<number>(0)
-  const [currentName, setCurrentName] = useState<string | null>(null)
-  const [isEditMode, setIsEditMode] = useState(false)
-
+  // --- Helpers ---
   const fetchOptions = async (doctype: string, fields = ["name"]) => {
     const fieldsParam = encodeURIComponent(JSON.stringify(fields))
+    try {
+      const res = await fetch(
+        `${FRAPPE_BASE_URL}/api/resource/${doctype}?fields=${fieldsParam}&limit_page_length=2000`,
+        { credentials: "include" }
+      )
+      const json = await res.json()
+      return json.data || []
+    } catch (error) {
+      console.error(`Error fetching ${doctype}`, error)
+      return []
+    }
+  }
+
+  const getCSRF = async () => {
     const res = await fetch(
-      `${FRAPPE_BASE_URL}/api/resource/${doctype}?fields=${fieldsParam}&limit_page_length=2000`,
+      `${FRAPPE_BASE_URL}/api/method/vms.api.get_csrf_token`,
       { credentials: "include" }
     )
     const json = await res.json()
-    return json.data || []
+    return json.message
   }
 
-  const loadRecord = useCallback(
-    async (name: string) => {
-      setIsLoading(true)
-      try {
-        const res = await fetch(
-          `${FRAPPE_BASE_URL}/api/resource/${DOCTYPE}/${encodeURIComponent(
-            name
-          )}`,
-          { credentials: "include" }
-        )
-        const json = await res.json()
-        const doc = json.data
+  const loadRecord = useCallback(async (name: string) => {
+    setIsLoading(true)
+    try {
+      const res = await fetch(
+        `${FRAPPE_BASE_URL}/api/resource/${DOCTYPE}/${encodeURIComponent(name)}`,
+        { credentials: "include" }
+      )
+      const json = await res.json()
+      const doc = json.data
 
-        setCurrentName(doc.name)
-        setDocStatus(doc.docstatus)
+      setCurrentName(doc.name)
+      setDocStatus(doc.docstatus)
 
-        setFormData({
-          date: doc.date,
-          issuerName: doc.issuer_name,
-          company: doc.company,
-          sourceWarehouse: doc.source_warehouse,
-          fuelItem: doc.fuel_item,
-          costCenter: doc.cost_center,
+      setFormData({
+        date: doc.date,
+        issuerName: doc.issuer_name,
+        company: doc.company,
+        sourceWarehouse: doc.source_warehouse,
+        fuelItem: doc.fuel_item,
+        costCenter: doc.cost_center,
+      })
+
+      const mapped: FuelEntry[] = (doc.vehicle_refueling_details || []).map(
+        (d: any) => ({
+          id: d.name,
+          vehicle: d.vehicle,
+          registrationName: d.registration_no,
+          date: d.date,
+          fuelQty: d.fuel_qty_in_ltrs ?? d.fuel_qty ?? 0,
+          current_hmrkms: d.current_hmrkms,
+          fuelConsumption: d.fuel_consumption,
         })
+      )
+      setFuelEntries(mapped)
+      setIsEditMode(doc.docstatus === 0)
+    } catch (e) {
+      console.error("loadRecord error", e)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
 
-        const mapped: FuelEntry[] = (doc.vehicle_refueling_details || []).map(
-          (d: any) => ({
-            id: d.name,
-            vehicle: d.vehicle,
-            registrationName: d.registration_no,
-            date: d.date,
-            fuelQty: d.fuel_qty_in_ltrs ?? d.fuel_qty ?? 0,
-            current_hmrkms: d.current_hmrkms,
-            fuelConsumption: d.fuel_consumption,
-          })
-        )
-        setFuelEntries(mapped)
-
-        setIsEditMode(doc.docstatus === 0)
-      } catch (e) {
-        console.error("loadRecord error", e)
-      } finally {
-        setIsLoading(false)
-      }
-    },
-    []
-  )
-
+  // --- Effects ---
   useEffect(() => {
     if (!isOpen) return
     let cancelled = false
-    ;(async () => {
+
+    const init = async () => {
       try {
         setIsLoading(true)
         const [users, companies, warehouses, items, centers, vehicles] =
@@ -158,6 +174,7 @@ export function RefuelingFormModal({ isOpen, onClose, record }: ModalProps) {
             fetchOptions("Cost Center"),
             fetchOptions("Vehicle Master"),
           ])
+        
         if (cancelled) return
 
         setIssuerOptions(users)
@@ -170,6 +187,7 @@ export function RefuelingFormModal({ isOpen, onClose, record }: ModalProps) {
         if (record?.name) {
           await loadRecord(record.name)
         } else {
+          // Reset to New
           setCurrentName(null)
           setDocStatus(0)
           setIsEditMode(true)
@@ -179,15 +197,22 @@ export function RefuelingFormModal({ isOpen, onClose, record }: ModalProps) {
             date: new Date().toISOString().split("T")[0],
           }))
         }
+      } catch (err) {
+        console.error("Initialization error", err)
       } finally {
         if (!cancelled) setIsLoading(false)
       }
-    })()
+    }
+
+    init()
 
     return () => {
       cancelled = true
     }
+    // ⭐ NOTE: Removed handleSave/handleSubmit from dependencies to fix loop
   }, [isOpen, record, loadRecord])
+
+  // --- Handlers ---
 
   const addFuelEntry = () => {
     if (!newEntry.vehicle || !newEntry.fuelQty) return
@@ -217,13 +242,49 @@ export function RefuelingFormModal({ isOpen, onClose, record }: ModalProps) {
     setFuelEntries((prev) => prev.filter((f) => f.id !== id))
   }
 
-  const getCSRF = async () => {
-    const res = await fetch(
-      `${FRAPPE_BASE_URL}/api/method/vms.api.get_csrf_token`,
-      { credentials: "include" }
-    )
-    const json = await res.json()
-    return json.message
+  const handleSave = async () => {
+    setIsSubmitting(true)
+    try {
+      const csrf = await getCSRF()
+
+      const payload = {
+        ...(currentName ? { name: currentName } : {}),
+        date: formData.date,
+        issuer_name: formData.issuerName,
+        company: formData.company,
+        source_warehouse: formData.sourceWarehouse,
+        fuel_item: formData.fuelItem,
+        cost_center: formData.costCenter,
+        vehicle_refueling_details: fuelEntries,
+      }
+
+      const fd = new FormData()
+      fd.append("data", JSON.stringify(payload))
+
+      const res = await axios.post(
+        `${FRAPPE_BASE_URL}/api/method/vms.api.save_vehicle_refueling`,
+        fd,
+        { withCredentials: true, headers: { "X-Frappe-CSRF-Token": csrf } }
+      )
+
+      const name = res.data.message.message.name
+      const status = res.data.message.message.docstatus
+      console.log("hello",res.data,name,status)
+     
+      setCurrentName(name)
+      setDocStatus(status)
+      setIsEditMode(true)
+
+      alert(currentName ? "Updated successfully" : "Saved successfully")
+      // ⭐ Notify parent to refresh table
+      if (onSuccess) onSuccess() 
+
+    } catch (err) {
+      console.error(err)
+      alert("Error saving")
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleSubmit = async () => {
@@ -257,7 +318,7 @@ export function RefuelingFormModal({ isOpen, onClose, record }: ModalProps) {
       const fd = new FormData()
       fd.append("data", JSON.stringify(payload))
 
-      await axios.post(
+      const res = await axios.post(
         `${FRAPPE_BASE_URL}/api/method/vms.api.submit_vehicle_refueling`,
         fd,
         {
@@ -266,8 +327,18 @@ export function RefuelingFormModal({ isOpen, onClose, record }: ModalProps) {
         }
       )
 
+      // Update local state to Submitted
+      const docName = res.data.message?.name || currentName
+      setCurrentName(docName)
+      setDocStatus(1) // 1 = Submitted
+      setIsEditMode(false)
+
       alert("Saved & Submitted successfully.")
-      window.location.reload()
+      // ⭐ Notify parent to refresh table
+      if (onSuccess) onSuccess()
+        onClose()
+       
+
     } catch (e) {
       console.error("submit error", e)
       alert("Error while submitting.")
@@ -281,6 +352,7 @@ export function RefuelingFormModal({ isOpen, onClose, record }: ModalProps) {
     try {
       const csrf = await getCSRF()
 
+      // CANCEL
       if (docStatus === 1 && currentName) {
         const fd = new FormData()
         fd.append("name", currentName)
@@ -295,11 +367,13 @@ export function RefuelingFormModal({ isOpen, onClose, record }: ModalProps) {
           }
         )
 
+        setDocStatus(2) // 2 = Cancelled
         alert("Cancelled successfully.")
-        window.location.reload()
+        if (onSuccess) onSuccess()
         return
       }
 
+      // AMEND (Make Draft)
       if (docStatus === 2 && currentName) {
         const fd = new FormData()
         fd.append("name", currentName)
@@ -316,8 +390,13 @@ export function RefuelingFormModal({ isOpen, onClose, record }: ModalProps) {
         const json = await res.json()
         const newName = json.message?.name
 
-        alert("Draft created. Open the Draft record to edit.")
-        window.location.reload()
+        // Switch context to the new Draft document
+        setCurrentName(newName)
+        setDocStatus(0)
+        setIsEditMode(true)
+        
+        alert("Draft created. You are now editing the new Draft.")
+        if (onSuccess) onSuccess()
       }
     } catch (e) {
       console.error("status action error", e)
@@ -334,7 +413,9 @@ export function RefuelingFormModal({ isOpen, onClose, record }: ModalProps) {
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl">
-            {docStatus === 0 ? "Refueling (Draft)" : "View Refueling"}
+            {docStatus === 0 ? "Refueling (Draft)" : 
+             docStatus === 1 ? "Refueling (Submitted)" : 
+             "Refueling (Cancelled)"}
           </DialogTitle>
         </DialogHeader>
 
@@ -375,6 +456,7 @@ export function RefuelingFormModal({ isOpen, onClose, record }: ModalProps) {
                 <TableHead>Qty</TableHead>
                 <TableHead>HMR</TableHead>
                 <TableHead>Consumption</TableHead>
+                <TableHead>Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -407,41 +489,42 @@ export function RefuelingFormModal({ isOpen, onClose, record }: ModalProps) {
             Close
           </Button>
 
-          {docStatus === 0 && isEditMode && (
-            <Button
-              onClick={handleSubmit}
-              disabled={isBusy}
-              className="glow-button-pink"
-            >
-              {isSubmitting && (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              )}
-              Save & Submit
+          {/* 1️⃣ SAVE / UPDATE */}
+          {docStatus === 0 && (
+            <Button onClick={handleSave} disabled={isBusy}>
+              {currentName ? "Update" : "Save"}
             </Button>
           )}
 
-          {docStatus === 1 && !isEditMode && (
+          {/* 2️⃣ SUBMIT (Visible if Saved Draft) */}
+          {currentName && docStatus === 0 && (
+            <Button 
+              onClick={handleSubmit} 
+              disabled={isBusy} 
+              className="bg-green-600 hover:bg-green-700"
+            >
+              Submit
+            </Button>
+          )}
+
+          {/* 3️⃣ CANCEL */}
+          {docStatus === 1 && (
             <Button
               onClick={handleStatusAction}
               disabled={isBusy}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              className="bg-red-600 text-white"
             >
-              {isSubmitting && (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              )}
               Cancel
             </Button>
           )}
 
-          {docStatus === 2 && !isEditMode && (
+          {/* 4️⃣ DRAFT */}
+          {docStatus === 2 && (
             <Button
               onClick={handleStatusAction}
               disabled={isBusy}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className="bg-yellow-600 text-white"
             >
-              {isSubmitting && (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              )}
               Draft
             </Button>
           )}
@@ -450,549 +533,3 @@ export function RefuelingFormModal({ isOpen, onClose, record }: ModalProps) {
     </Dialog>
   )
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// "use client"
-
-// import React from "react"
-// import { useState, useEffect } from "react"
-// import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-// import { Button } from "@/components/ui/button"
-// import { Input } from "@/components/ui/input"
-// import { Label } from "@/components/ui/label"
-// import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-// import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
-// import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-// import { Plus, Trash2, Loader2, Check, ChevronsUpDown } from "lucide-react"
-// import { type ClassValue, clsx } from "clsx"
-// import { twMerge } from "tailwind-merge"
-// import axios from "axios";
-// export function cn(...inputs: ClassValue[]) {
-//   return twMerge(clsx(inputs))
-// }
-// const FRAPPE_BASE_URL = "http://localhost:8000"
-// const DOCTYPE_NAME = "Vehicle Refueling"
-
-// interface FrappeDoc { name: string;[key: string]: any; }
-
-// interface VehicleDoc extends FrappeDoc {
-//   last_odometer?: number;
-// }
-
-// interface FuelEntry {
-//   id: string;
-//   vehicle: string;
-//   registrationName: string;
-//   date: string;
-//   fuelQty: number;
-//   current_hmrkms: number;
-//   fuelConsumption: number;
-// }
-
-// interface RefuelingFormModalProps {
-//   isOpen: boolean
-//   onClose: () => void
-//   record: { name: string } | null
-// }
-
-// const fetchFrappeDoctype = async (doctype: string, fields: string[] = ["name"], filters: any[] = []): Promise<FrappeDoc[]> => {
-//   const fieldsParam = encodeURIComponent(JSON.stringify(fields))
-//   let url = `${FRAPPE_BASE_URL}/api/resource/${doctype}?fields=${fieldsParam}&limit_page_length=2000`
-//   if (filters && filters.length > 0) url += `&filters=${encodeURIComponent(JSON.stringify(filters))}`
-
-//   try {
-//     const response = await fetch(url, { credentials: "include" })
-//     if (!response.ok) throw new Error(`${response.status} ${response.statusText}`)
-//     const result = await response.json()
-//     return result.data || []
-//   } catch (e) {
-//     console.error("fetchFrappeDoctype error:", e)
-//     return []
-//   }
-// }
-
-// const ReusableCombobox = React.forwardRef<HTMLButtonElement, any>((props, ref) => {
-//   const { options = [], value, onValueChange, placeholder, searchPlaceholder, displayField = 'name', isLoading = false } = props
-//   const [open, setOpen] = useState(false)
-
-
-//   const getDisplayValue = (val: string) => {
-//     const selected = options.find((o: any) => o.name === val)
-//     if (!selected) return placeholder
-//     return selected[displayField] || selected.name
-//   }
-
-//   return (
-//     <Popover open={open} onOpenChange={setOpen}>
-//       <PopoverTrigger asChild>
-//         <Button variant="outline" role="combobox" aria-expanded={open} className="w-full justify-between bg-input" disabled={isLoading} ref={ref}>
-//           <span className="truncate">{value ? getDisplayValue(value) : placeholder}</span>
-//           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-//         </Button>
-//       </PopoverTrigger>
-
-//       <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-//         <Command>
-//           <CommandInput placeholder={searchPlaceholder} />
-//           <CommandList>
-//             <CommandEmpty>No results found.</CommandEmpty>
-//             <CommandGroup>
-//               {options.map((option: any) => (
-//                 <CommandItem
-//                   key={option.name}
-//                   value={(option[displayField] || option.name)}
-//                   onSelect={(currentValue) => {
-//                     const selected = options.find((opt: any) => (opt[displayField] || opt.name).toLowerCase() === currentValue.toLowerCase())
-//                     const newValue = selected ? selected.name : ""
-//                     onValueChange(newValue === value ? "" : newValue)
-//                     setOpen(false)
-//                   }}
-//                 >
-//                   <Check className={cn("mr-2 h-4 w-4", value === option.name ? "opacity-100" : "opacity-0")} />
-//                   {option[displayField] || option.name}
-//                 </CommandItem>
-//               ))}
-//             </CommandGroup>
-//           </CommandList>
-//         </Command>
-//       </PopoverContent>
-//     </Popover>
-//   )
-// })
-// ReusableCombobox.displayName = "ReusableCombobox"
-
-// export function RefuelingFormModal({ isOpen, onClose, record }: RefuelingFormModalProps) {
-//   const [formData, setFormData] = useState({
-//     date: new Date().toISOString().split("T")[0],
-//     issuerName: "",
-//     company: "",
-//     sourceWarehouse: "",
-//     fuelItem: "",
-//     costCenter: "",
-//   })
-
-//   const [fuelEntries, setFuelEntries] = useState<FuelEntry[]>([])
-//   const [newEntry, setNewEntry] = useState<Partial<FuelEntry>>({
-//     vehicle: "",
-//     registrationName: "",
-//     date: new Date().toISOString().split("T")[0],
-//     fuelQty: 0,
-//     current_hmrkms: 0,
-//     fuelConsumption: 0,
-//   })
-
-//   const [isLoading, setIsLoading] = useState(false)
-//   const [isSubmitting, setIsSubmitting] = useState(false)
-//   const [issuerOptions, setIssuerOptions] = useState<FrappeDoc[]>([])
-//   const [companyOptions, setCompanyOptions] = useState<FrappeDoc[]>([])
-//   const [warehouseOptions, setWarehouseOptions] = useState<FrappeDoc[]>([])
-//   const [itemOptions, setItemOptions] = useState<FrappeDoc[]>([])
-//   const [costCenterOptions, setCostCenterOptions] = useState<FrappeDoc[]>([])
-//   const [vehicleOptions, setVehicleOptions] = useState<VehicleDoc[]>([])
-
-//   useEffect(() => {
-//     if (!isOpen) return
-//     let cancelled = false
-//     setIsLoading(true)
-
-//     const loadDropdowns = async () => {
-//       try {
-//         const [users, companies, warehouses, items, costCenters, vehicles] = await Promise.all([
-//           fetchFrappeDoctype("User", ["name"]),
-//           fetchFrappeDoctype("Company", ["name"]),
-//           fetchFrappeDoctype("Warehouse", ["name"]),
-//           fetchFrappeDoctype("Item", ["name","item_name"]),
-//           fetchFrappeDoctype("Cost Center", ["name"]),
-//           fetchFrappeDoctype("Vehicle Master", ["name"]) as Promise<VehicleDoc[]>,
-//         ])
-//         if (cancelled) return
-//         setIssuerOptions(users)
-//         setCompanyOptions(companies)
-//         setWarehouseOptions(warehouses)
-//         setItemOptions(items)
-//         setCostCenterOptions(costCenters)
-//         setVehicleOptions(vehicles)
-//       } catch (e) {
-//         console.error("loadDropdowns error:", e)
-//       } finally {
-//         if (!cancelled) setIsLoading(false)
-//       }
-//     }
-
-//     const loadFullRecord = async (name: string) => {
-//       setIsLoading(true)
-//       try {
-//         const url = `${FRAPPE_BASE_URL}/api/resource/${DOCTYPE_NAME}/${encodeURIComponent(name)}`
-//         const resp = await fetch(url, { credentials: "include" })
-//         if (!resp.ok) throw new Error("Failed to fetch record")
-//         const result = await resp.json()
-//         const doc = result.data || {}
-//         setFormData({
-//           date: doc.date || new Date().toISOString().split("T")[0],
-//           issuerName: doc.issuer_name || "",
-//           company: doc.company || "",
-//           sourceWarehouse: doc.source_warehouse || "",
-//           fuelItem: doc.fuel_item || "",
-//           costCenter: doc.cost_center || "",
-//         })
-//         const childEntries: FuelEntry[] = (doc.vehicle_refueling_details || []).map((ch: any) => ({
-//           id: ch.name || `${Math.random().toString(36).slice(2)}`,
-//           vehicle: ch.vehicle,
-//           registrationName: ch.registration_no || ch.vehicle,
-//           date: ch.date,
-//           fuelQty: Number(ch.fuel_qty) || 0,
-//           current_hmrkms: parseFloat(ch.current_hmrkms) || 0,
-//           fuelConsumption: Number(ch.fuel_consumption) || 0,
-//         }))
-//         setFuelEntries(childEntries)
-//       } catch (e) {
-//         console.error("loadFullRecord error:", e)
-//         onClose()
-//       } finally {
-//         setIsLoading(false)
-//       }
-//     }
-
-//     loadDropdowns().then(() => {
-//       if (record) loadFullRecord(record.name)
-//     })
-
-//     return () => { cancelled = true }
-//   }, [isOpen, record, onClose])
-
-//   const handleSelectChange = (name: string, value: string) => setFormData(p => ({ ...p, [name]: value }))
-
-//   const handleNewEntryInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-//     const { name, value } = e.target
-//     const numberFields = ['fuelQty', 'current_hmrkms', 'fuelConsumption']
-//     setNewEntry(prev => ({
-//       ...prev,
-//       [name]: numberFields.includes(name) ? (value === "" ? 0 : Number(value)) : value,
-//     }))
-//   }
-
-//   // Use vehicle.last_odometer to autofill current_hmrkms
-//   const handleNewEntrySelectChange = (_name: string, value: string) => {
-//     const selectedVehicle = vehicleOptions.find(v => v.name === value)
-//     setNewEntry(prev => ({
-//       ...prev,
-//       vehicle: value,
-//       registrationName: selectedVehicle?.name || "",
-//       current_hmrkms: selectedVehicle?.last_odometer ?? prev?.current_hmrkms ?? 0,
-//     }))
-//   }
-
-//   const addFuelEntry = () => {
-//     if (!newEntry.vehicle || (Number(newEntry.fuelQty) || 0) <= 0) {
-//       console.warn("Please select a vehicle and enter fuel quantity.")
-//       return
-//     }
-//     const entry: FuelEntry = {
-//       id: `${Date.now()}`,
-//       vehicle: newEntry.vehicle as string,
-//       registrationName: newEntry.registrationName || "",
-//       date: (newEntry.date as string) || new Date().toISOString().split("T")[0],
-//       fuelQty: Number(newEntry.fuelQty) || 0,
-//       current_hmrkms: Number(newEntry.current_hmrkms) || 0,
-//       fuelConsumption: Number(newEntry.fuelConsumption) || 0,
-//     }
-//     setFuelEntries(prev => [...prev, entry])
-//     setNewEntry({
-//       vehicle: "",
-//       registrationName: "",
-//       date: new Date().toISOString().split("T")[0],
-//       fuelQty: 0,
-//       current_hmrkms: 0,
-//       fuelConsumption: 0,
-//     })
-//   }
-
-//   const removeFuelEntry = (id: string) => setFuelEntries(prev => prev.filter(e => e.id !== id))
-
-
-
-//   // const handleSubmit = async () => {
-//   //   if (!formData.company) return console.warn("Company required");
-//   //   if (fuelEntries.length === 0) return console.warn("Add at least one entry");
-
-//   //   setIsSubmitting(true);
-
-//   //   try {
-//   //     const payload = {
-//   //       date: formData.date,
-//   //       issuer_name: formData.issuerName,
-//   //       company: formData.company,
-//   //       source_warehouse: formData.sourceWarehouse,
-//   //       fuel_item: formData.fuelItem,
-//   //       cost_center: formData.costCenter,
-//   //       vehicle_refueling_details: fuelEntries.map((fe) => ({
-//   //         ...(!/^\d+$/.test(fe.id) && { name: fe.id }),
-//   //         vehicle: fe.vehicle,
-//   //         date: fe.date,
-//   //         fuel_qty: fe.fuelQty,
-//   //         current_hmrkms: fe.current_hmrkms,
-//   //         fuel_consumption: fe.fuelConsumption,
-//   //       })),
-//   //     };
-//   //     console.log("hello", payload);
-//   //     const formDataToSend = new FormData();
-//   //     formDataToSend.append("data", JSON.stringify(payload));
-//   //     const res = await axios.post(
-//   //       `${FRAPPE_BASE_URL}/api/method/vms.api.submit_vehicle_refueling`,
-//   //       formDataToSend,
-//   //       {
-//   //         withCredentials: true,
-//   //         headers: {
-//   //           Accept: "*/*",
-//   //         }
-//   //       }
-//   //     );
-
-//   //     console.log("Success:", res.data);
-//   //     onClose();
-
-//   //   } catch (err) {
-//   //     if (axios.isAxiosError(err)) {
-//   //       console.error("Axios submit error:", err.response?.data || err.message);
-//   //     } else {
-//   //       console.error("An unexpected error occurred:", err);
-//   //     }
-//   //   } finally {
-//   //     setIsSubmitting(false);
-//   //   }
-//   // };
-  
-//   const handleSubmit = async () => {
-//   if (!formData.company) return console.warn("Company required");
-//   if (fuelEntries.length === 0) return console.warn("Add at least one entry");
-
-//   setIsSubmitting(true);
-
-//   try {
-//     // ⭐ 1. GET CSRF TOKEN
-//     const csrfRes = await fetch(`${FRAPPE_BASE_URL}/api/method/vms.api.get_csrf_token`, {
-//       credentials: "include"
-//     });
-//     const csrfToken = (await csrfRes.json()).message;
-
-//     // ⭐ 2. MAKE PAYLOAD
-//     const payload = {
-//       date: formData.date,
-//       issuer_name: formData.issuerName,
-//       company: formData.company,
-//       source_warehouse: formData.sourceWarehouse,
-//       fuel_item: formData.fuelItem,
-//       cost_center: formData.costCenter,
-//       vehicle_refueling_details: fuelEntries.map((fe) => ({
-//         vehicle: fe.vehicle,
-//         date: fe.date,
-//         fuel_qty: fe.fuelQty,
-//         current_hmrkms: fe.current_hmrkms,
-//         fuel_consumption: fe.fuelConsumption,
-//       })),
-//     };
-
-//     console.log("Sent Payload:", payload);
-
-//     const form = new FormData();
-//     form.append("data", JSON.stringify(payload));
-
-//     // ⭐ 3. POST WITH CSRF TOKEN
-//     const res = await axios.post(
-//       `${FRAPPE_BASE_URL}/api/method/vms.api.submit_vehicle_refueling`,
-//       form,
-//       {
-//         withCredentials: true,
-//         headers: {
-//           "X-Frappe-CSRF-Token": csrfToken
-//         }
-//       }
-//     );
-
-//     console.log("Success:", res.data);
-//     alert("Refueling submitted successfully!");
-//     onClose();
-
-//   } catch (err) {
-//     console.error("Submit Error:", err.response?.data || err.message);
-//     alert("Error submitting refueling");
-//   } finally {
-//     setIsSubmitting(false);
-//   }
-// };
-
-
-//   const totalFuelQuantity = fuelEntries.reduce((s, e) => s + (Number(e.fuelQty) || 0), 0)
-//   const totalCost = totalFuelQuantity * 85
-//   const isBusy = isLoading || isSubmitting
-
-//   return (
-//     <Dialog open={isOpen} onOpenChange={onClose}>
-//       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-//         <DialogHeader>
-//           <DialogTitle className="text-2xl">{record ? "View" : "Log"} Refueling Event</DialogTitle>
-//         </DialogHeader>
-
-//         {isLoading && (
-//           <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10">
-//             <Loader2 className="h-12 w-12 animate-spin text-primary" />
-//           </div>
-//         )}
-
-//         <div className={`space-y-6 ${isLoading ? 'opacity-50' : ''}`}>
-//           <div className="grid grid-cols-2 gap-4 bg-card p-4 rounded-lg border border-border">
-//             <div>
-//               <Label htmlFor="formDate" className="text-foreground">Date</Label>
-//               <Input id="formDate" name="date" type="date" value={formData.date} onChange={(e) => setFormData(p => ({ ...p, date: e.target.value }))} className="mt-1 bg-input" disabled={isBusy} />
-//             </div>
-
-//             <div>
-//               <Label htmlFor="issuerName" className="text-foreground mb-1">Issuer Name</Label>
-//               <ReusableCombobox options={issuerOptions} value={formData.issuerName} onValueChange={(v: string) => handleSelectChange("issuerName", v)} placeholder="Select issuer" searchPlaceholder="Search issuers..." isLoading={isBusy} />
-//             </div>
-
-//             <div>
-//               <Label htmlFor="company" className="text-foreground mb-1">Company</Label>
-//               <ReusableCombobox options={companyOptions} value={formData.company} onValueChange={(v: string) => handleSelectChange("company", v)} placeholder="Select company" searchPlaceholder="Search companies..." isLoading={isBusy} />
-//             </div>
-
-//             <div>
-//               <Label htmlFor="sourceWarehouse" className="text-foreground mb-1">Source Warehouse</Label>
-//               <ReusableCombobox options={warehouseOptions} value={formData.sourceWarehouse} onValueChange={(v: string) => handleSelectChange("sourceWarehouse", v)} placeholder="Select warehouse" searchPlaceholder="Search warehouses..." isLoading={isBusy} />
-//             </div>
-
-//             <div>
-//               <Label htmlFor="fuelItem" className="text-foreground mb-1">Fuel Item</Label>
-//               <ReusableCombobox options={itemOptions} value={formData.fuelItem} onValueChange={(v: string) => handleSelectChange("fuelItem", v)} placeholder="Select fuel item" searchPlaceholder="Search items..." displayField="item_name" isLoading={isBusy} />
-//             </div>
-
-//             <div>
-//               <Label htmlFor="costCenter" className="text-foreground mb-1">Cost Center</Label>
-//               <ReusableCombobox options={costCenterOptions} value={formData.costCenter} onValueChange={(v: string) => handleSelectChange("costCenter", v)} placeholder="Select cost center" searchPlaceholder="Search cost centers..." isLoading={isBusy} />
-//             </div>
-//           </div>
-
-//           <div className="space-y-4">
-//             <h3 className="font-semibold text-foreground text-lg">Fuel Entry Details</h3>
-
-//             <div className="space-y-3 bg-card p-4 rounded-lg border border-border">
-//               <div className="grid grid-cols-3 gap-4">
-//                 <div>
-//                   <Label htmlFor="vehicle" className="text-foreground mb-1">Registration No</Label>
-//                   <ReusableCombobox options={vehicleOptions} value={newEntry.vehicle || ""} onValueChange={(v: string) => handleNewEntrySelectChange("vehicle", v)} placeholder="Select vehicle" searchPlaceholder="Search by reg no..." displayField="name" isLoading={isBusy} />
-//                 </div>
-
-//                 <div>
-//                   <Label htmlFor="entryDate" className="text-foreground">Date</Label>
-//                   <Input id="entryDate" name="date" type="date" value={newEntry.date as string} onChange={handleNewEntryInputChange} className="mt-1 bg-input" disabled={isBusy} />
-//                 </div>
-
-//                 <div>
-//                   <Label htmlFor="fuelQty" className="text-foreground">Fuel Qty (Ltrs)</Label>
-//                   <Input id="fuelQty" name="fuelQty" type="number" step="0.5" value={newEntry.fuelQty === 0 ? "" : String(newEntry.fuelQty)} onChange={handleNewEntryInputChange} placeholder="Enter quantity" className="mt-1 bg-input" disabled={isBusy} />
-//                 </div>
-
-//                 <div>
-//                   <Label htmlFor="hmr" className="text-foreground">Current HMR/Kms</Label>
-//                   <Input id="hmr" name="current_hmrkms" type="number" step="0.1" value={newEntry.current_hmrkms === 0 ? "" : String(newEntry.current_hmrkms)} onChange={handleNewEntryInputChange} placeholder="e.g., 125430.5" className="mt-1 bg-input" disabled={isBusy} />
-//                 </div>
-
-//                 <div>
-//                   <Label htmlFor="fuelConsumption" className="text-foreground">Fuel Consumption</Label>
-//                   <Input id="fuelConsumption" name="fuelConsumption" type="number" value={newEntry.fuelConsumption === 0 ? "" : String(newEntry.fuelConsumption)} onChange={handleNewEntryInputChange} placeholder="e.g., 8.5" className="mt-1 bg-input" disabled={isBusy} />
-//                 </div>
-
-//                 <div className="flex items-end">
-//                   <Button onClick={addFuelEntry} disabled={isBusy} className="w-full"><Plus className="w-4 h-4 mr-2" /> Add</Button>
-//                 </div>
-//               </div>
-//             </div>
-
-//             {fuelEntries.length > 0 && (
-//               <div className="rounded-lg border border-border overflow-x-auto">
-//                 <Table>
-//                   <TableHeader>
-//                     <TableRow className="border-border">
-//                       <TableHead className="text-secondary">Registration No</TableHead>
-//                       <TableHead className="text-secondary">Date</TableHead>
-//                       <TableHead className="text-secondary">Fuel Qty (Ltrs)</TableHead>
-//                       <TableHead className="text-secondary">Current HMR/kms</TableHead>
-//                       <TableHead className="text-secondary">Fuel Consumption</TableHead>
-//                       <TableHead className="text-secondary">Action</TableHead>
-//                     </TableRow>
-//                   </TableHeader>
-//                   <TableBody>
-//                     {fuelEntries.map(entry => (
-//                       <TableRow key={entry.id} className="border-border">
-//                         <TableCell className="font-mono text-foreground">{entry.registrationName || entry.vehicle}</TableCell>
-//                         <TableCell className="font-mono text-foreground">{entry.date}</TableCell>
-//                         <TableCell className="text-foreground">{entry.fuelQty}</TableCell>
-//                         <TableCell className="font-mono text-foreground">{entry.current_hmrkms}</TableCell>
-//                         <TableCell className="text-foreground">{entry.fuelConsumption}</TableCell>
-//                         <TableCell>
-//                           <Button variant="ghost" size="sm" onClick={() => removeFuelEntry(entry.id)} disabled={isBusy}><Trash2 className="w-4 h-4 text-destructive" /></Button>
-//                         </TableCell>
-//                       </TableRow>
-//                     ))}
-//                   </TableBody>
-//                 </Table>
-//               </div>
-//             )}
-//           </div>
-//         </div>
-
-//         <DialogFooter className="gap-2 flex justify-end">
-//           <Button variant="outline" onClick={onClose} disabled={isBusy}>
-//             Cancel
-//           </Button>
-
-//           {/* Only show this button if 'record' is null (New Log), hide it if Updating */}
-//           {!record && (
-//             <Button
-//               onClick={handleSubmit}
-//               className="glow-button-pink"
-//               disabled={isBusy}
-//             >
-//               {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-//               {isSubmitting ? "Saving..." : "Save Refueling Log"}
-//             </Button>
-//           )}
-//         </DialogFooter>
-//       </DialogContent>
-//     </Dialog>
-//   )
-// }

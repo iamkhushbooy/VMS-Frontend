@@ -296,6 +296,8 @@ interface RefuelingRecord {
 interface RefuelingTableProps {
   onLogRefueling: () => void
   onSelectRecord: (record: RefuelingRecord) => void
+  // ⭐ NEW: Prop to trigger re-fetch
+  refreshTrigger?: number 
 }
 
 const FRAPPE_BASE_URL = "http://localhost:8000"
@@ -315,7 +317,7 @@ const getStatusClass = (d: number) => {
   return "bg-gray-100 text-gray-800 dark:bg-gray-900/40 dark:text-gray-200"
 }
 
-export function RefuelingTable({ onLogRefueling, onSelectRecord }: RefuelingTableProps) {
+export function RefuelingTable({ onLogRefueling, onSelectRecord, refreshTrigger }: RefuelingTableProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [records, setRecords] = useState<RefuelingRecord[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -328,7 +330,6 @@ export function RefuelingTable({ onLogRefueling, onSelectRecord }: RefuelingTabl
   const fetchFrappeData = useCallback(async () => {
     setIsLoading(true)
     try {
-      // ⭐ FIXED: Added docstatus here
       const fieldsToFetch = ["name", "issuer_name", "fuel_item", "company", "date", "docstatus"]
       const fieldsParam = encodeURIComponent(JSON.stringify(fieldsToFetch))
 
@@ -356,14 +357,14 @@ export function RefuelingTable({ onLogRefueling, onSelectRecord }: RefuelingTabl
     }
   }, [router])
 
-  // On load
+  // On load OR when refreshTrigger changes
   useEffect(() => {
     if (!localStorage.getItem("isLoggedIn")) {
       router.push("/")
       return
     }
     fetchFrappeData()
-  }, [fetchFrappeData, router])
+  }, [fetchFrappeData, router, refreshTrigger]) // ⭐ Added refreshTrigger here
 
   // Filter
   const filteredRecords = records.filter(
@@ -435,7 +436,7 @@ export function RefuelingTable({ onLogRefueling, onSelectRecord }: RefuelingTabl
       }
 
       alert(action === "cancel" ? "Cancelled successfully." : "Deleted successfully.")
-      fetchFrappeData()
+      fetchFrappeData() // Reload after bulk action
     } catch (error) {
       console.error(error)
       alert("Error performing action.")
