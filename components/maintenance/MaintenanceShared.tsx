@@ -18,12 +18,10 @@ import { Check, ChevronsUpDown } from "lucide-react"
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 
-// --- Utilities ---
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-// --- Constants ---
 export const FRAPPE_BASE_URL = "http://localhost:8000"
 export const MAINTENANCE_DOCTYPE = "Vehicle Log Master"
 export const VEHICLE_DOCTYPE = "Vehicle Master"
@@ -42,9 +40,9 @@ export const statusOptions = [
   { name: "Completed" },
   { name: "Hold" },
 ]
-export const seriesOptions = [
-  { name: "HR-VLOG-.YYYY.-" },
-]
+
+export const seriesOptions = [{ name: "HR-VLOG-.YYYY.-" }]
+
 export const jobCardTypeOptions = [
   { name: "Scheduled Maintenance" },
   { name: "Breakdown" },
@@ -56,15 +54,9 @@ export const jobCardTypeOptions = [
   { name: "Accident Damage" },
 ]
 
-export const jsaOptions = [
-  { name: "Done" },
-  { name: "Not Done" },
-]
+export const jsaOptions = [{ name: "Done" }, { name: "Not Done" }]
 
-export const housekeepingOptions = [
-  { name: "Yes" },
-  { name: "No" },
-]
+export const housekeepingOptions = [{ name: "Yes" }, { name: "No" }]
 
 // --- Interfaces ---
 export interface FrappeDoc {
@@ -85,6 +77,7 @@ export interface ItemDoc extends FrappeDoc {
   standard_rate?: number
   total_projected_qty?: number
 }
+
 export interface ProblemEntry {
   id: string
   problem_detail: string
@@ -111,7 +104,7 @@ export interface PartEntry {
   remark?: string
 }
 
-export interface LubeEntry extends PartEntry { }
+export interface LubeEntry extends PartEntry {}
 
 export interface MaintenanceLogSummary {
   name: string
@@ -121,9 +114,9 @@ export interface MaintenanceFormModalProps {
   isOpen: boolean
   onClose: () => void
   log: MaintenanceLogSummary | null
+  onSuccess?: () => void  
 }
 
-// --- Helper Functions ---
 export const fetchFrappeDoctype = async (
   doctype: string,
   fields: string[] = ["name"],
@@ -137,8 +130,7 @@ export const fetchFrappeDoctype = async (
 
   try {
     const response = await fetch(url, { credentials: "include" })
-    if (!response.ok)
-      throw new Error(`${response.status} ${response.statusText}`)
+    if (!response.ok) throw new Error(`${response.status} ${response.statusText}`)
     const result = await response.json()
     return result.data || []
   } catch (e) {
@@ -146,8 +138,6 @@ export const fetchFrappeDoctype = async (
     return []
   }
 }
-
-// --- Reusable Components ---
 
 export const ReusableCombobox = React.forwardRef<HTMLButtonElement, any>(
   (props, ref) => {
@@ -161,6 +151,7 @@ export const ReusableCombobox = React.forwardRef<HTMLButtonElement, any>(
       isLoading = false,
       disabled = false,
     } = props
+
     const [open, setOpen] = useState(false)
 
     const getDisplayValue = (val: string) => {
@@ -193,9 +184,8 @@ export const ReusableCombobox = React.forwardRef<HTMLButtonElement, any>(
           <Command>
             <CommandInput placeholder={searchPlaceholder} />
             <CommandList>
-              {options.length === 0 && (
-                <CommandEmpty>No results found.</CommandEmpty>
-              )}
+              {options.length === 0 && <CommandEmpty>No results found.</CommandEmpty>}
+
               <CommandGroup>
                 {options.map((option: any, i: number) => (
                   <CommandItem
@@ -242,6 +232,7 @@ export const MultiSelectCombobox = React.forwardRef<HTMLButtonElement, any>(
       displayField = "name",
       isLoading = false,
     } = props
+
     const [open, setOpen] = useState(false)
 
     const getDisplayValue = () => {
@@ -275,9 +266,8 @@ export const MultiSelectCombobox = React.forwardRef<HTMLButtonElement, any>(
           <Command>
             <CommandInput placeholder={searchPlaceholder} />
             <CommandList>
-              {options.length === 0 && (
-                <CommandEmpty>No results found.</CommandEmpty>
-              )}
+              {options.length === 0 && <CommandEmpty>No results found.</CommandEmpty>}
+
               <CommandGroup>
                 {options.map((option: any) => {
                   const isSelected = value.includes(option.name)
@@ -293,7 +283,6 @@ export const MultiSelectCombobox = React.forwardRef<HTMLButtonElement, any>(
                           newValue = [...value, option.name]
                         }
                         onValueChange(newValue)
-
                       }}
                     >
                       <Check

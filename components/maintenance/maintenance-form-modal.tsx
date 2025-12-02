@@ -9,7 +9,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Plus, Loader2 } from "lucide-react"
+import { Loader2 } from "lucide-react"
 import axios from "axios"
 import { GeneralDetailsSection } from './GeneralDetailsSection'
 import { ProblemJobDetailSection } from './ProblemJobDetailsSection'
@@ -38,11 +38,11 @@ import {
   type LubeEntry,
   type MaintenanceFormModalProps
 } from "./MaintenanceShared"
-
 export function MaintenanceFormModal({
   isOpen,
   onClose,
   log,
+  onSuccess
 }: MaintenanceFormModalProps) {
   const [formData, setFormData] = useState({
     series: seriesOptions[0]?.name || "",
@@ -103,21 +103,24 @@ export function MaintenanceFormModal({
   const [itemOptions, setItemOptions] = useState<ItemDoc[]>([])
   const [warehouseOptions, setWarehouseOptions] = useState<FrappeDoc[]>([])
 
+  const [docStatus, setDocStatus] = useState<number>(0)          
+  const [currentName, setCurrentName] = useState<string | null>(null)
+
   const fetchAvailableQty = async (itemCode: string, uom: string) => {
-  try {
-    const res = await axios.get(
-      `${FRAPPE_BASE_URL}/api/method/vms.api.get_available_qty`,
-      {
-        params: { item_code: itemCode, uom },
-        withCredentials: true,
-      }
-    );
-    return res.data.message ? Number(res.data.message) : 0;
-  } catch (error) {
-    console.error("Stock qty fetch error:", error);
-    return 0;
-  }
-};
+    try {
+      const res = await axios.get(
+        `${FRAPPE_BASE_URL}/api/method/vms.api.get_available_qty`,
+        {
+          params: { item_code: itemCode, uom },
+          withCredentials: true,
+        }
+      );
+      return res.data.message ? Number(res.data.message) : 0;
+    } catch (error) {
+      console.error("Stock qty fetch error:", error);
+      return 0;
+    }
+  };
 
   const fetchValuationRate = async (itemCode: string, selectedWarehouse: string) => {
     if (!selectedWarehouse) {
@@ -140,6 +143,15 @@ export function MaintenanceFormModal({
       console.error("Valuation rate fetch error:", error);
       return 0;
     }
+  }
+
+  const getCSRF = async () => {
+    const res = await fetch(
+      `${FRAPPE_BASE_URL}/api/method/vms.api.get_csrf_token`,
+      { credentials: "include" }
+    )
+    const json = await res.json()
+    return json.message
   }
 
   useEffect(() => {
@@ -167,6 +179,33 @@ export function MaintenanceFormModal({
       setPendingJobEntries([])
       setPartEntries([])
       setLubeEntries([])
+      setNewProblem("")
+      setNewWorkDone("")
+      setNewPendingJob("")
+      setNewPart({
+        item_name: "",
+        item_display: "",
+        item_group: "",
+        uom: "",
+        stock_qty: "",
+        rate: "",
+        qty: "",
+        expense: "",
+        remark: "",
+      })
+      setNewLube({
+        item_name: "",
+        item_display: "",
+        item_group: "",
+        uom: "",
+        stock_qty: "",
+        rate: "",
+        qty: "",
+        expense: "",
+        remark: "",
+      })
+      setDocStatus(0)
+      setCurrentName(null)
       return
     }
 
@@ -219,6 +258,9 @@ export function MaintenanceFormModal({
         }
 
         const loadedEmployees = (doc.working_employee || []).map((row: any) => row.employee);
+
+        setCurrentName(doc.name || null)
+        setDocStatus(typeof doc.docstatus === "number" ? doc.docstatus : 0)
 
         setFormData({
           series: doc.naming_series || "",
@@ -284,12 +326,14 @@ export function MaintenanceFormModal({
       if (log) {
         loadFullRecord(log.name).finally(() => { if (!cancelled) setIsLoading(false) })
       } else {
+        setDocStatus(0)
+        setCurrentName(null)
         if (!cancelled) setIsLoading(false)
       }
     })
 
     return () => { cancelled = true }
-  }, [isOpen, log, onClose, itemOptions.length])
+  }, [isOpen, log])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target
@@ -318,70 +362,72 @@ export function MaintenanceFormModal({
   const addProblemEntry = () => {
     if (newProblem.trim()) { setProblemEntries((prev) => [...prev, { id: Date.now().toString(), problem_detail: newProblem }]); setNewProblem("") }
   }
+
   const addWorkDoneEntry = () => {
     if (newWorkDone.trim()) { setWorkDoneEntries((prev) => [...prev, { id: Date.now().toString(), work_done_detail: newWorkDone }]); setNewWorkDone("") }
   }
+
   const addPendingJobEntry = () => {
     if (newPendingJob.trim()) { setPendingJobEntries((prev) => [...prev, { id: Date.now().toString(), pending_job_detail: newPendingJob }]); setNewPendingJob("") }
   }
 
 
-const handleNewPartChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  const { name, value } = e.target;
+  const handleNewPartChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
 
-  setNewPart((prev) => {
-    let updated = { ...prev, [name]: value };
+    setNewPart((prev) => {
+      let updated = { ...prev, [name]: value };
 
-    if (name === "qty") {
-      const qtyNum = Number(value);
-      const stockNum = Number(prev.stock_qty);
-      if (qtyNum > stockNum) {
-        alert("Quantity cannot exceed available stock!");
-        updated.qty = "";
-        updated.expense = "";
-        return updated;
+      if (name === "qty") {
+        const qtyNum = Number(value);
+        const stockNum = Number(prev.stock_qty);
+        if (qtyNum > stockNum) {
+          alert("Quantity cannot exceed available stock!");
+          updated.qty = "";
+          updated.expense = "";
+          return updated;
+        }
+        if (qtyNum > 0 && Number(prev.rate) > 0) {
+          updated.expense = qtyNum * Number(prev.rate);
+        }
       }
-      if (qtyNum > 0 && Number(prev.rate) > 0) {
-        updated.expense = qtyNum * Number(prev.rate);
-      }
-    }
 
-    return updated;
-  });
-};
+      return updated;
+    });
+  };
 
   const handlePartItemSelect = async (itemId: string) => {
-  if (!formData.warehouse) {
-    alert("Please select a Warehouse first!");
-    return;
-  }
+    if (!formData.warehouse) {
+      alert("Please select a Warehouse first!");
+      return;
+    }
 
-  const selectedItem = itemOptions.find((i) => i.name === itemId);
-  setNewPart((prev) => ({
-    ...prev,
-    item_name: itemId,
-    item_display: selectedItem?.item_name || itemId,
-    item_group: selectedItem?.item_group || "",
-    uom: selectedItem?.stock_uom || "",
-    stock_qty: "",   
-    rate: "",
-    qty: "",
-    expense: "",
-    remark: "",
-  }));
-
-  if (itemId && selectedItem?.stock_uom) {
-    const [vRate, availableQty] = await Promise.all([
-      fetchValuationRate(itemId, formData.warehouse),
-      fetchAvailableQty(itemId, selectedItem.stock_uom),
-    ]);
+    const selectedItem = itemOptions.find((i) => i.name === itemId);
     setNewPart((prev) => ({
       ...prev,
-      rate: vRate,
-      stock_qty: availableQty,  
+      item_name: itemId,
+      item_display: selectedItem?.item_name || itemId,
+      item_group: selectedItem?.item_group || "",
+      uom: selectedItem?.stock_uom || "",
+      stock_qty: "",
+      rate: "",
+      qty: "",
+      expense: "",
+      remark: "",
     }));
-  }
-};
+
+    if (itemId && selectedItem?.stock_uom) {
+      const [vRate, availableQty] = await Promise.all([
+        fetchValuationRate(itemId, formData.warehouse),
+        fetchAvailableQty(itemId, selectedItem.stock_uom),
+      ]);
+      setNewPart((prev) => ({
+        ...prev,
+        rate: vRate,
+        stock_qty: availableQty,
+      }));
+    }
+  };
 
   const addPartEntry = () => {
     if (newPart.item_name.trim()) {
@@ -390,69 +436,67 @@ const handleNewPartChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     }
   }
 
-const handleNewLubeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  const { name, value } = e.target
+  const handleNewLubeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
 
-  setNewLube((prev) => {
-    let updated: any = { ...prev, [name]: value }
+    setNewLube((prev) => {
+      let updated: any = { ...prev, [name]: value }
 
-    if (name === "qty") {
-      const qtyNum = Number(value)
-      const stockNum = Number(prev.stock_qty)
+      if (name === "qty") {
+        const qtyNum = Number(value)
+        const stockNum = Number(prev.stock_qty)
 
-      if (qtyNum > stockNum) {
-        alert("Quantity cannot be more than available stock!")
-        updated.qty = ""
-        updated.expense = ""
-        return updated
+        if (qtyNum > stockNum) {
+          alert("Quantity cannot be more than available stock!")
+          updated.qty = ""
+          updated.expense = ""
+          return updated
+        }
+
+        if (qtyNum > 0 && Number(prev.rate) > 0) {
+          updated.expense = qtyNum * Number(prev.rate)
+        } else {
+          updated.expense = ""
+        }
       }
 
-      if (qtyNum > 0 && Number(prev.rate) > 0) {
-        updated.expense = qtyNum * Number(prev.rate)
-      } else {
-        updated.expense = ""
-      }
-    }
-
-    return updated
-  })
-}
-
-const handleLubeItemSelect = async (itemId: string) => {
-  if (!formData.warehouse) {
-    alert("Please select a Warehouse first to fetch the correct rate and stock.")
-    return
+      return updated
+    })
   }
-  const selectedItem = itemOptions.find((i) => i.name === itemId)
-  setNewLube((prev) => ({
-    ...prev,
-    item_name: itemId,
-    item_display: selectedItem?.item_name || itemId,
-    item_group: selectedItem?.item_group || "",
-    uom: selectedItem?.stock_uom || "",
-    stock_qty: "",
-    rate: "",
-    qty: "",
-    remark: "",
-    expense: "",
-  }))
 
-  if (itemId && selectedItem?.stock_uom) {
-    const [vRate, availableQty] = await Promise.all([
-      fetchValuationRate(itemId, formData.warehouse),
-      fetchAvailableQty(itemId, selectedItem.stock_uom), 
-    ])
-
+  const handleLubeItemSelect = async (itemId: string) => {
+    if (!formData.warehouse) {
+      alert("Please select a Warehouse first to fetch the correct rate and stock.")
+      return
+    }
+    const selectedItem = itemOptions.find((i) => i.name === itemId)
     setNewLube((prev) => ({
       ...prev,
-      rate: vRate,
-      stock_qty: availableQty,              
-      expense: prev.qty ? Number(prev.qty) * vRate : prev.expense,
+      item_name: itemId,
+      item_display: selectedItem?.item_name || itemId,
+      item_group: selectedItem?.item_group || "",
+      uom: selectedItem?.stock_uom || "",
+      stock_qty: "",
+      rate: "",
+      qty: "",
+      remark: "",
+      expense: "",
     }))
+
+    if (itemId && selectedItem?.stock_uom) {
+      const [vRate, availableQty] = await Promise.all([
+        fetchValuationRate(itemId, formData.warehouse),
+        fetchAvailableQty(itemId, selectedItem.stock_uom),
+      ])
+
+      setNewLube((prev) => ({
+        ...prev,
+        rate: vRate,
+        stock_qty: availableQty,
+        expense: prev.qty ? Number(prev.qty) * vRate : prev.expense,
+      }))
+    }
   }
-}
-
-
 
   const addLubeEntry = () => {
     if (newLube.item_name.trim()) {
@@ -460,69 +504,151 @@ const handleLubeItemSelect = async (itemId: string) => {
       setNewLube({ item_name: "", item_display: "", item_group: "", uom: "", stock_qty: "", rate: "", qty: "", expense: "", remark: "" })
     }
   }
+  const buildPayload = () => {
+    const nameToUse = currentName || log?.name
 
-  // --- Submit Handler ---
-  const handleSubmit = async () => {
+    const payload: any = {
+      ...formData,
+      current_odometer_value: formData.current_odometer_value || 0,
+      ...(nameToUse && { name: nameToUse }),
+      naming_series: formData.series,
+      job_cards_type: formData.job_card_type,
+      license_plate: formData.registration_no,
+      priority_level: formData.priority,
+      date_and_time_of_job_completion: formData.date_of_completion,
+      jsajratool_box_task: formData.jsa_jra_tool_box_task,
+      house_keeping_after_shift_work: formData.house_keeping,
+      warehouse: formData.warehouse,
+
+      working_employee: formData.working_employees.map(emp => ({ employee: emp })),
+
+      problem_details: problemEntries.map((p) => ({
+        ...(!/^\d+$/.test(p.id) && { name: p.id }),
+        problem_details: p.problem_detail
+      })),
+      work_done_details: workDoneEntries.map((w) => ({
+        ...(!/^\d+$/.test(w.id) && { name: w.id }),
+        work_done_details: w.work_done_detail
+      })),
+      pending_jobs_backlog_details: pendingJobEntries.map((pj) => ({
+        ...(!/^\d+$/.test(pj.id) && { name: pj.id }),
+        pending_jobsbacklog_details: pj.pending_job_detail
+      })),
+
+      part_details: partEntries.map((p) => ({
+        ...(!/^\d+$/.test(p.id) && { name: p.id }),
+        item_name: p.item_name,
+        item_group: p.item_group,
+        uom: p.uom,
+        stock_qty: p.stock_qty,
+        rate: p.rate,
+        qty: p.qty,
+        expense: p.expense,
+        remark: p.remark,
+      })),
+
+      lube_details: lubeEntries.map((l) => ({
+        ...(!/^\d+$/.test(l.id) && { name: l.id }),
+        item_name: l.item_name,
+        item_group: l.item_group,
+        uom: l.uom,
+        stock_qty: l.stock_qty,
+        rate: l.rate,
+        qty: l.qty,
+        expense: l.expense,
+        remark: l.remark,
+      })),
+    }
+    delete payload.working_employees
+    delete payload.registration_no
+    delete payload.series
+    delete payload.job_card_type
+    delete payload.priority
+    delete payload.date_of_completion
+    delete payload.jsa_jra_tool_box_task
+    delete payload.house_keeping
+    delete payload.date_of_initiation
+
+    return payload
+  }
+  const handleSave = async () => {
+    setIsSubmitting(true)
+    try {
+      const payload = buildPayload()
+      const formDataToSend = new FormData()
+      formDataToSend.append("data", JSON.stringify(payload))
+
+      const csrf = await getCSRF()
+
+      const res = await axios.post(
+        `${FRAPPE_BASE_URL}/api/method/vms.api.save_vehicle_log_master`,
+        formDataToSend,
+        {
+          withCredentials: true,
+          headers: { "X-Frappe-CSRF-Token": csrf }
+        }
+      )
+
+
+      const msg = res.data.message || res.data
+      const name = msg.name || msg?.message?.name
+      const status = msg.docstatus ?? msg?.message?.docstatus ?? 0
+
+      if (name) setCurrentName(name)
+      setDocStatus(status)
+      onSuccess?.()
+
+
+      alert(currentName ? "Updated successfully." : "Saved successfully.")
+    } catch (err) {
+      console.error("Save error:", err)
+      alert("Failed to save draft.")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleSubmitFinal = async () => {
     if (!formData.registration_no || formData.working_employees.length === 0) {
       alert("Validation Error: Please select Registration No and at least one Working Employee.");
       return;
     }
+
     setIsSubmitting(true)
     try {
-      const payload = {
-        ...formData,
-        current_odometer_value: formData.current_odometer_value || 0,
-        ...(log?.name && { name: log.name }),
-        naming_series: formData.series,
-        job_cards_type: formData.job_card_type,
-        license_plate: formData.registration_no,
-        priority_level: formData.priority,
-        date_and_time_of_job_completion: formData.date_of_completion,
-        jsajratool_box_task: formData.jsa_jra_tool_box_task,
-        house_keeping_after_shift_work: formData.house_keeping,
-        warehouse: formData.warehouse,
-
-        working_employee: formData.working_employees.map(emp => ({ employee: emp })),
-
-        problem_details: problemEntries.map((p) => ({ ...(!/^\d+$/.test(p.id) && { name: p.id }), problem_details: p.problem_detail })),
-        work_done_details: workDoneEntries.map((w) => ({ ...(!/^\d+$/.test(w.id) && { name: w.id }), work_done_details: w.work_done_detail })),
-        pending_jobs_backlog_details: pendingJobEntries.map((pj) => ({ ...(!/^\d+$/.test(pj.id) && { name: pj.id }), pending_jobsbacklog_details: pj.pending_job_detail })),
-
-        part_details: partEntries.map((p) => ({
-          ...(!/^\d+$/.test(p.id) && { name: p.id }),
-          item_name: p.item_name, item_group: p.item_group, uom: p.uom, stock_qty: p.stock_qty, rate: p.rate, qty: p.qty, expense: p.expense, remark: p.remark,
-        })),
-
-        lube_details: lubeEntries.map((l) => ({
-          ...(!/^\d+$/.test(l.id) && { name: l.id }),
-          item_name: l.item_name, item_group: l.item_group, uom: l.uom, stock_qty: l.stock_qty, rate: l.rate, qty: l.qty, expense: l.expense, remark: l.remark,
-        })),
-      }
-
-      delete (payload as any).working_employees
-      delete (payload as any).registration_no
-      delete (payload as any).series
-      delete (payload as any).job_card_type
-      delete (payload as any).priority
-      delete (payload as any).date_of_completion
-      delete (payload as any).jsa_jra_tool_box_task
-      delete (payload as any).house_keeping
-      delete (payload as any).date_of_initiation
-
-      console.log("Submitting Payload:", payload)
-
+      const payload = buildPayload()
       const formDataToSend = new FormData()
       formDataToSend.append("data", JSON.stringify(payload))
 
-      const res = await axios.post(`${FRAPPE_BASE_URL}/api/method/vms.api.submit_vehicle_log_master`, formDataToSend, { withCredentials: true, headers: { Accept: "*/*" } })
+      const csrf = await getCSRF()
+
+      const res = await axios.post(
+        `${FRAPPE_BASE_URL}/api/method/vms.api.submit_vehicle_log_master`,
+        formDataToSend,
+        {
+          withCredentials: true,
+          headers: {
+            Accept: "*/*",
+            "X-Frappe-CSRF-Token": csrf
+          }
+        }
+      )
+
+
+      const msg = res.data.message || res.data
+      const name = msg.name || msg?.message?.name
+      if (name) setCurrentName(name)
+      setDocStatus(1)
+      onSuccess?.()
+
       console.log("Success:", res.data)
+      alert("Maintenance Log submitted successfully.")
       onClose()
     } catch (err) {
+      console.error("Submit error:", err)
       if (axios.isAxiosError(err)) {
-        console.error("Axios submit error:", err.response?.data || err.message)
         alert(`Submission Failed: ${err.response?.data?.message || err.message}`)
       } else {
-        console.error("An unexpected error occurred:", err)
         alert("An unexpected error occurred during submission.")
       }
     } finally {
@@ -530,13 +656,90 @@ const handleLubeItemSelect = async (itemId: string) => {
     }
   }
 
+  const handleCancel = async () => {
+    if (!currentName) return;
+
+    setIsSubmitting(true);
+    try {
+      // ⭐ CSRF token fetch
+      const csrf = await getCSRF();
+
+      const fd = new FormData();
+      fd.append("name", currentName);
+
+      const res = await axios.post(
+        `${FRAPPE_BASE_URL}/api/method/vms.api.cancel_vehicle_log_master`,
+        fd,
+        {
+          withCredentials: true,
+          headers: { "X-Frappe-CSRF-Token": csrf }
+        }
+      );
+
+      const msg = res.data.message || res.data;
+      const status = msg.docstatus ?? 2;
+      setDocStatus(status);
+
+      alert("Maintenance Log cancelled.");
+    } catch (err) {
+      console.error("Cancel error:", err);
+      alert("Failed to cancel Maintenance Log.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+
+  const handleAmend = async () => {
+    if (!currentName) return
+
+    setIsSubmitting(true)
+    try {
+      const fd = new FormData()
+      fd.append("name", currentName)
+
+      const csrf = await getCSRF()
+
+      const res = await axios.post(
+        `${FRAPPE_BASE_URL}/api/method/vms.api.amend_vehicle_log_master`,
+        fd,
+        {
+          withCredentials: true,
+          headers: { "X-Frappe-CSRF-Token": csrf }
+        }
+      )
+
+
+      const msg = res.data.message || res.data
+      const newName = msg.name || msg?.message?.name
+
+      if (newName) {
+        setCurrentName(newName)
+        onSuccess?.()
+
+        setDocStatus(0)
+        alert("You can now edit and submit again.")
+      } else {
+        alert("Amendment created but new document name not returned.")
+      }
+    } catch (err) {
+      console.error("Amend error:", err)
+      alert("Failed to create amendment.")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   const isBusy = isLoading || isSubmitting
   const showTimeField = ["Completed"].includes(formData.status)
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto bg-white">
         <DialogHeader>
-          <DialogTitle className="text-2xl">{log ? "Show" : "Create"} Maintenance Log</DialogTitle>
+          <DialogTitle className="text-2xl">
+            {log ? "Show" : "Create"} Maintenance Log
+          </DialogTitle>
           <DialogDescription className="hidden">Form to create or view vehicle maintenance details</DialogDescription>
         </DialogHeader>
 
@@ -568,28 +771,22 @@ const handleLubeItemSelect = async (itemId: string) => {
             showTimeField={showTimeField}
           />
 
-
-
           {/* Problem/Job Details Section */}
           <ProblemJobDetailSection
             problemEntries={problemEntries}
             newProblem={newProblem}
             setNewProblem={setNewProblem}
             addProblemEntry={addProblemEntry}
-
             workDoneEntries={workDoneEntries}
             newWorkDone={newWorkDone}
             setNewWorkDone={setNewWorkDone}
             addWorkDoneEntry={addWorkDoneEntry}
-
             pendingJobEntries={pendingJobEntries}
             newPendingJob={newPendingJob}
             setNewPendingJob={setNewPendingJob}
             addPendingJobEntry={addPendingJobEntry}
-
             isBusy={isBusy}
           />
-
 
           {/* Parts Details Section */}
           <PartsDetailSection
@@ -602,7 +799,6 @@ const handleLubeItemSelect = async (itemId: string) => {
             isBusy={isBusy}
           />
 
-
           {/* Lube Details Section */}
           <LubeDetailSection
             lubeEntries={lubeEntries}
@@ -613,19 +809,66 @@ const handleLubeItemSelect = async (itemId: string) => {
             addLubeEntry={addLubeEntry}
             isBusy={isBusy}
           />
-
-
         </div>
 
         <DialogFooter className="gap-2 flex justify-end pt-6">
-          <Button variant="outline" onClick={onClose} disabled={isBusy}>Cancel</Button>
-          {!log && (
-            <Button onClick={handleSubmit} className="glow-button-pink" disabled={isBusy}>
+          {/* Close */}
+          <Button variant="outline" onClick={onClose} disabled={isBusy}>
+            Close
+          </Button>
+
+          {/* NEW DOCUMENT → SAVE DRAFT */}
+          {!currentName && docStatus === 0 && (
+            <Button onClick={handleSave} disabled={isBusy}>
               {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              {isSubmitting ? "Saving..." : "Save Maintenance Log"}
+              Save
+            </Button>
+          )}
+
+          {/*EXISTING DRAFT (docstatus=0) → UPDATE + SUBMIT */}
+          {currentName && docStatus === 0 && (
+            <>
+              <Button onClick={handleSave} disabled={isBusy}>
+                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Update
+              </Button>
+
+              <Button
+                onClick={handleSubmitFinal}
+                disabled={isBusy}
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Submit
+              </Button>
+            </>
+          )}
+
+          {/*SUBMITTED (docstatus=1) → CANCEL */}
+          {currentName && docStatus === 1 && (
+            <Button
+              onClick={handleCancel}
+              disabled={isBusy}
+              className="bg-red-600 text-white"
+            >
+              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Cancel
+            </Button>
+          )}
+
+          {/*CANCELLED (docstatus=2) → CREATE AMENDMENT */}
+          {currentName && docStatus === 2 && (
+            <Button
+              onClick={handleAmend}
+              disabled={isBusy}
+              className="bg-yellow-600 text-white"
+            >
+              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Draft
             </Button>
           )}
         </DialogFooter>
+
       </DialogContent>
     </Dialog>
   )
