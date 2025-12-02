@@ -14,13 +14,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { UtilizationReport } from "@/lib/vms-api"
-import { FilterState } from "./FilterBar"
+import { useVmsFilters } from "@/lib/store/vms-filters-store"
 import { Download, ArrowUpDown, Search } from "lucide-react"
 import { format } from "date-fns"
 
 interface UtilizationReportTableProps {
   data: UtilizationReport[]
-  filters: FilterState
   isLoading?: boolean
 }
 
@@ -29,9 +28,9 @@ type SortDirection = "asc" | "desc"
 
 export function UtilizationReportTable({
   data,
-  filters,
   isLoading,
 }: UtilizationReportTableProps) {
+  const { filters } = useVmsFilters()
   const [searchTerm, setSearchTerm] = useState("")
   const [sortField, setSortField] = useState<SortField>("date")
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc")
@@ -108,13 +107,15 @@ export function UtilizationReportTable({
 
   const handleExport = () => {
     const csv = [
-      ["Date", "Shift", "Cost Center", "Vehicle", "Status", "HMR"].join(","),
+      ["Date", "Shift", "Cost Center", "Plant", "Vehicle", "Supervisor", "Status", "HMR"].join(","),
       ...filteredAndSortedData.map((report) =>
         [
           report.date || "",
           report.shift || "",
           report.cost_center || "",
+          report.plant || "",
           report.vehicle || "",
+          report.supervisor_name || "",
           report.status || "",
           report.hmr || 0,
         ].join(","),
@@ -185,7 +186,9 @@ export function UtilizationReportTable({
                 </TableHead>
                 <TableHead>Shift</TableHead>
                 <TableHead>Cost Center</TableHead>
+                <TableHead>Plant</TableHead>
                 <TableHead>Vehicle</TableHead>
+                <TableHead>Supervisor</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>
                   <Button
@@ -203,7 +206,7 @@ export function UtilizationReportTable({
             <TableBody>
               {paginatedData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground">
                     No records found
                   </TableCell>
                 </TableRow>
@@ -215,7 +218,9 @@ export function UtilizationReportTable({
                     </TableCell>
                     <TableCell>{report.shift || "N/A"}</TableCell>
                     <TableCell>{report.cost_center || "N/A"}</TableCell>
+                    <TableCell>{report.plant || "N/A"}</TableCell>
                     <TableCell className="font-medium">{report.vehicle || "N/A"}</TableCell>
+                    <TableCell>{report.supervisor_name || "N/A"}</TableCell>
                     <TableCell>
                       <span
                         className={`px-2 py-1 rounded text-xs ${

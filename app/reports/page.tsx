@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react"
 import { AppLayout } from "@/components/app-layout"
-import { FilterBar, FilterState } from "@/components/vms/reports/FilterBar"
+import { FilterBar } from "@/components/vms/reports/FilterBar"
+import { useVmsFilters } from "@/lib/store/vms-filters-store"
 import { UtilizationReportTable } from "@/components/vms/reports/UtilizationReportTable"
 import { FuelReportTable } from "@/components/vms/reports/FuelReportTable"
 import { MaintenanceReportTable } from "@/components/vms/reports/MaintenanceReportTable"
@@ -18,14 +19,7 @@ export default function ReportsPage() {
   const [logs, setLogs] = useState<any[]>([])
   const [refuelings, setRefuelings] = useState<any[]>([])
   const [utilizations, setUtilizations] = useState<any[]>([])
-  const [filters, setFilters] = useState<FilterState>({
-    fromDate: undefined,
-    toDate: undefined,
-    vehicle: "all",
-    costCenter: "all",
-    status: "all",
-    shift: "all",
-  })
+  const { filters } = useVmsFilters()
 
   useEffect(() => {
     if (!localStorage.getItem("isLoggedIn")) {
@@ -61,60 +55,45 @@ export default function ReportsPage() {
     fetchData()
   }, [router])
 
-  const handleResetFilters = () => {
-    setFilters({
-      fromDate: undefined,
-      toDate: undefined,
-      vehicle: "all",
-      costCenter: "all",
-      status: "all",
-      shift: "all",
-    })
-  }
-
   return (
-    <AppLayout>
-      <div className="p-6 max-w-7xl mx-auto space-y-6">
-        {/* Page Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">Reports Hub</h1>
-          <p className="text-muted-foreground">Comprehensive fleet reports and analytics</p>
+    <div className="min-h-screen bg-[#F7F8FA] text-gray-900">
+      <AppLayout>
+        <div className="p-6 max-w-7xl mx-auto">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-foreground mb-2">Reports Hub</h1>
+            <p className="text-muted-foreground">Comprehensive fleet reports and analytics</p>
+          </div>
+
+          {/* Filters */}
+          <FilterBar />
+
+          {/* Reports Tabs */}
+          <Tabs defaultValue="utilization" className="space-y-4 mt-6">
+            <TabsList>
+              <TabsTrigger value="utilization">Utilization Report</TabsTrigger>
+              <TabsTrigger value="fuel">Fuel Report</TabsTrigger>
+              <TabsTrigger value="maintenance">Maintenance Report</TabsTrigger>
+              <TabsTrigger value="vehicles">Vehicle Master</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="utilization" className="space-y-4">
+              <UtilizationReportTable data={utilizations} isLoading={isLoading} />
+            </TabsContent>
+
+            <TabsContent value="fuel" className="space-y-4">
+              <FuelReportTable data={refuelings} isLoading={isLoading} />
+            </TabsContent>
+
+            <TabsContent value="maintenance" className="space-y-4">
+              <MaintenanceReportTable data={logs} isLoading={isLoading} />
+            </TabsContent>
+
+            <TabsContent value="vehicles" className="space-y-4">
+              <VehicleMasterReportTable data={vehicles} isLoading={isLoading} />
+            </TabsContent>
+          </Tabs>
         </div>
-
-        {/* Filters */}
-        <FilterBar filters={filters} onFiltersChange={setFilters} onReset={handleResetFilters} />
-
-        {/* Reports Tabs */}
-        <Tabs defaultValue="utilization" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="utilization">Utilization Report</TabsTrigger>
-            <TabsTrigger value="fuel">Fuel Report</TabsTrigger>
-            <TabsTrigger value="maintenance">Maintenance Report</TabsTrigger>
-            <TabsTrigger value="vehicles">Vehicle Master</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="utilization" className="space-y-4">
-            <UtilizationReportTable
-              data={utilizations}
-              filters={filters}
-              isLoading={isLoading}
-            />
-          </TabsContent>
-
-          <TabsContent value="fuel" className="space-y-4">
-            <FuelReportTable data={refuelings} filters={filters} isLoading={isLoading} />
-          </TabsContent>
-
-          <TabsContent value="maintenance" className="space-y-4">
-            <MaintenanceReportTable data={logs} filters={filters} isLoading={isLoading} />
-          </TabsContent>
-
-          <TabsContent value="vehicles" className="space-y-4">
-            <VehicleMasterReportTable data={vehicles} isLoading={isLoading} />
-          </TabsContent>
-        </Tabs>
-      </div>
-    </AppLayout>
+      </AppLayout>
+    </div>
   )
 }
-

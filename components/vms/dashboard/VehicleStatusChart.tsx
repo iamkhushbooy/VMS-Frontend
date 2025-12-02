@@ -5,32 +5,30 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { UtilizationReport } from "@/lib/vms-api"
 import { useMemo } from "react"
 
-interface CostCenterPieChartProps {
+interface VehicleStatusChartProps {
   data: UtilizationReport[]
   isLoading?: boolean
 }
 
-const COLORS = ["#0ea5e9", "#2563eb", "#7c3aed", "#ef4444", "#facc15", "#10b981"]
+const COLORS = ["#0ea5e9", "#facc15", "#ef4444", "#6b7280"]
 
-export function CostCenterPieChart({ data, isLoading }: CostCenterPieChartProps) {
+export function VehicleStatusChart({ data, isLoading }: VehicleStatusChartProps) {
   const chartData = useMemo(() => {
     if (!data || data.length === 0) return []
 
-    const grouped = data.reduce((acc, report) => {
-      const costCenter = report.cost_center || "Unknown"
-      const hmr = report.hmr || 0
-
-      acc[costCenter] = (acc[costCenter] || 0) + hmr
+    const statusCounts = data.reduce((acc, report) => {
+      const status = report.status || "Unknown"
+      acc[status] = (acc[status] || 0) + 1
       return acc
     }, {} as Record<string, number>)
 
-    return Object.entries(grouped).map(([name, value]) => ({ name, value }))
+    return Object.entries(statusCounts).map(([name, value]) => ({ name, value }))
   }, [data])
 
   if (isLoading) {
     return (
       <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-800 mb-3">Cost Center Utilization</h3>
+        <h3 className="text-lg font-semibold text-gray-800 mb-3">Vehicle Status Distribution</h3>
         <Skeleton className="h-[300px] w-full" />
       </div>
     )
@@ -38,7 +36,7 @@ export function CostCenterPieChart({ data, isLoading }: CostCenterPieChartProps)
 
   return (
     <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
-      <h3 className="text-lg font-semibold text-gray-800 mb-3">Cost Center Utilization</h3>
+      <h3 className="text-lg font-semibold text-gray-800 mb-3">Vehicle Status Distribution</h3>
       <div className="w-full h-[300px]">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>

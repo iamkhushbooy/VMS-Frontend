@@ -14,21 +14,22 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { VehicleLogMaster } from "@/lib/vms-api"
-import { FilterState } from "./FilterBar"
+import { useVmsFilters } from "@/lib/store/vms-filters-store"
 import { Download } from "lucide-react"
 import { format } from "date-fns"
+import { BreakdownCountChart } from "./BreakdownCountChart"
+import { MaintenanceCostTrendChart } from "./MaintenanceCostTrendChart"
 
 interface MaintenanceReportTableProps {
   data: VehicleLogMaster[]
-  filters: FilterState
   isLoading?: boolean
 }
 
 export function MaintenanceReportTable({
   data,
-  filters,
   isLoading,
 }: MaintenanceReportTableProps) {
+  const { filters } = useVmsFilters()
   const [jobTypeFilter, setJobTypeFilter] = useState<string>("")
   const [statusFilter, setStatusFilter] = useState<string>("")
 
@@ -107,8 +108,15 @@ export function MaintenanceReportTable({
           Export CSV
         </Button>
       </CardHeader>
-      <CardContent>
-        <div className="mb-4 flex gap-4">
+      <CardContent className="space-y-6">
+        {/* Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <BreakdownCountChart data={data} isLoading={isLoading} />
+          <MaintenanceCostTrendChart data={data} isLoading={isLoading} />
+        </div>
+
+        {/* Filters */}
+        <div className="flex gap-4">
           <div className="w-48">
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger>

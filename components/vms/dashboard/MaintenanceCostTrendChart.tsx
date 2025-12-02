@@ -1,8 +1,7 @@
 "use client"
 
 import {
-  ComposedChart,
-  Bar,
+  LineChart,
   Line,
   XAxis,
   YAxis,
@@ -12,44 +11,46 @@ import {
   ResponsiveContainer,
 } from "recharts"
 import { Skeleton } from "@/components/ui/skeleton"
-import { VehicleRefueling } from "@/lib/vms-api"
+import { VehicleLogMaster } from "@/lib/vms-api"
 import { useMemo } from "react"
+import { format } from "date-fns"
 
-interface FuelTrendChartProps {
-  data: VehicleRefueling[]
+interface MaintenanceCostTrendChartProps {
+  data: VehicleLogMaster[]
   isLoading?: boolean
 }
 
-export function FuelTrendChart({ data, isLoading }: FuelTrendChartProps) {
+export function MaintenanceCostTrendChart({ data, isLoading }: MaintenanceCostTrendChartProps) {
   const chartData = useMemo(() => {
     if (!data || data.length === 0) return []
 
-    const grouped = data.reduce((acc, refueling) => {
-      const date = refueling.date || ""
+    // Group by date and calculate total expense
+    const grouped = data.reduce((acc, log) => {
+      const date = log.date_of_initiation || (log.creation || "")
       if (!date) return acc
 
-      if (!acc[date]) {
-        acc[date] = { date, fuelQty: 0, avgEfficiency: 0, count: 0, totalEfficiency: 0 }
+      const dateKey = format(new Date(date), "yyyy-MM-dd")
+
+      if (!acc[dateKey]) {
+        acc[dateKey] = { date: dateKey, totalExpense: 0, count: 0 }
       }
 
-      if (refueling.vehicle_refueling_details) {
-        refueling.vehicle_refueling_details.forEach((detail) => {
-          acc[date].fuelQty += detail.fuel_qty_in_ltrs || 0
-          if (detail.fuel_consumption) {
-            acc[date].totalEfficiency += detail.fuel_consumption
-            acc[date].count += 1
-          }
-        })
-      }
+      // Calculate total expense
+      const partsExpense = log.part_details?.reduce((sum, p) => sum + (p.expense || 0), 0) || 0
+      const lubeExpense = log.lube_details?.reduce((sum, l) => sum + (l.expense || 0), 0) || 0
+      const totalExpense = partsExpense + lubeExpense
+
+      acc[dateKey].totalExpense += totalExpense
+      acc[dateKey].count += 1
 
       return acc
-    }, {} as Record<string, { date: string; fuelQty: number; avgEfficiency: number; count: number; totalEfficiency: number }>)
+    }, {} as Record<string, { date: string; totalExpense: number; count: number }>)
 
     return Object.values(grouped)
       .map((item) => ({
-        date: item.date,
-        "Fuel Qty (L)": item.fuelQty,
-        "Fuel Efficiency (km/l)": item.count > 0 ? item.totalEfficiency / item.count : 0,
+        date: format(new Date(item.date), "MMM dd"),
+        "Total Expense": item.totalExpense,
+        "Maintenance Count": item.count,
       }))
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
       .slice(-30) // Last 30 days
@@ -58,7 +59,7 @@ export function FuelTrendChart({ data, isLoading }: FuelTrendChartProps) {
   if (isLoading) {
     return (
       <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-800 mb-3">Refueling & Fuel Trends</h3>
+        <h3 className="text-lg font-semibold text-gray-800 mb-3">Maintenance Cost Trend</h3>
         <Skeleton className="h-[300px] w-full" />
       </div>
     )
@@ -66,10 +67,10 @@ export function FuelTrendChart({ data, isLoading }: FuelTrendChartProps) {
 
   return (
     <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
-      <h3 className="text-lg font-semibold text-gray-800 mb-3">Refueling & Fuel Trends</h3>
+      <h3 className="text-lg font-semibold text-gray-800 mb-3">Maintenance Cost Trend</h3>
       <div className="w-full h-[300px]">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={chartData}>
+          <LineChart data={chartData}>
             <CartesianGrid stroke="#e5e7eb" strokeDasharray="3 3" />
             <XAxis
               dataKey="date"
@@ -98,21 +99,23 @@ export function FuelTrendChart({ data, isLoading }: FuelTrendChartProps) {
             />
             <Tooltip />
             <Legend wrapperStyle={{ color: "#333" }} iconType="circle" />
-            <Bar
+            <Line
               yAxisId="left"
-              dataKey="Fuel Qty (L)"
-              fill="#7c3aed"
-              radius={[12, 12, 0, 0]}
+              type="monotone"
+              dataKey="Total Expense"
+              stroke="#ef4444"
+              strokeWidth={3}
+              dot={{ r: 4 }}
             />
             <Line
               yAxisId="right"
               type="monotone"
-              dataKey="Fuel Efficiency (km/l)"
+              dataKey="Maintenance Count"
               stroke="#2563eb"
               strokeWidth={3}
               dot={{ r: 4 }}
             />
-          </ComposedChart>
+          </LineChart>
         </ResponsiveContainer>
       </div>
     </div>

@@ -10,17 +10,20 @@ export interface VehicleMaster {
   location: string
   employee: string
   vehicle_value: number
+  image?: string
 }
 
 export interface VehicleLogMaster {
   name: string
   license_plate: string
+  job_cards_type?: string
   date_of_initiation?: string
   date_and_time_of_job_completion?: string
   current_odometer_value: number
   last_odometer_value: number
   status: string
   priority_level: string
+  creation?: string
   problem_details?: Array<{ problem_details: string }>
   work_done_details?: Array<{ work_done_details: string }>
   part_details?: Array<{
@@ -119,6 +122,7 @@ export const vmsApi = {
       "location",
       "employee",
       "vehicle_value",
+      "image",
     ], filters),
 
   // Vehicle Log Master

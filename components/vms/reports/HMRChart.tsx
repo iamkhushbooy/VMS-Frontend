@@ -13,46 +13,67 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { UtilizationReport } from "@/lib/vms-api"
 import { useMemo } from "react"
+import { format } from "date-fns"
+import { useVmsFilters } from "@/lib/store/vms-filters-store"
 
-interface FleetUtilizationChartProps {
+interface HMRChartProps {
   data: UtilizationReport[]
   isLoading?: boolean
 }
 
-export function FleetUtilizationChart({ data, isLoading }: FleetUtilizationChartProps) {
+export function HMRChart({ data, isLoading }: HMRChartProps) {
+  const { filters } = useVmsFilters()
+
   const chartData = useMemo(() => {
     if (!data || data.length === 0) return []
 
-    // Group by date and count statuses
-    const grouped = data.reduce((acc, report) => {
+    // Apply filters
+    let filtered = data.filter((report) => {
+      if (filters.fromDate && report.date) {
+        const reportDate = new Date(report.date)
+        if (reportDate < filters.fromDate) return false
+      }
+      if (filters.toDate && report.date) {
+        const reportDate = new Date(report.date)
+        if (reportDate > filters.toDate) return false
+      }
+      if (filters.vehicle && filters.vehicle !== "all" && report.vehicle !== filters.vehicle)
+        return false
+      if (filters.costCenter && filters.costCenter !== "all" && report.cost_center !== filters.costCenter)
+        return false
+      if (filters.status && filters.status !== "all" && report.status !== filters.status) return false
+      if (filters.shift && filters.shift !== "all" && report.shift !== filters.shift) return false
+      return true
+    })
+
+    // Group by date and sum HMR
+    const grouped = filtered.reduce((acc, report) => {
       const date = report.date || report.from_date || ""
       if (!date) return acc
 
-      if (!acc[date]) {
-        acc[date] = { date, Running: 0, Idle: 0, Breakdown: 0 }
+      const dateKey = format(new Date(date), "yyyy-MM-dd")
+
+      if (!acc[dateKey]) {
+        acc[dateKey] = { date: dateKey, totalHMR: 0 }
       }
 
-      const status = report.status || "Idle"
-      if (status === "Running" || status === "running") {
-        acc[date].Running += 1
-      } else if (status === "Breakdown" || status === "breakdown") {
-        acc[date].Breakdown += 1
-      } else {
-        acc[date].Idle += 1
-      }
+      acc[dateKey].totalHMR += report.hmr || 0
 
       return acc
-    }, {} as Record<string, { date: string; Running: number; Idle: number; Breakdown: number }>)
+    }, {} as Record<string, { date: string; totalHMR: number }>)
 
     return Object.values(grouped)
+      .map((item) => ({
+        date: format(new Date(item.date), "MMM dd, yyyy"),
+        HMR: item.totalHMR,
+      }))
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-      .slice(-30) // Last 30 days
-  }, [data])
+  }, [data, filters])
 
   if (isLoading) {
     return (
       <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-800 mb-3">Fleet Utilization Trend</h3>
+        <h3 className="text-lg font-semibold text-gray-800 mb-3">HMR Trend by Day</h3>
         <Skeleton className="h-[300px] w-full" />
       </div>
     )
@@ -60,7 +81,7 @@ export function FleetUtilizationChart({ data, isLoading }: FleetUtilizationChart
 
   return (
     <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
-      <h3 className="text-lg font-semibold text-gray-800 mb-3">Fleet Utilization Trend</h3>
+      <h3 className="text-lg font-semibold text-gray-800 mb-3">HMR Trend by Day</h3>
       <div className="w-full h-[300px]">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData}>
@@ -85,22 +106,8 @@ export function FleetUtilizationChart({ data, isLoading }: FleetUtilizationChart
             <Legend wrapperStyle={{ color: "#333" }} iconType="circle" />
             <Line
               type="monotone"
-              dataKey="Running"
-              stroke="#0ea5e9"
-              strokeWidth={3}
-              dot={{ r: 4 }}
-            />
-            <Line
-              type="monotone"
-              dataKey="Idle"
-              stroke="#facc15"
-              strokeWidth={3}
-              dot={{ r: 4 }}
-            />
-            <Line
-              type="monotone"
-              dataKey="Breakdown"
-              stroke="#ef4444"
+              dataKey="HMR"
+              stroke="#2563eb"
               strokeWidth={3}
               dot={{ r: 4 }}
             />

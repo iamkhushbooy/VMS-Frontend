@@ -1,8 +1,8 @@
 "use client"
 
 import {
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -13,38 +13,40 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { UtilizationReport } from "@/lib/vms-api"
 import { useMemo } from "react"
+import { format } from "date-fns"
 
-interface FleetUtilizationChartProps {
+interface HMRTrendChartProps {
   data: UtilizationReport[]
   isLoading?: boolean
 }
 
-export function FleetUtilizationChart({ data, isLoading }: FleetUtilizationChartProps) {
+export function HMRTrendChart({ data, isLoading }: HMRTrendChartProps) {
   const chartData = useMemo(() => {
     if (!data || data.length === 0) return []
 
-    // Group by date and count statuses
+    // Group by date and sum HMR
     const grouped = data.reduce((acc, report) => {
       const date = report.date || report.from_date || ""
       if (!date) return acc
 
-      if (!acc[date]) {
-        acc[date] = { date, Running: 0, Idle: 0, Breakdown: 0 }
+      const dateKey = format(new Date(date), "yyyy-MM-dd")
+
+      if (!acc[dateKey]) {
+        acc[dateKey] = { date: dateKey, totalHMR: 0, count: 0 }
       }
 
-      const status = report.status || "Idle"
-      if (status === "Running" || status === "running") {
-        acc[date].Running += 1
-      } else if (status === "Breakdown" || status === "breakdown") {
-        acc[date].Breakdown += 1
-      } else {
-        acc[date].Idle += 1
-      }
+      acc[dateKey].totalHMR += report.hmr || 0
+      acc[dateKey].count += 1
 
       return acc
-    }, {} as Record<string, { date: string; Running: number; Idle: number; Breakdown: number }>)
+    }, {} as Record<string, { date: string; totalHMR: number; count: number }>)
 
     return Object.values(grouped)
+      .map((item) => ({
+        date: format(new Date(item.date), "MMM dd"),
+        HMR: item.totalHMR,
+        "Avg HMR": item.count > 0 ? item.totalHMR / item.count : 0,
+      }))
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
       .slice(-30) // Last 30 days
   }, [data])
@@ -52,7 +54,7 @@ export function FleetUtilizationChart({ data, isLoading }: FleetUtilizationChart
   if (isLoading) {
     return (
       <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-800 mb-3">Fleet Utilization Trend</h3>
+        <h3 className="text-lg font-semibold text-gray-800 mb-3">HMR Trend (Last 30 Days)</h3>
         <Skeleton className="h-[300px] w-full" />
       </div>
     )
@@ -60,10 +62,10 @@ export function FleetUtilizationChart({ data, isLoading }: FleetUtilizationChart
 
   return (
     <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
-      <h3 className="text-lg font-semibold text-gray-800 mb-3">Fleet Utilization Trend</h3>
+      <h3 className="text-lg font-semibold text-gray-800 mb-3">HMR Trend (Last 30 Days)</h3>
       <div className="w-full h-[300px]">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={chartData}>
+          <AreaChart data={chartData}>
             <CartesianGrid stroke="#e5e7eb" strokeDasharray="3 3" />
             <XAxis
               dataKey="date"
@@ -83,28 +85,23 @@ export function FleetUtilizationChart({ data, isLoading }: FleetUtilizationChart
             />
             <Tooltip />
             <Legend wrapperStyle={{ color: "#333" }} iconType="circle" />
-            <Line
+            <Area
               type="monotone"
-              dataKey="Running"
+              dataKey="HMR"
+              stroke="#2563eb"
+              strokeWidth={3}
+              fill="#2563eb"
+              fillOpacity={0.2}
+            />
+            <Area
+              type="monotone"
+              dataKey="Avg HMR"
               stroke="#0ea5e9"
               strokeWidth={3}
-              dot={{ r: 4 }}
+              fill="#0ea5e9"
+              fillOpacity={0.2}
             />
-            <Line
-              type="monotone"
-              dataKey="Idle"
-              stroke="#facc15"
-              strokeWidth={3}
-              dot={{ r: 4 }}
-            />
-            <Line
-              type="monotone"
-              dataKey="Breakdown"
-              stroke="#ef4444"
-              strokeWidth={3}
-              dot={{ r: 4 }}
-            />
-          </LineChart>
+          </AreaChart>
         </ResponsiveContainer>
       </div>
     </div>

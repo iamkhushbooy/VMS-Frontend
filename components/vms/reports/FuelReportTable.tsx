@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { VehicleRefueling } from "@/lib/vms-api"
-import { FilterState } from "./FilterBar"
+import { useVmsFilters } from "@/lib/store/vms-filters-store"
 import { Download } from "lucide-react"
 import { format } from "date-fns"
 import {
@@ -31,11 +31,11 @@ import {
 
 interface FuelReportTableProps {
   data: VehicleRefueling[]
-  filters: FilterState
   isLoading?: boolean
 }
 
-export function FuelReportTable({ data, filters, isLoading }: FuelReportTableProps) {
+export function FuelReportTable({ data, isLoading }: FuelReportTableProps) {
+  const { filters } = useVmsFilters()
   const filteredData = useMemo(() => {
     return data.filter((refueling) => {
       if (filters.fromDate && refueling.date) {

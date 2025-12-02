@@ -11,23 +11,14 @@ import { CalendarIcon, X } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { vmsApi, VehicleMaster } from "@/lib/vms-api"
-
-export interface FilterState {
-  fromDate: Date | undefined
-  toDate: Date | undefined
-  vehicle: string
-  costCenter: string
-  status: string
-  shift: string
-}
+import { useVmsFilters } from "@/lib/store/vms-filters-store"
 
 interface FilterBarProps {
-  filters: FilterState
-  onFiltersChange: (filters: FilterState) => void
-  onReset: () => void
+  onReset?: () => void
 }
 
-export function FilterBar({ filters, onFiltersChange, onReset }: FilterBarProps) {
+export function FilterBar({ onReset }: FilterBarProps) {
+  const { filters, setFilters, resetFilters } = useVmsFilters()
   const [vehicles, setVehicles] = useState<VehicleMaster[]>([])
   const [costCenters, setCostCenters] = useState<string[]>([])
 
@@ -51,8 +42,13 @@ export function FilterBar({ filters, onFiltersChange, onReset }: FilterBarProps)
     fetchOptions()
   }, [])
 
-  const updateFilter = (key: keyof FilterState, value: any) => {
-    onFiltersChange({ ...filters, [key]: value })
+  const updateFilter = (key: keyof typeof filters, value: any) => {
+    setFilters({ [key]: value })
+  }
+
+  const handleReset = () => {
+    resetFilters()
+    if (onReset) onReset()
   }
 
   const hasActiveFilters = Object.values(filters).some((v) => v !== "" && v !== "all" && v !== undefined)
@@ -190,7 +186,7 @@ export function FilterBar({ filters, onFiltersChange, onReset }: FilterBarProps)
 
         {hasActiveFilters && (
           <div className="mt-4 flex justify-end">
-            <Button variant="outline" size="sm" onClick={onReset}>
+            <Button variant="outline" size="sm" onClick={handleReset}>
               <X className="mr-2 h-4 w-4" />
               Reset Filters
             </Button>
