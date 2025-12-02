@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Search, Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 
-const FRAPPE_BASE_URL = "https://prayog.vaaman.in"
+import { getApiUrl, config } from "@/lib/config"
 
 interface MaintenanceLog {
   name: string
@@ -46,7 +46,7 @@ export function MaintenanceTable({ onNewLog, onSelectLog, refreshTrigger }: Main
   const fetchMaintenanceLogs = useCallback(async () => {
     setIsLoading(true)
     try {
-      const url = `${FRAPPE_BASE_URL}/api/method/vms.api.get_maintenance_logs_with_details`
+      const url = getApiUrl(config.api.method("vms.api.get_maintenance_logs_with_details"))
       const resp = await fetch(url, { credentials: "include" })
       const json = await resp.json()
 

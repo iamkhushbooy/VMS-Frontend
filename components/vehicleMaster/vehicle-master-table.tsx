@@ -36,7 +36,7 @@ interface VehicleTableProps {
   onSelectVehicle: (record: VehicleRecord) => void
 }
 
-const FRAPPE_BASE_URL = "https://prayog.vaaman.in"
+import { getApiUrl, config } from "@/lib/config"
 const DOCTYPE_NAME = "Vehicle Master"
 
 export default function VehicleMasterTable({ onAddVehicle, onSelectVehicle }: VehicleTableProps) {
@@ -56,7 +56,7 @@ export default function VehicleMasterTable({ onAddVehicle, onSelectVehicle }: Ve
         "location", "employee", "fuel_type", "last_odometer", "image"
       ]
 
-      const url = `${FRAPPE_BASE_URL}/api/resource/${DOCTYPE_NAME}?fields=${encodeURIComponent(
+      const url = `${getApiUrl(config.api.resource(DOCTYPE_NAME))}?fields=${encodeURIComponent(
         JSON.stringify(fieldsToFetch)
       )}&limit_page_length=2000`
 
@@ -108,7 +108,7 @@ export default function VehicleMasterTable({ onAddVehicle, onSelectVehicle }: Ve
     try {
       setIsActionLoading(true)
 
-      const tokenResp = await fetch(`${FRAPPE_BASE_URL}/api/method/vms.api.get_csrf_token`, {
+      const tokenResp = await fetch(getApiUrl(config.api.getCsrfToken), {
         credentials: "include",
       })
       const tokenResult = await tokenResp.json()
@@ -122,7 +122,7 @@ export default function VehicleMasterTable({ onAddVehicle, onSelectVehicle }: Ve
           ? "vms.api.bulk_cancel_vehicle_master"
           : "vms.api.bulk_delete_vehicle_master"
 
-      const res = await fetch(`${FRAPPE_BASE_URL}/api/method/${methodName}`, {
+      const res = await fetch(getApiUrl(config.api.method(methodName)), {
         method: "POST",
         body: formData,
         credentials: "include",
@@ -156,7 +156,7 @@ export default function VehicleMasterTable({ onAddVehicle, onSelectVehicle }: Ve
   const getImageUrl = (path: string | null) => {
     if (!path) return null
     if (path.startsWith("http")) return path
-    return `${FRAPPE_BASE_URL}${path}`
+    return getApiUrl(path)
   }
 
   return (

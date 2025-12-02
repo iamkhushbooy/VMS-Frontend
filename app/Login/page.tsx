@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 
-const FRAPPE_BASE_URL = "https://prayog.vaaman.in"
+import { getApiUrl, config } from "@/lib/config"
 
 function LoginPage() {
   const [email, setEmail] = useState("")
@@ -23,7 +23,7 @@ function LoginPage() {
     setIsLoading(true)
 
     try {
-      const LOGIN_URL = `${FRAPPE_BASE_URL}/api/method/login`
+      const LOGIN_URL = getApiUrl(config.api.login)
 
       const response = await fetch(LOGIN_URL, {
         method: "POST",

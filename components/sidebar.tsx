@@ -115,7 +115,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             </Button>
           </Link>
 
-          {/* Example of adding a third item for completeness */}
+          {/* Reports */}
           <Link href="/reports" onClick={onClose}>
             <Button
               variant="ghost"

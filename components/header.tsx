@@ -5,6 +5,7 @@ import { Menu, KeyRound, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
+import { getApiUrl, config } from "@/lib/config"
 interface HeaderProps {
   onSidebarToggle: () => void
 }
@@ -12,7 +13,7 @@ export function Header({ onSidebarToggle }: HeaderProps) {
   const pathname = usePathname()
   const router=useRouter();
   const handleLogout = async() => {
-  const LOGOUT_URL = `https://prayog.vaaman.in/api/method/logout`; 
+  const LOGOUT_URL = getApiUrl(config.api.logout); 
       const response = await fetch(LOGOUT_URL, {
         method: 'POST',
         headers: {

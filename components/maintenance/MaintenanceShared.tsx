@@ -18,11 +18,12 @@ import { Check, ChevronsUpDown } from "lucide-react"
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 
+import { getApiUrl, config } from "@/lib/config"
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export const FRAPPE_BASE_URL = "https://prayog.vaaman.in"
 export const MAINTENANCE_DOCTYPE = "Vehicle Log Master"
 export const VEHICLE_DOCTYPE = "Vehicle Master"
 export const EMPLOYEE_DOCTYPE = "Employee"
@@ -123,7 +124,7 @@ export const fetchFrappeDoctype = async (
   filters: any[] = [],
 ): Promise<FrappeDoc[]> => {
   const fieldsParam = encodeURIComponent(JSON.stringify(fields))
-  let url = `${FRAPPE_BASE_URL}/api/resource/${doctype}?fields=${fieldsParam}&limit_page_length=2000`
+  let url = `${getApiUrl(config.api.resource(doctype))}?fields=${fieldsParam}&limit_page_length=2000`
   if (filters && filters.length > 0) {
     url += `&filters=${encodeURIComponent(JSON.stringify(filters))}`
   }

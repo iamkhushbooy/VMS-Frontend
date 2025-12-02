@@ -300,7 +300,8 @@ interface RefuelingTableProps {
   refreshTrigger?: number 
 }
 
-const FRAPPE_BASE_URL = "https://prayog.vaaman.in"
+import { getApiUrl, config } from "@/lib/config"
+
 const DOCTYPE_NAME = "Vehicle Refueling"
 
 // Status label
@@ -333,7 +334,7 @@ export function RefuelingTable({ onLogRefueling, onSelectRecord, refreshTrigger 
       const fieldsToFetch = ["name", "issuer_name", "fuel_item", "company", "date", "docstatus"]
       const fieldsParam = encodeURIComponent(JSON.stringify(fieldsToFetch))
 
-      const url = `${FRAPPE_BASE_URL}/api/resource/${DOCTYPE_NAME}?fields=${fieldsParam}&limit_page_length=2000`
+      const url = `${getApiUrl(config.api.resource(DOCTYPE_NAME))}?fields=${fieldsParam}&limit_page_length=2000`
 
       const response = await fetch(url, { credentials: "include" })
 
@@ -407,7 +408,7 @@ export function RefuelingTable({ onLogRefueling, onSelectRecord, refreshTrigger 
     try {
       setIsActionLoading(true)
 
-      const tokenResp = await fetch(`${FRAPPE_BASE_URL}/api/method/vms.api.get_csrf_token`, {
+      const tokenResp = await fetch(getApiUrl(config.api.getCsrfToken), {
         credentials: "include",
       })
       const tokenJson = await tokenResp.json()
@@ -421,7 +422,7 @@ export function RefuelingTable({ onLogRefueling, onSelectRecord, refreshTrigger 
           ? "vms.api.bulk_cancel_refueling"
           : "vms.api.bulk_delete_refueling"
 
-      const res = await fetch(`${FRAPPE_BASE_URL}/api/method/${method}`, {
+      const res = await fetch(getApiUrl(config.api.method(method)), {
         method: "POST",
         credentials: "include",
         headers: { "X-Frappe-CSRF-Token": csrfToken },

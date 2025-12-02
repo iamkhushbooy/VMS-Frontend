@@ -22,7 +22,8 @@ import axios from "axios"
 import { RefuelingTopForm } from "./RefuelingTopForm"
 import { FuelEntryForm } from "./FuelEntryForm"
 
-const FRAPPE_BASE_URL = "https://prayog.vaaman.in"
+import { getApiUrl, config } from "@/lib/config"
+
 const DOCTYPE = "Vehicle Refueling"
 
 interface FrappeDoc {
@@ -95,7 +96,7 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
     const fieldsParam = encodeURIComponent(JSON.stringify(fields))
     try {
       const res = await fetch(
-        `${FRAPPE_BASE_URL}/api/resource/${doctype}?fields=${fieldsParam}&limit_page_length=2000`,
+        `${getApiUrl(config.api.resource(doctype))}?fields=${fieldsParam}&limit_page_length=2000`,
         { credentials: "include" }
       )
       const json = await res.json()
@@ -108,7 +109,7 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
 
   const getCSRF = async () => {
     const res = await fetch(
-      `${FRAPPE_BASE_URL}/api/method/vms.api.get_csrf_token`,
+      getApiUrl(config.api.getCsrfToken),
       { credentials: "include" }
     )
     const json = await res.json()
@@ -119,7 +120,7 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
     setIsLoading(true)
     try {
       const res = await fetch(
-        `${FRAPPE_BASE_URL}/api/resource/${DOCTYPE}/${encodeURIComponent(name)}`,
+        getApiUrl(`${config.api.resource(DOCTYPE)}/${encodeURIComponent(name)}`),
         { credentials: "include" }
       )
       const json = await res.json()
@@ -262,7 +263,7 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
       fd.append("data", JSON.stringify(payload))
 
       const res = await axios.post(
-        `${FRAPPE_BASE_URL}/api/method/vms.api.save_vehicle_refueling`,
+        getApiUrl(config.api.method("vms.api.save_vehicle_refueling")),
         fd,
         { withCredentials: true, headers: { "X-Frappe-CSRF-Token": csrf } }
       )
@@ -319,7 +320,7 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
       fd.append("data", JSON.stringify(payload))
 
       const res = await axios.post(
-        `${FRAPPE_BASE_URL}/api/method/vms.api.submit_vehicle_refueling`,
+        getApiUrl(config.api.method("vms.api.submit_vehicle_refueling")),
         fd,
         {
           withCredentials: true,
@@ -358,7 +359,7 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
         fd.append("name", currentName)
 
         await fetch(
-          `${FRAPPE_BASE_URL}/api/method/vms.api.cancel_vehicle_refueling`,
+          getApiUrl(config.api.method("vms.api.cancel_vehicle_refueling")),
           {
             method: "POST",
             credentials: "include",
@@ -379,7 +380,7 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
         fd.append("name", currentName)
 
         const res = await fetch(
-          `${FRAPPE_BASE_URL}/api/method/vms.api.amend_vehicle_refueling`,
+          getApiUrl(config.api.method("vms.api.amend_vehicle_refueling")),
           {
             method: "POST",
             credentials: "include",

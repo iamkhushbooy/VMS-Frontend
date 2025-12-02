@@ -27,7 +27,7 @@ interface UtilizationTableProps {
   onSelectRecord: (record: UtilizationRecord) => void
 }
 
-const FRAPPE_BASE_URL = "https://prayog.vaaman.in"
+import { getApiUrl, config } from "@/lib/config"
 const DOCTYPE_NAME = "Utilization Report"
 
 export default function UtilizationTable({ onLogUtilization, onSelectRecord }: UtilizationTableProps) {
@@ -44,7 +44,7 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
     try {
       const fieldsToFetch = ["name", "date", "shift", "vehicle", "plant", "hmr", "status", "supervisor_name"]
       const fieldsParam = encodeURIComponent(JSON.stringify(fieldsToFetch))
-      const url = `${FRAPPE_BASE_URL}/api/resource/${DOCTYPE_NAME}?fields=${fieldsParam}&limit_page_length=2000` 
+      const url = `${getApiUrl(config.api.resource(DOCTYPE_NAME))}?fields=${fieldsParam}&limit_page_length=2000` 
       
       const response = await fetch(url, {
         credentials: "include", 
@@ -139,7 +139,7 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
 
     try {
       setIsActionLoading(true)
-      const tokenResp = await fetch(`${FRAPPE_BASE_URL}/api/method/vms.api.get_csrf_token`, {
+      const tokenResp = await fetch(getApiUrl(config.api.getCsrfToken), {
         credentials: "include",
       })
       const tokenResult = await tokenResp.json()
@@ -152,7 +152,7 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
           ? "vms.api.bulk_cancel_utilization"
           : "vms.api.bulk_delete_utilization"
 
-      const res = await fetch(`${FRAPPE_BASE_URL}/api/method/${methodName}`, {
+      const res = await fetch(getApiUrl(config.api.method(methodName)), {
         method: "POST",
         body: formData,
         credentials: "include",

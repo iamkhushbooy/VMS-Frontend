@@ -15,8 +15,8 @@ import { GeneralDetailsSection } from './GeneralDetailsSection'
 import { ProblemJobDetailSection } from './ProblemJobDetailsSection'
 import { PartsDetailSection } from './PartsDetailsSection'
 import { LubeDetailSection } from './LubeDetailsSection'
+import { getApiUrl, config } from "@/lib/config"
 import {
-  FRAPPE_BASE_URL,
   MAINTENANCE_DOCTYPE,
   VEHICLE_DOCTYPE,
   EMPLOYEE_DOCTYPE,
@@ -109,7 +109,7 @@ export function MaintenanceFormModal({
   const fetchAvailableQty = async (itemCode: string, uom: string) => {
     try {
       const res = await axios.get(
-        `${FRAPPE_BASE_URL}/api/method/vms.api.get_available_qty`,
+        getApiUrl(config.api.method("vms.api.get_available_qty")),
         {
           params: { item_code: itemCode, uom },
           withCredentials: true,
@@ -131,7 +131,7 @@ export function MaintenanceFormModal({
       console.log(`Fetching rate for: ${itemCode} in ${selectedWarehouse}`);
 
       const res = await axios.get(
-        `${FRAPPE_BASE_URL}/api/method/vms.api.get_item_valuation_rate`,
+        getApiUrl(config.api.method("vms.api.get_item_valuation_rate")),
         {
           params: { item_code: itemCode, warehouse: selectedWarehouse },
           withCredentials: true,
@@ -147,7 +147,7 @@ export function MaintenanceFormModal({
 
   const getCSRF = async () => {
     const res = await fetch(
-      `${FRAPPE_BASE_URL}/api/method/vms.api.get_csrf_token`,
+      getApiUrl(config.api.getCsrfToken),
       { credentials: "include" }
     )
     const json = await res.json()
@@ -243,7 +243,7 @@ export function MaintenanceFormModal({
 
     const loadFullRecord = async (name: string) => {
       try {
-        const url = `${FRAPPE_BASE_URL}/api/resource/${MAINTENANCE_DOCTYPE}/${encodeURIComponent(name)}`
+        const url = getApiUrl(`${config.api.resource(MAINTENANCE_DOCTYPE)}/${encodeURIComponent(name)}`)
         const resp = await fetch(url, { credentials: "include" })
         if (!resp.ok) throw new Error("Failed to fetch record")
 
@@ -581,7 +581,7 @@ export function MaintenanceFormModal({
       const csrf = await getCSRF()
 
       const res = await axios.post(
-        `${FRAPPE_BASE_URL}/api/method/vms.api.save_vehicle_log_master`,
+        getApiUrl(config.api.method("vms.api.save_vehicle_log_master")),
         formDataToSend,
         {
           withCredentials: true,
@@ -623,7 +623,7 @@ export function MaintenanceFormModal({
       const csrf = await getCSRF()
 
       const res = await axios.post(
-        `${FRAPPE_BASE_URL}/api/method/vms.api.submit_vehicle_log_master`,
+        getApiUrl(config.api.method("vms.api.submit_vehicle_log_master")),
         formDataToSend,
         {
           withCredentials: true,
@@ -668,7 +668,7 @@ export function MaintenanceFormModal({
       fd.append("name", currentName);
 
       const res = await axios.post(
-        `${FRAPPE_BASE_URL}/api/method/vms.api.cancel_vehicle_log_master`,
+        getApiUrl(config.api.method("vms.api.cancel_vehicle_log_master")),
         fd,
         {
           withCredentials: true,
@@ -701,7 +701,7 @@ export function MaintenanceFormModal({
       const csrf = await getCSRF()
 
       const res = await axios.post(
-        `${FRAPPE_BASE_URL}/api/method/vms.api.amend_vehicle_log_master`,
+        getApiUrl(config.api.method("vms.api.amend_vehicle_log_master")),
         fd,
         {
           withCredentials: true,

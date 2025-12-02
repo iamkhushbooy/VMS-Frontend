@@ -21,7 +21,7 @@ import VehicleDetailsSection from "./DetailsSection"
 import VehicleInsuranceSection from "./InsuranceSection"
 import VehicleAdditionalSection from "./AdditionalDetailsSection"
 
-const FRAPPE_BASE_URL = "https://prayog.vaaman.in"
+import { getApiUrl, config } from "@/lib/config"
 const DOCTYPE_NAME = "Vehicle Master"
 
 interface FrappeDoc {
@@ -41,7 +41,7 @@ const fetchFrappeDoctype = async (
   filters: any[] = []
 ): Promise<FrappeDoc[]> => {
   const fieldsParam = encodeURIComponent(JSON.stringify(fields))
-  let url = `${FRAPPE_BASE_URL}/api/resource/${doctype}?fields=${fieldsParam}&limit_page_length=2000`
+  let url = `${getApiUrl(config.api.resource(doctype))}?fields=${fieldsParam}&limit_page_length=2000`
   if (filters.length > 0)
     url += `&filters=${encodeURIComponent(JSON.stringify(filters))}`
 
@@ -57,7 +57,7 @@ const fetchFrappeDoctype = async (
 const getImageUrl = (path?: string) => {
   if (!path) return ""
   if (path.startsWith("http")) return path
-  return `${FRAPPE_BASE_URL}${path}`
+  return getApiUrl(path)
 }
 
 export function VehicleMasterModal({ isOpen, onClose, record }: VehicleModalProps) {
@@ -116,7 +116,7 @@ export function VehicleMasterModal({ isOpen, onClose, record }: VehicleModalProp
 
       if (record) {
         const result = await fetch(
-          `${FRAPPE_BASE_URL}/api/resource/${DOCTYPE_NAME}/${record.name}`,
+          getApiUrl(`${config.api.resource(DOCTYPE_NAME)}/${record.name}`),
           { credentials: "include" }
         ).then(r => r.json())
 
@@ -164,7 +164,7 @@ export function VehicleMasterModal({ isOpen, onClose, record }: VehicleModalProp
   }
 
   const uploadImageToFrappe = async (file: File) => {
-    const csrfRes = await fetch(`${FRAPPE_BASE_URL}/api/method/vms.api.get_csrf_token`, {
+    const csrfRes = await fetch(getApiUrl(config.api.getCsrfToken), {
       credentials: "include"
     })
     const csrfToken = (await csrfRes.json()).message
@@ -175,7 +175,7 @@ export function VehicleMasterModal({ isOpen, onClose, record }: VehicleModalProp
     fd.append("folder", "Home")
 
     const res = await axios.post(
-      `${FRAPPE_BASE_URL}/api/method/upload_file`,
+      getApiUrl("/api/method/upload_file"),
       fd,
       {
         withCredentials: true,
@@ -198,7 +198,7 @@ export function VehicleMasterModal({ isOpen, onClose, record }: VehicleModalProp
         uploadedImage = await uploadImageToFrappe(vehicleImage)
       }
 
-      const csrfRes = await fetch(`${FRAPPE_BASE_URL}/api/method/vms.api.get_csrf_token`, {
+      const csrfRes = await fetch(getApiUrl(config.api.getCsrfToken), {
         credentials: "include"
       })
       const csrfToken = (await csrfRes.json()).message
@@ -230,7 +230,7 @@ export function VehicleMasterModal({ isOpen, onClose, record }: VehicleModalProp
       fd.append("data", JSON.stringify(payload))
 
       await axios.post(
-        `${FRAPPE_BASE_URL}/api/method/vms.api.submit_vehicle_master`,
+        getApiUrl(config.api.method("vms.api.submit_vehicle_master")),
         fd,
         {
           withCredentials: true,
@@ -257,7 +257,7 @@ export function VehicleMasterModal({ isOpen, onClose, record }: VehicleModalProp
         uploadedImage = await uploadImageToFrappe(vehicleImage)
       }
 
-      const csrfRes = await fetch(`${FRAPPE_BASE_URL}/api/method/vms.api.get_csrf_token`, {
+      const csrfRes = await fetch(getApiUrl(config.api.getCsrfToken), {
         credentials: "include"
       })
       const csrfToken = (await csrfRes.json()).message
@@ -290,7 +290,7 @@ export function VehicleMasterModal({ isOpen, onClose, record }: VehicleModalProp
       fd.append("data", JSON.stringify(payload))
 
       await axios.put(
-        `${FRAPPE_BASE_URL}/api/method/vms.api.update_vehicle_master`,
+        getApiUrl(config.api.method("vms.api.update_vehicle_master")),
         fd,
         {
           withCredentials: true,

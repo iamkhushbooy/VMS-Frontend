@@ -16,7 +16,7 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-const FRAPPE_BASE_URL = "https://prayog.vaaman.in"
+import { getApiUrl, config } from "@/lib/config"
 const DOCTYPE_NAME = "Utilization Report"
 
 interface FrappeDoc { name: string;[key: string]: any; }
@@ -32,7 +32,7 @@ const formatDateTimeForInput = (dateStr: string | undefined) => {
 
 const fetchFrappeDoctype = async (doctype: string, fields: string[] = ["name"], filters: any[] = []): Promise<FrappeDoc[]> => {
   const fieldsParam = encodeURIComponent(JSON.stringify(fields))
-  let url = `${FRAPPE_BASE_URL}/api/resource/${doctype}?fields=${fieldsParam}&limit_page_length=2000`
+  let url = `${getApiUrl(config.api.resource(doctype))}?fields=${fieldsParam}&limit_page_length=2000`
   if (filters && filters.length > 0) url += `&filters=${encodeURIComponent(JSON.stringify(filters))}`
 
   try {
@@ -132,7 +132,7 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
       try {
         console.log("Loading Data...");
 
-        const userResp = await fetch(`${FRAPPE_BASE_URL}/api/method/frappe.auth.get_logged_user`, { credentials: "include" })
+        const userResp = await fetch(getApiUrl(config.api.getLoggedUser), { credentials: "include" })
         const userResult = await userResp.json()
         const loggedInUserId = userResult.message;
 
@@ -154,7 +154,7 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
         setSupervisorOptions(activeUsers)
 
         if (record) {
-          const url = `${FRAPPE_BASE_URL}/api/resource/${DOCTYPE_NAME}/${encodeURIComponent(record.name)}`
+          const url = getApiUrl(`${config.api.resource(DOCTYPE_NAME)}/${encodeURIComponent(record.name)}`)
           const resp = await fetch(url, { credentials: "include" })
           const result = await resp.json()
           const doc = result.data || {}
@@ -216,7 +216,7 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
     setIsSubmitting(true);
 
     try {
-      const tokenResp = await fetch(`${FRAPPE_BASE_URL}/api/method/vms.api.get_csrf_token`, {
+      const tokenResp = await fetch(getApiUrl(config.api.getCsrfToken), {
         credentials: "include"
       });
 
@@ -241,7 +241,7 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
       formDataToSend.append("data", JSON.stringify(payload));
 
       const res = await axios.post(
-        `${FRAPPE_BASE_URL}/api/method/vms.api.submit_utilization_report`,
+        getApiUrl(config.api.method("vms.api.submit_utilization_report")),
         formDataToSend,
         {
           withCredentials: true,
@@ -279,7 +279,7 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
     setIsSubmitting(true);
 
     try {
-      const tokenResp = await fetch(`${FRAPPE_BASE_URL}/api/method/vms.api.get_csrf_token`, {
+      const tokenResp = await fetch(getApiUrl(config.api.getCsrfToken), {
         credentials: "include"
       });
       const tokenResult = await tokenResp.json();
@@ -298,7 +298,7 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
         status: formData.status,
       };
       await axios.put(
-        `${FRAPPE_BASE_URL}/api/resource/${DOCTYPE_NAME}/${encodeURIComponent(record.name)}`,
+        getApiUrl(`${config.api.resource(DOCTYPE_NAME)}/${encodeURIComponent(record.name)}`),
         payload,
         {
           withCredentials: true,
