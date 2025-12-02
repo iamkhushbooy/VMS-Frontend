@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Search, Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 
-const FRAPPE_BASE_URL = "http://localhost:8000"
+const FRAPPE_BASE_URL = "https://prayog.vaaman.in"
 
 interface MaintenanceLog {
   name: string

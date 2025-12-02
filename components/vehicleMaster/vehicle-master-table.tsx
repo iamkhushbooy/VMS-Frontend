@@ -36,7 +36,7 @@ interface VehicleTableProps {
   onSelectVehicle: (record: VehicleRecord) => void
 }
 
-const FRAPPE_BASE_URL = "http://localhost:8000"
+const FRAPPE_BASE_URL = "https://prayog.vaaman.in"
 const DOCTYPE_NAME = "Vehicle Master"
 
 export default function VehicleMasterTable({ onAddVehicle, onSelectVehicle }: VehicleTableProps) {

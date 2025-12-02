@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation"
 import { Menu, KeyRound, LogOut } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 interface HeaderProps {
   onSidebarToggle: () => void
 }
@@ -11,7 +12,7 @@ export function Header({ onSidebarToggle }: HeaderProps) {
   const pathname = usePathname()
   const router=useRouter();
   const handleLogout = async() => {
-  const LOGOUT_URL = `http://mysite.local:8000/api/method/logout`; 
+  const LOGOUT_URL = `https://prayog.vaaman.in/api/method/logout`; 
       const response = await fetch(LOGOUT_URL, {
         method: 'POST',
         headers: {
@@ -38,8 +39,8 @@ export function Header({ onSidebarToggle }: HeaderProps) {
 
         {/* Logo and Title */}
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-white text-sm font-extrabold shadow-md">
-            VMS
+        <div className="w-8 h-8 rounded-full overflow-hidden shadow-md">
+          <Image src="/vms/vaaman_logo.png" alt="VMS" width={32} height={32} />
           </div>
           <h1 className="text-xl font-bold text-white tracking-wider">
             Vehicle Management <span className="text-cyan-400">System</span>

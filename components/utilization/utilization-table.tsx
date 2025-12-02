@@ -27,7 +27,7 @@ interface UtilizationTableProps {
   onSelectRecord: (record: UtilizationRecord) => void
 }
 
-const FRAPPE_BASE_URL = "http://localhost:8000"
+const FRAPPE_BASE_URL = "https://prayog.vaaman.in"
 const DOCTYPE_NAME = "Utilization Report"
 
 export default function UtilizationTable({ onLogUtilization, onSelectRecord }: UtilizationTableProps) {

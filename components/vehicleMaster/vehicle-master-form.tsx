@@ -21,7 +21,7 @@ import VehicleDetailsSection from "./DetailsSection"
 import VehicleInsuranceSection from "./InsuranceSection"
 import VehicleAdditionalSection from "./AdditionalDetailsSection"
 
-const FRAPPE_BASE_URL = "http://localhost:8000"
+const FRAPPE_BASE_URL = "https://prayog.vaaman.in"
 const DOCTYPE_NAME = "Vehicle Master"
 
 interface FrappeDoc {

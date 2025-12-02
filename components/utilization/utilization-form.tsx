@@ -16,7 +16,7 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-const FRAPPE_BASE_URL = "http://localhost:8000"
+const FRAPPE_BASE_URL = "https://prayog.vaaman.in"
 const DOCTYPE_NAME = "Utilization Report"
 
 interface FrappeDoc { name: string;[key: string]: any; }

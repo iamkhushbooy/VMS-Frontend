@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 
-const FRAPPE_BASE_URL = "http://localhost:8000"
+const FRAPPE_BASE_URL = "https://prayog.vaaman.in"
 
 function LoginPage() {
   const [email, setEmail] = useState("")
@@ -75,7 +76,8 @@ function LoginPage() {
         {/* Header */}
         <div className="text-center space-y-2">
           <div className="flex items-center justify-center text-cyan-500">
-            <Car className="w-10 h-10" />
+          <Image src="/vms/vaaman_logo.png" alt="VMS" width={32} height={32} />
+            {/* <Car className="w-10 h-10" /> */}
           </div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
             Vehicle Management System

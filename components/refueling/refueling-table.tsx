@@ -21,7 +21,7 @@
 //   onSelectRecord: (record: RefuelingRecord) => void
 // }
 
-// const FRAPPE_BASE_URL = "http://localhost:8000"
+// const FRAPPE_BASE_URL = "https://prayog.vaaman.in"
 // const DOCTYPE_NAME = "Vehicle Refueling"
 
 // export function RefuelingTable({ onLogRefueling, onSelectRecord }: RefuelingTableProps) {
@@ -300,7 +300,7 @@ interface RefuelingTableProps {
   refreshTrigger?: number 
 }
 
-const FRAPPE_BASE_URL = "http://localhost:8000"
+const FRAPPE_BASE_URL = "https://prayog.vaaman.in"
 const DOCTYPE_NAME = "Vehicle Refueling"
 
 // Status label

@@ -22,7 +22,7 @@ import axios from "axios"
 import { RefuelingTopForm } from "./RefuelingTopForm"
 import { FuelEntryForm } from "./FuelEntryForm"
 
-const FRAPPE_BASE_URL = "http://localhost:8000"
+const FRAPPE_BASE_URL = "https://prayog.vaaman.in"
 const DOCTYPE = "Vehicle Refueling"
 
 interface FrappeDoc {
