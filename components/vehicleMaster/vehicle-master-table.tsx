@@ -83,6 +83,7 @@ export default function VehicleMasterTable({ onAddVehicle, onSelectVehicle }: Ve
       .toLowerCase()
       .includes(searchTerm.toLowerCase())
   )
+
   const toggleRowSelection = (name: string, checked: boolean) => {
     setSelectedNames((prev) =>
       checked ? [...new Set([...prev, name])] : prev.filter((n) => n !== name)
@@ -96,13 +97,13 @@ export default function VehicleMasterTable({ onAddVehicle, onSelectVehicle }: Ve
   const handleToggleSelectAll = (checked: boolean) => {
     setSelectedNames(checked ? filteredRecords.map((r) => r.name) : [])
   }
-  const handleBulkAction = async (action: "cancel" | "delete") => {
+  const handleBulkDelete = async () => {
     if (selectedNames.length === 0) {
       alert("Please select at least one record.")
       return
     }
 
-    if (!window.confirm(`Are you sure you want to ${action.toUpperCase()} ${selectedNames.length} record(s)?`))
+    if (!window.confirm(`Are you sure you want to DELETE ${selectedNames.length} vehicle(s)?`))
       return
 
     try {
@@ -117,34 +118,28 @@ export default function VehicleMasterTable({ onAddVehicle, onSelectVehicle }: Ve
       const formData = new FormData()
       formData.append("names", JSON.stringify(selectedNames))
 
-      const methodName =
-        action === "cancel"
-          ? "vms.api.bulk_cancel_vehicle_master"
-          : "vms.api.bulk_delete_vehicle_master"
-
-      const res = await fetch(getApiUrl(config.api.method(methodName)), {
-        method: "POST",
-        body: formData,
-        credentials: "include",
-        headers: {
-          "X-Frappe-CSRF-Token": csrfToken
+      const res = await fetch(
+        getApiUrl(config.api.method("vms.api.bulk_delete_vehicle_master")),
+        {
+          method: "POST",
+          body: formData,
+          credentials: "include",
+          headers: {
+            "X-Frappe-CSRF-Token": csrfToken
+          }
         }
-      })
+      )
 
       const data = await res.json()
 
       if (!res.ok || data.exc) {
-        alert("Failed to perform action.")
+        alert("Failed to delete.")
         return
       }
 
-      alert(
-        action === "cancel"
-          ? "Selected vehicles cancelled successfully."
-          : "Selected vehicles deleted successfully."
-      )
-
+      alert("Selected vehicles deleted successfully.")
       await fetchFrappeData()
+
     } catch (error) {
       console.error(error)
       alert("Something went wrong.")
@@ -176,19 +171,11 @@ export default function VehicleMasterTable({ onAddVehicle, onSelectVehicle }: Ve
 
         {/* Bulk buttons */}
         <div className="flex gap-2 flex-wrap">
-          <Button
-            variant="outline"
-            disabled={selectedNames.length === 0 || isActionLoading}
-            onClick={() => handleBulkAction("cancel")}
-          >
-            {isActionLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Cancel
-          </Button>
 
           <Button
             variant="destructive"
             disabled={selectedNames.length === 0 || isActionLoading}
-            onClick={() => handleBulkAction("delete")}
+            onClick={handleBulkDelete}
           >
             {isActionLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Delete
@@ -298,7 +285,6 @@ export default function VehicleMasterTable({ onAddVehicle, onSelectVehicle }: Ve
 
               <div className="relative bg-white rounded-2xl shadow-2xl p-4 max-w-4xl w-full mx-4">
 
-                {/* Close Button */}
                 <button
                   onClick={() => setPreviewImage(null)}
                   className="absolute top-4 right-4 bg-red-500 text-white text-sm px-3 py-1 rounded-md shadow hover:bg-red-600"
@@ -306,7 +292,6 @@ export default function VehicleMasterTable({ onAddVehicle, onSelectVehicle }: Ve
                   Close
                 </button>
 
-                {/* Image */}
                 <img
                   src={previewImage}
                   className="w-full h-[600px] object-cover rounded-xl shadow-lg"
@@ -315,7 +300,6 @@ export default function VehicleMasterTable({ onAddVehicle, onSelectVehicle }: Ve
 
             </div>
           )}
-
         </DialogContent>
       </Dialog>
     </div>

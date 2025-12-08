@@ -1,5 +1,4 @@
 "use client"
-
 import { useState } from "react"
 import { AppLayout } from "@/components/app-layout"
 import { VehicleMasterModal } from "@/components/vehicleMaster/vehicle-master-form"

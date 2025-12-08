@@ -11,6 +11,7 @@ import { twMerge } from "tailwind-merge"
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
+
 export interface UtilizationRecord {
   name: string
   date: string
@@ -87,16 +88,7 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
       r.supervisor_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       r.status?.toLowerCase().includes(searchTerm.toLowerCase())
   )
-  // const toggleRowSelection = (name: string, checked: boolean) => {
-  //   setSelectedNames((prev) => {
-  //     if (checked) {
-  //       if (prev.includes(name)) return prev
-  //       return [...prev, name]
-  //     } else {
-  //       return prev.filter((n) => n !== name)
-  //     }
-  //   })  
-  // }
+
   const toggleRowSelection = (name: string, checked: boolean) => {
     setSelectedNames((prev) => {
       let updated: string[]
@@ -112,6 +104,7 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
       return updated
     })
   }
+
   const allVisibleSelected =
     filteredRecords.length > 0 &&
     filteredRecords.every((r) => selectedNames.includes(r.name))
@@ -124,16 +117,14 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
       setSelectedNames([])
     }
   }
-  const handleBulkAction = async (action: "cancel" | "delete") => {
+
+  const handleBulkAction = async () => {
     if (selectedNames.length === 0) {
       alert("Please select at least one record.")
       return
     }
 
-    const confirmText =
-      action === "cancel"
-        ? `Are you sure you want to CANCEL ${selectedNames.length} record(s)?`
-        : `Are you sure you want to DELETE ${selectedNames.length} record(s)?`
+    const confirmText = `Are you sure you want to DELETE ${selectedNames.length} record(s)?`
 
     if (!window.confirm(confirmText)) return
 
@@ -147,10 +138,7 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
       const formData = new FormData()
       formData.append("names", JSON.stringify(selectedNames))
 
-      const methodName =
-        action === "cancel"
-          ? "vms.api.bulk_cancel_utilization"
-          : "vms.api.bulk_delete_utilization"
+      const methodName = "vms.api.bulk_delete_utilization"
 
       const res = await fetch(getApiUrl(config.api.method(methodName)), {
         method: "POST",
@@ -169,11 +157,7 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
         return
       }
 
-      alert(
-        action === "cancel"
-          ? "Selected records cancelled successfully."
-          : "Selected records deleted successfully."
-      )
+      alert("Selected records deleted successfully.")
       await fetchFrappeData()
     } catch (error) {
       console.error("Bulk action error:", error)
@@ -199,20 +183,9 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
 
         <div className="flex gap-2 flex-wrap">
           <Button
-            variant="outline"
-            disabled={selectedNames.length === 0 || isActionLoading}
-            onClick={() => handleBulkAction("cancel")}
-          >
-            {isActionLoading ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : null}
-            Cancel
-          </Button>
-
-          <Button
             variant="destructive"
             disabled={selectedNames.length === 0 || isActionLoading}
-            onClick={() => handleBulkAction("delete")}
+            onClick={handleBulkAction}
           >
             {isActionLoading ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -272,7 +245,7 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
                   <TableCell
                     onClick={(e) => e.stopPropagation()}
                     className="w-10"
-                   >
+                  >
                     <Checkbox
                       checked={selectedNames.includes(record.name)}
                       onCheckedChange={(checked) =>

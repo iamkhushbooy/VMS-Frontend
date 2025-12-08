@@ -296,7 +296,6 @@ interface RefuelingRecord {
 interface RefuelingTableProps {
   onLogRefueling: () => void
   onSelectRecord: (record: RefuelingRecord) => void
-  // ⭐ NEW: Prop to trigger re-fetch
   refreshTrigger?: number 
 }
 

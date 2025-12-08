@@ -25,7 +25,7 @@ interface GeneralDetailsProps {
   statusOptions: any[]
   jsaOptions: any[]
   housekeepingOptions: any[]
-
+  companyOptions:FrappeDoc[]
   isBusy: boolean
   showTimeField: boolean
 }
@@ -46,7 +46,7 @@ export function GeneralDetailsSection({
   statusOptions,
   jsaOptions,
   housekeepingOptions,
-
+  companyOptions,
   isBusy,
   showTimeField,
 }: GeneralDetailsProps) {
@@ -65,6 +65,20 @@ export function GeneralDetailsSection({
           <Label htmlFor="issuer_name" className="text-foreground mb-1">Issuer Name</Label>
           <ReusableCombobox options={employeeOptions} value={formData.issuer_name} onValueChange={(v: string) => handleSelectChange("issuer_name", v)} placeholder="Select issuer" searchPlaceholder="Search..." displayField="employee_name" isLoading={isBusy} />
         </div>
+
+        <div>
+          <Label htmlFor="company" className="text-foreground mb-1">Company</Label>
+          <ReusableCombobox
+            options={companyOptions}
+            value={formData.company}
+            onValueChange={(v: string) => handleSelectChange("company", v)}
+            placeholder="Select Company"
+            searchPlaceholder="Search..."
+            isLoading={isBusy}
+          />
+        </div>
+
+             
 
         <div>
           <Label htmlFor="warehouse" className="text-foreground mb-1">Source Warehouse</Label>

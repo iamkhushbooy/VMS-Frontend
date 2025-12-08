@@ -1,16 +1,11 @@
-/**
- * Application configuration
- * Reads from environment variables with fallback values
- */
 
-// For client-side components, we need to use NEXT_PUBLIC_ prefix
-// For server-side, we can use regular env vars
 export const config = {
   // ERPNext/Frappe API Base URL
   frappeBaseUrl:
     process.env.NEXT_PUBLIC_FRAPPE_BASE_URL ||
     process.env.FRAPPE_BASE_URL ||
-    "https://prayog.vaaman.in",
+    "http://localhost:8000",
+   
 
   // API endpoints
   api: {

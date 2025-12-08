@@ -105,10 +105,12 @@ export function VehicleMasterModal({ isOpen, onClose, record }: VehicleModalProp
     setIsLoading(true)
 
     const loadData = async () => {
-      const [emps, uoms] = await Promise.all([
+      const [emps, uom] = await Promise.all([
         fetchFrappeDoctype("Employee", ["name", "employee_name"]),
         fetchFrappeDoctype("UOM", ["name"]),
       ])
+      console.log("uom pakd ", uom);
+     const uoms=uom.filter((item,index)=>(item.name==="Litre"))
 
       if (cancel) return
       setEmployeeOptions(emps)

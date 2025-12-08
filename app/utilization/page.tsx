@@ -2,8 +2,6 @@
 
 import { useState } from "react"
 import { AppLayout } from "@/components/app-layout"
-// Importing the components generated in this session
-// Adjust path if your project structure is different
 import { UtilizationReportModal } from "@/components/utilization/utilization-form"
 import UtilizationTable, { UtilizationRecord } from "@/components/utilization/utilization-table"
 

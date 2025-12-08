@@ -38,6 +38,7 @@ import {
   type LubeEntry,
   type MaintenanceFormModalProps
 } from "./MaintenanceShared"
+import { useAuthStore } from '@/context/auth_store'
 export function MaintenanceFormModal({
   isOpen,
   onClose,
@@ -61,6 +62,7 @@ export function MaintenanceFormModal({
     make: "",
     model: "",
     warehouse: "",
+    company: ""
   })
 
   const [problemEntries, setProblemEntries] = useState<ProblemEntry[]>([])
@@ -71,6 +73,8 @@ export function MaintenanceFormModal({
   const [newProblem, setNewProblem] = useState("")
   const [newWorkDone, setNewWorkDone] = useState("")
   const [newPendingJob, setNewPendingJob] = useState("")
+  const { user } = useAuthStore()
+  console.log("user check kr rhi ", user);
 
   const [newPart, setNewPart] = useState<Omit<PartEntry, "id">>({
     item_name: "",
@@ -102,9 +106,12 @@ export function MaintenanceFormModal({
   const [employeeOptions, setEmployeeOptions] = useState<FrappeDoc[]>([])
   const [itemOptions, setItemOptions] = useState<ItemDoc[]>([])
   const [warehouseOptions, setWarehouseOptions] = useState<FrappeDoc[]>([])
-
-  const [docStatus, setDocStatus] = useState<number>(0)          
+  const [companyOptions, setCompanyOptions] = useState<FrappeDoc[]>([])
+  const [docStatus, setDocStatus] = useState<number>(0)
   const [currentName, setCurrentName] = useState<string | null>(null)
+  const [allEmployeeOptions, setAllEmployeeOptions] = useState<FrappeDoc[]>([])
+  const [allWarehouseOptions, setAllWarehouseOptions] = useState<FrappeDoc[]>([])
+
 
   const fetchAvailableQty = async (itemCode: string, uom: string) => {
     try {
@@ -173,6 +180,7 @@ export function MaintenanceFormModal({
         make: "",
         model: "",
         warehouse: "",
+        company: ""
       })
       setProblemEntries([])
       setWorkDoneEntries([])
@@ -214,32 +222,76 @@ export function MaintenanceFormModal({
 
     const loadDropdowns = async () => {
       try {
+        //Fetch User Company Permissions
+        const url = getApiUrl(
+          `/api/resource/User Permission?filters=${encodeURIComponent(
+            JSON.stringify([
+              ["user", "=", user.email],
+              ["allow", "=", "Company"]
+            ])
+          )}&fields=${encodeURIComponent(JSON.stringify(["for_value", "allow"]))}`
+        );
+
+        const x = await fetch(url, {
+          method: "GET",
+          credentials: "include",
+        });
+        const companyData = await x.json();
+        const assignedCompanies = companyData?.data?.map((c: { for_value: string }) => c.for_value) || [];
+        console.log("Assigned Companies:", assignedCompanies);
+
         const [
           vehicles,
-          employees,
+          // employeesAll,
           items,
-          warehouses
+          warehousesAll,
+          allCompanies
         ] = await Promise.all([
           fetchFrappeDoctype(VEHICLE_DOCTYPE, ["name", "make", "model"]) as Promise<VehicleDoc[]>,
-          fetchFrappeDoctype(EMPLOYEE_DOCTYPE, ["name", "employee_name"]),
+          // fetchFrappeDoctype(EMPLOYEE_DOCTYPE, ["name", "employee_name", "company"]),
           fetchFrappeDoctype(ITEM_DOCTYPE, ["name", "item_name", "item_group", "stock_uom"]) as Promise<ItemDoc[]>,
-          fetchFrappeDoctype("Warehouse", ["name"])
-        ])
+          fetchFrappeDoctype("Warehouse", ["name", "company"]),
+          fetchFrappeDoctype("Company", ["name"])
+        ]);
 
-        if (cancelled) return
-        setVehicleOptions(vehicles)
-        setEmployeeOptions(employees)
-        setWarehouseOptions(warehouses)
-        setItemOptions(items.map(i => ({
-          ...i,
-          total_projected_qty: i.total_projected_qty ? Number(i.total_projected_qty) : 0,
-          standard_rate: i.standard_rate ? Number(i.standard_rate) : 0,
-        })))
+        const filteredCompanies = allCompanies.filter(item =>
+          assignedCompanies.includes(item.name)
+        );
 
+        const url1 = getApiUrl("/api/method/vms.api.get_all_employees");
+
+        const employeesAll = await fetch(url1, {
+          method: "GET",
+          credentials: "include"
+        });
+
+        const eAll = await employeesAll.json();
+        console.log("ugjhjhj", eAll);
+
+        if (cancelled) return;
+        setCompanyOptions(filteredCompanies)
+        setVehicleOptions(vehicles);
+        setAllEmployeeOptions(eAll.message);
+        setAllWarehouseOptions(warehousesAll);
+        if (!log && filteredCompanies.length > 0) {
+          setFormData(prev => ({
+            ...prev,
+            company: prev.company || filteredCompanies[0].name
+          }))
+        }
+        setEmployeeOptions([])
+        setWarehouseOptions([])
+        setItemOptions(
+          items.map((i) => ({
+            ...i,
+            total_projected_qty: Number(i.total_projected_qty || 0),
+            standard_rate: Number(i.standard_rate || 0),
+          }))
+        );
       } catch (e) {
-        console.error("loadDropdowns error:", e)
+        console.error("loadDropdowns error:", e);
       }
-    }
+    };
 
     const loadFullRecord = async (name: string) => {
       try {
@@ -279,6 +331,7 @@ export function MaintenanceFormModal({
           make: doc.make || "",
           model: doc.model || "",
           warehouse: doc.warehouse || "",
+          company: doc.company || "",
         })
 
         setPartEntries(
@@ -334,6 +387,31 @@ export function MaintenanceFormModal({
 
     return () => { cancelled = true }
   }, [isOpen, log])
+
+  useEffect(() => {
+    console.log("Company Changed To: ", formData.company);   
+
+    if (!formData.company) {
+      console.log("No company selected → clearing options");
+      setEmployeeOptions([]);
+      setWarehouseOptions([]);
+      return;
+    }
+
+    const filteredEmployees = allEmployeeOptions.filter(
+      emp => emp.company === formData.company
+    );
+    const filteredWarehouses = allWarehouseOptions.filter(
+      wh => wh.company === formData.company
+    );
+
+    console.log("Filtered Employees: ", filteredEmployees);   
+    console.log("Filtered Warehouses: ", filteredWarehouses);
+
+    setEmployeeOptions(filteredEmployees);
+    setWarehouseOptions(filteredWarehouses);
+  }, [formData.company, allEmployeeOptions, allWarehouseOptions]);
+
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target
@@ -767,6 +845,7 @@ export function MaintenanceFormModal({
             statusOptions={statusOptions}
             jsaOptions={jsaOptions}
             housekeepingOptions={housekeepingOptions}
+            companyOptions={companyOptions}
             isBusy={isBusy}
             showTimeField={showTimeField}
           />

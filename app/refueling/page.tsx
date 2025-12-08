@@ -15,7 +15,6 @@ export default function RefuelingPage() {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [selectedRecord, setSelectedRecord] = useState<RefuelingRecord | null>(null)
   
-  // ⭐ FIX: Add state to act as a trigger for refreshing the table
   const [refreshKey, setRefreshKey] = useState(0)
 
   const handleLogRefueling = () => {
@@ -33,7 +32,6 @@ export default function RefuelingPage() {
     setSelectedRecord(null)
   }
 
-  // ⭐ FIX: Function to increment the key, forcing the table to re-fetch
   const handleRefresh = () => {
     setRefreshKey(prev => prev + 1)
   }
@@ -46,14 +44,12 @@ export default function RefuelingPage() {
           <p className="text-muted-foreground">Record and track vehicle fuel consumption and refueling events</p>
         </div>
 
-        {/* ⭐ FIX: Pass the refreshTrigger prop */}
         <RefuelingTable 
           onLogRefueling={handleLogRefueling} 
           onSelectRecord={handleSelectRecord} 
           refreshTrigger={refreshKey}
         />
 
-        {/* ⭐ FIX: Pass the onSuccess prop */}
         <RefuelingFormModal 
           isOpen={isFormOpen} 
           onClose={handleCloseForm} 

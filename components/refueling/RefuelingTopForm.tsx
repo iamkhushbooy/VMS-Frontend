@@ -90,9 +90,9 @@ const ReusableCombobox = React.forwardRef<HTMLButtonElement, any>(
             <CommandList>
               <CommandEmpty>No results found.</CommandEmpty>
               <CommandGroup>
-                {options.map((opt: any) => (
+                {options.map((opt: any,index:any) => (
                   <CommandItem
-                    key={opt.name}
+                    key={index}
                     value={opt[displayField] || opt.name}
                     onSelect={() => {
                       onValueChange(opt.name)
@@ -152,6 +152,7 @@ export function RefuelingTopForm({
           }
           placeholder="Select issuer"
           searchPlaceholder="Search issuer..."
+          displayField="employee_name"
           disabled={!isEditMode}
         />
       </div>
