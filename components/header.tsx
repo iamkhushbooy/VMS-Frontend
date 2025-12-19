@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { getApiUrl, config } from "@/lib/config"
+import { getFrappeCSRF } from "@/lib/csrf"
 interface HeaderProps {
   onSidebarToggle: () => void
 }
@@ -13,15 +14,21 @@ export function Header({ onSidebarToggle }: HeaderProps) {
   const pathname = usePathname()
   const router=useRouter();
   const handleLogout = async() => {
+  const csrf=await getFrappeCSRF();
   const LOGOUT_URL = getApiUrl(config.api.logout); 
       const response = await fetch(LOGOUT_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
+          "X-Frappe-CSRF-Token": csrf
         },
         
       });
+      const res=await response.json()
+      console.log("logout check",res);
+      
       response.ok && router.push("/Login");
+      
   }
   return (
     <header className="fixed top-0 left-0 right-0 h-16 bg-gray-900/80 border-b border-white/10 flex items-center justify-between px-6 z-40 backdrop-blur-md shadow-lg">

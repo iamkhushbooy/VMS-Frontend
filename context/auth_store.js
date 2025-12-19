@@ -20,7 +20,7 @@ export const useAuthStore = create(
         }),
     }),
     {
-      name: "auth-store", // saves in localStorage = persistent
+      name: "auth-store",
     }
   )
 );

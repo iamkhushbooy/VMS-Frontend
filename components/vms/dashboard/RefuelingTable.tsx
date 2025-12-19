@@ -11,6 +11,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Badge } from "@/components/ui/badge"
 import { VehicleRefueling } from "@/lib/vms-api"
 import { Search } from "lucide-react"
 import { useState, useMemo } from "react"
@@ -32,7 +33,7 @@ export function RefuelingTable({ data, isLoading }: RefuelingTableProps) {
         return (
           refueling.name.toLowerCase().includes(searchLower) ||
           refueling.vehicle_refueling_details?.some((detail) =>
-            detail.registration_no?.toLowerCase().includes(searchLower),
+            detail.registration_no?.toLowerCase().includes(searchLower)
           ) ||
           refueling.cost_center?.toLowerCase().includes(searchLower)
         )
@@ -42,19 +43,19 @@ export function RefuelingTable({ data, isLoading }: RefuelingTableProps) {
         const dateB = b.date ? new Date(b.date).getTime() : 0
         return dateB - dateA
       })
-      .slice(0, 10)
+      .slice(0, 15)
   }, [data, searchTerm])
 
   if (isLoading) {
     return (
-      <Card>
+      <Card className="shadow-md">
         <CardHeader>
           <CardTitle>Latest Refueling Records</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2">
+          <div className="space-y-3">
             {[1, 2, 3, 4, 5].map((i) => (
-              <Skeleton key={i} className="h-12 w-full" />
+              <Skeleton key={i} className="h-12 w-full rounded-md" />
             ))}
           </div>
         </CardContent>
@@ -63,68 +64,79 @@ export function RefuelingTable({ data, isLoading }: RefuelingTableProps) {
   }
 
   return (
-    <Card>
+    <Card className="shadow-md">
       <CardHeader>
-        <CardTitle>Latest Refueling Records</CardTitle>
+        <CardTitle className="text-lg font-semibold">Latest Refueling Records</CardTitle>
       </CardHeader>
+
       <CardContent>
-        <div className="mb-4">
-          <div className="relative">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by vehicle, cost center..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-8"
-            />
-          </div>
+
+        {/* Search Bar */}
+        <div className="mb-4 relative">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by registration, cost center..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 py-2 rounded-full"
+          />
         </div>
-        <div className="rounded-md border">
+
+        {/* Table */}
+        <div className="rounded-lg border bg-white shadow-sm overflow-hidden">
           <Table>
-            <TableHeader>
+            <TableHeader className="bg-gray-50">
               <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Registration No</TableHead>
-                <TableHead>Fuel Qty</TableHead>
-                <TableHead>Fuel Efficiency</TableHead>
-                <TableHead>HMR</TableHead>
-                <TableHead>Cost Center</TableHead>
+                <TableHead className="font-medium">Date</TableHead>
+                <TableHead className="font-medium">Vehicle</TableHead>
+                <TableHead className="font-medium">Fuel Qty</TableHead>
+                <TableHead className="font-medium">Efficiency</TableHead>
+                <TableHead className="font-medium">HMR</TableHead>
+                <TableHead className="font-medium">Cost Center</TableHead>
               </TableRow>
             </TableHeader>
+
             <TableBody>
               {filteredData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground">
+                  <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
                     No refueling records found
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredData.flatMap((refueling) =>
                   refueling.vehicle_refueling_details?.map((detail, idx) => (
-                    <TableRow key={`${refueling.name}-${idx}`}>
+                    <TableRow
+                      key={`${refueling.name}-${idx}`}
+                      className="hover:bg-gray-50 transition-colors"
+                    >
+                      <TableCell className="text-gray-700">
+                        {refueling.date
+                          ? format(new Date(refueling.date), "MMM dd, yyyy")
+                          : "N/A"}
+                      </TableCell>
+
+                      <TableCell className="font-medium">{detail.registration_no || "N/A"}</TableCell>
+
+                      <TableCell className="text-blue-600 font-semibold">
+                        {detail.fuel_qty_in_ltrs || 0} L
+                      </TableCell>
+
                       <TableCell>
-                        {refueling.date ? format(new Date(refueling.date), "MMM dd, yyyy") : "N/A"}
+                        <Badge variant="outline" className="text-green-700 border-green-400 px-2 py-1">
+                          {detail.fuel_consumption
+                            ? `${detail.fuel_consumption.toFixed(2)} km/l`
+                            : "N/A"}
+                        </Badge>
                       </TableCell>
-                      <TableCell className="font-medium">
-                        {detail.registration_no || "N/A"}
+
+                      <TableCell className="text-gray-800">{detail.current_hmrkms || 0}</TableCell>
+
+                      <TableCell className="text-purple-600 font-medium">
+                        {refueling.cost_center || "N/A"}
                       </TableCell>
-                      <TableCell>{detail.fuel_qty_in_ltrs || 0} L</TableCell>
-                      <TableCell>
-                        {detail.fuel_consumption ? `${detail.fuel_consumption.toFixed(2)} km/l` : "N/A"}
-                      </TableCell>
-                      <TableCell>{detail.current_hmrkms || 0}</TableCell>
-                      <TableCell>{refueling.cost_center || "N/A"}</TableCell>
                     </TableRow>
-                  )) || (
-                    <TableRow key={refueling.name}>
-                      <TableCell>
-                        {refueling.date ? format(new Date(refueling.date), "MMM dd, yyyy") : "N/A"}
-                      </TableCell>
-                      <TableCell colSpan={5} className="text-center text-muted-foreground">
-                        No details available
-                      </TableCell>
-                    </TableRow>
-                  ),
+                  ))
                 )
               )}
             </TableBody>
@@ -134,4 +146,3 @@ export function RefuelingTable({ data, isLoading }: RefuelingTableProps) {
     </Card>
   )
 }
-

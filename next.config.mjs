@@ -1,12 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  basePath: '/vms',
+  basePath: "/vms",
+  assetPrefix: "/vms",
+
   typescript: {
     ignoreBuildErrors: true,
   },
+
   images: {
     unoptimized: true,
   },
 }
 
-export default nextConfig
+export default nextConfig;

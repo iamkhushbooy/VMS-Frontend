@@ -14,17 +14,32 @@ const COLORS = ["#0ea5e9", "#2563eb", "#7c3aed", "#ef4444", "#facc15", "#10b981"
 
 export function CostCenterPieChart({ data, isLoading }: CostCenterPieChartProps) {
   const chartData = useMemo(() => {
-    if (!data || data.length === 0) return []
+    console.log("📌 Raw Utilization Data:", data)
 
-    const grouped = data.reduce((acc, report) => {
+    if (!data || data.length === 0) {
+      console.log("⚠️ No data found")
+      return []
+    }
+
+    // ✅ Correct Logic → Count records per cost center
+    const grouped = data.reduce((acc: Record<string, number>, report) => {
       const costCenter = report.cost_center || "Unknown"
-      const hmr = report.hmr || 0
 
-      acc[costCenter] = (acc[costCenter] || 0) + hmr
+      acc[costCenter] = (acc[costCenter] || 0) + 1
+
       return acc
-    }, {} as Record<string, number>)
+    }, {})
 
-    return Object.entries(grouped).map(([name, value]) => ({ name, value }))
+    console.log("📦 Cost Center Record Counts:", grouped)
+
+    const finalData = Object.entries(grouped).map(([name, value]) => ({
+      name,
+      value,
+    }))
+
+    console.log("📊 Pie Chart Final Data:", finalData)
+
+    return finalData
   }, [data])
 
   if (isLoading) {
@@ -32,6 +47,17 @@ export function CostCenterPieChart({ data, isLoading }: CostCenterPieChartProps)
       <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
         <h3 className="text-lg font-semibold text-gray-800 mb-3">Cost Center Utilization</h3>
         <Skeleton className="h-[300px] w-full" />
+      </div>
+    )
+  }
+
+  if (chartData.length === 0) {
+    return (
+      <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6 flex flex-col">
+        <h3 className="text-lg font-semibold text-gray-800 mb-3">Cost Center Utilization</h3>
+        <div className="w-full h-[250px] flex items-center justify-center text-muted-foreground">
+          No data available
+        </div>
       </div>
     )
   }
@@ -47,19 +73,26 @@ export function CostCenterPieChart({ data, isLoading }: CostCenterPieChartProps)
               cx="50%"
               cy="50%"
               labelLine={false}
-              label={({ name, percent }) => `${name}: ${percent ? (percent * 100).toFixed(0) : 0}%`}
+              label={({ name, percent }) =>
+                `${name}: ${(percent * 100).toFixed(0)}%`
+              }
               outerRadius={90}
-              fill="#8884d8"
+              innerRadius={40}
               dataKey="value"
-              stroke="#e5e7eb"
-              strokeWidth={2}
+              stroke="#fff"
+              strokeWidth={1}
             >
               {chartData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                <Cell
+                  key={`cell-${index}`}
+                  fill={COLORS[index % COLORS.length]}
+                />
               ))}
             </Pie>
-            <Tooltip />
-            <Legend wrapperStyle={{ color: "#333" }} iconType="circle" />
+            <Tooltip
+              formatter={(value) => [`${value} records`, "Count"]}
+            />
+            <Legend iconType="circle" />
           </PieChart>
         </ResponsiveContainer>
       </div>

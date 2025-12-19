@@ -1,10 +1,10 @@
 // "use client"
-
 // import { useState, useEffect, useCallback } from "react"
 // import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 // import { Button } from "@/components/ui/button"
 // import { Input } from "@/components/ui/input"
 // import { Search, Loader2 } from "lucide-react"
+// import { Checkbox } from "@/components/ui/checkbox"
 // import { useRouter } from "next/navigation"
 
 // import { getApiUrl, config } from "@/lib/config"
@@ -16,7 +16,7 @@
 //   status: string
 //   priority_level: string
 //   working_employee: string[]
-//   docstatus: 0 | 1 | 2      
+//   docstatus: 0 | 1 | 2
 // }
 
 // interface MaintenanceTableProps {
@@ -41,6 +41,10 @@
 //   const [searchTerm, setSearchTerm] = useState("")
 //   const [logs, setLogs] = useState<MaintenanceLog[]>([])
 //   const [isLoading, setIsLoading] = useState(true)
+
+//   const [selectedNames, setSelectedNames] = useState<string[]>([])
+//   const [isActionLoading, setIsActionLoading] = useState(false)
+
 //   const router = useRouter()
 
 //   const fetchMaintenanceLogs = useCallback(async () => {
@@ -56,6 +60,7 @@
 //       }))
 
 //       setLogs(fixed)
+//       setSelectedNames([])
 //     } catch (e) {
 //       console.error(e)
 //       setLogs([])
@@ -78,8 +83,78 @@
 //       log.license_plate?.toLowerCase().includes(searchTerm.toLowerCase())
 //   )
 
+//   // --- Selection Logic ---
+//   const toggleRowSelection = (name: string, checked: boolean) => {
+//     setSelectedNames((prev) =>
+//       checked ? [...new Set([...prev, name])] : prev.filter((n) => n !== name)
+//     )
+//   }
+
+//   const allVisibleSelected =
+//     filtered.length > 0 &&
+//     filtered.every((r) => selectedNames.includes(r.name))
+
+//   const handleToggleSelectAll = (checked: boolean) => {
+//     setSelectedNames(checked ? filtered.map((r) => r.name) : [])
+//   }
+
+//   // ----- Bulk Cancel & Delete -----
+//   const handleBulkAction = async (action: "cancel" | "delete") => {
+//     if (selectedNames.length === 0) {
+//       alert("Please select at least one record.")
+//       return
+//     }
+
+//     const confirmText =
+//       action === "cancel"
+//         ? `Are you sure you want to CANCEL ${selectedNames.length} record(s)?`
+//         : `Are you sure you want to DELETE ${selectedNames.length} record(s)?`
+
+//     if (!window.confirm(confirmText)) return
+
+//     try {
+//       setIsActionLoading(true)
+
+//       const tokenResp = await fetch(getApiUrl(config.api.getCsrfToken), {
+//         credentials: "include",
+//       })
+//       const tokenJson = await tokenResp.json()
+//       const csrfToken = tokenJson.message
+
+//       const formData = new FormData()
+//       formData.append("names", JSON.stringify(selectedNames))
+
+//       const method =
+//         action === "cancel"
+//           ? "vms.api.bulk_cancel_maintenance"
+//           : "vms.api.bulk_delete_maintenance"
+
+//       const res = await fetch(getApiUrl(config.api.method(method)), {
+//         method: "POST",
+//         credentials: "include",
+//         headers: { "X-Frappe-CSRF-Token": csrfToken },
+//         body: formData,
+//       })
+
+//       const json = await res.json()
+//       if (!res.ok || json.exc) {
+//         alert("Action failed.")
+//         return
+//       }
+
+//       alert(action === "cancel" ? "Cancelled successfully." : "Deleted successfully.")
+//       fetchMaintenanceLogs()
+//     } catch (err) {
+//       console.error(err)
+//       alert("Error performing action.")
+//     } finally {
+//       setIsActionLoading(false)
+//     }
+//   }
+
 //   return (
 //     <div className="flex flex-col gap-6">
+
 //       {/* Header */}
 //       <div className="flex justify-between items-center">
 //         <div className="relative w-80">
@@ -92,23 +167,49 @@
 //           />
 //         </div>
 
-//         <Button onClick={onNewLog} className="glow-button-pink text-white font-semibold">
-//           + New Maintenance Log
-//         </Button>
+//         <div className="flex gap-2">
+//           {/* Cancel */}
+//           <Button
+//             variant="outline"
+//             disabled={selectedNames.length === 0 || isActionLoading}
+//             onClick={() => handleBulkAction("cancel")}
+//           >
+//             {isActionLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+//             Cancel
+//           </Button>
+
+//           {/* Delete */}
+//           <Button
+//             variant="destructive"
+//             disabled={selectedNames.length === 0 || isActionLoading}
+//             onClick={() => handleBulkAction("delete")}
+//           >
+//             {isActionLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+//             Delete
+//           </Button>
+
+//           <Button onClick={onNewLog} className="glow-button-pink text-white font-semibold">
+//             + New Maintenance Log
+//           </Button>
+//         </div>
 //       </div>
 
-//       {/* TABLE */}
+//       {/* Table */}
 //       <div className="glass-card overflow-x-auto rounded-md border border-white/10">
 //         <Table>
 //           <TableHeader>
 //             <TableRow>
+//               <TableHead className="w-10">
+//                 <Checkbox
+//                   checked={allVisibleSelected}
+//                   onCheckedChange={(checked) => handleToggleSelectAll(checked === true)}
+//                 />
+//               </TableHead>
 //               <TableHead>Issuer Name</TableHead>
 //               <TableHead>Registration No</TableHead>
-//               <TableHead>Status (Job)</TableHead>
+//               <TableHead>Status</TableHead>
 //               <TableHead>Priority</TableHead>
 //               <TableHead>Employees</TableHead>
-
-//               {/* NEW: Document Status */}
 //               <TableHead>Doc Status</TableHead>
 //             </TableRow>
 //           </TableHeader>
@@ -116,13 +217,13 @@
 //           <TableBody>
 //             {isLoading ? (
 //               <TableRow>
-//                 <TableCell colSpan={6} className="text-center py-4">
+//                 <TableCell colSpan={7} className="text-center py-4">
 //                   <Loader2 className="h-4 w-4 animate-spin inline" /> Loading...
 //                 </TableCell>
 //               </TableRow>
 //             ) : filtered.length === 0 ? (
 //               <TableRow>
-//                 <TableCell colSpan={6} className="text-center py-4 text-muted-foreground">
+//                 <TableCell colSpan={7} className="text-center py-4 text-muted-foreground">
 //                   No maintenance logs found
 //                 </TableCell>
 //               </TableRow>
@@ -131,17 +232,25 @@
 //                 <TableRow
 //                   key={log.name}
 //                   className="cursor-pointer hover:bg-white/5"
-//                   onClick={() => onSelectLog(log)}
+//                   onClick={(e) => {
+//                     const target = e.target as HTMLElement
+//                     if (target.closest("input") || target.closest("label")) return
+//                     onSelectLog(log)
+//                   }}
 //                 >
+//                   <TableCell onClick={(e) => e.stopPropagation()}>
+//                     <Checkbox
+//                       checked={selectedNames.includes(log.name)}
+//                       onCheckedChange={(checked) => toggleRowSelection(log.name, checked === true)}
+//                     />
+//                   </TableCell>
+
 //                   <TableCell>{log.issuer_name}</TableCell>
 //                   <TableCell>{log.license_plate}</TableCell>
-
 //                   <TableCell>{log.status}</TableCell>
 //                   <TableCell>{log.priority_level}</TableCell>
-
 //                   <TableCell>{log.working_employee.join(", ")}</TableCell>
 
-//                   {/*DOCSTATUS BADGE */}
 //                   <TableCell>
 //                     <span
 //                       className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${getDocStatusClass(
@@ -161,8 +270,6 @@
 //   )
 // }
 
-
-
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
@@ -170,9 +277,19 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Search, Loader2 } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
 import { useRouter } from "next/navigation"
 
-const FRAPPE_BASE_URL = "http://localhost:8000"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationPrevious,
+  PaginationNext,
+} from "@/components/ui/pagination" 
+
+import { getApiUrl, config } from "@/lib/config"
 
 interface MaintenanceLog {
   name: string
@@ -181,7 +298,7 @@ interface MaintenanceLog {
   status: string
   priority_level: string
   working_employee: string[]
-  docstatus: 0 | 1 | 2      
+  docstatus: 0 | 1 | 2
 }
 
 interface MaintenanceTableProps {
@@ -206,12 +323,15 @@ export function MaintenanceTable({ onNewLog, onSelectLog, refreshTrigger }: Main
   const [searchTerm, setSearchTerm] = useState("")
   const [logs, setLogs] = useState<MaintenanceLog[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const router = useRouter()
 
+  const [selectedNames, setSelectedNames] = useState<string[]>([])
+  const [isActionLoading, setIsActionLoading] = useState(false)
+
+  const router = useRouter()
   const fetchMaintenanceLogs = useCallback(async () => {
     setIsLoading(true)
     try {
-      const url = `${FRAPPE_BASE_URL}/api/method/vms.api.get_maintenance_logs_with_details`
+      const url = getApiUrl(config.api.method("vms.api.get_maintenance_logs_with_details"))
       const resp = await fetch(url, { credentials: "include" })
       const json = await resp.json()
 
@@ -221,6 +341,7 @@ export function MaintenanceTable({ onNewLog, onSelectLog, refreshTrigger }: Main
       }))
 
       setLogs(fixed)
+      setSelectedNames([])
     } catch (e) {
       console.error(e)
       setLogs([])
@@ -231,20 +352,100 @@ export function MaintenanceTable({ onNewLog, onSelectLog, refreshTrigger }: Main
 
   useEffect(() => {
     fetchMaintenanceLogs()
-  }, [fetchMaintenanceLogs])
+  }, [fetchMaintenanceLogs, refreshTrigger])
 
-  useEffect(() => {
-    fetchMaintenanceLogs()
-  }, [refreshTrigger, fetchMaintenanceLogs])
-
+  /* ---------------- FILTER ---------------- */
   const filtered = logs.filter(
     (log) =>
       log.issuer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       log.license_plate?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
+  const ITEMS_PER_PAGE = 50
+  const [currentPage, setCurrentPage] = useState(1) 
+
+  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE) 
+
+  const paginatedLogs = filtered.slice( 
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE,
+  )
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm]) 
+  const toggleRowSelection = (name: string, checked: boolean) => {
+    setSelectedNames((prev) =>
+      checked ? [...new Set([...prev, name])] : prev.filter((n) => n !== name)
+    )
+  }
+
+  // Updated to check only visible paginated items
+  const allVisibleSelected =
+    paginatedLogs.length > 0 &&
+    paginatedLogs.every((r) => selectedNames.includes(r.name))
+
+  // Updated to select only visible paginated items
+  const handleToggleSelectAll = (checked: boolean) => {
+    setSelectedNames(checked ? paginatedLogs.map((r) => r.name) : [])
+  }
+
+  const handleBulkAction = async (action: "cancel" | "delete") => {
+    if (selectedNames.length === 0) {
+      alert("Please select at least one record.")
+      return
+    }
+
+    const confirmText =
+      action === "cancel"
+        ? `Are you sure you want to CANCEL ${selectedNames.length} record(s)?`
+        : `Are you sure you want to DELETE ${selectedNames.length} record(s)?`
+
+    if (!window.confirm(confirmText)) return
+
+    try {
+      setIsActionLoading(true)
+
+      const tokenResp = await fetch(getApiUrl(config.api.getCsrfToken), {
+        credentials: "include",
+      })
+      const tokenJson = await tokenResp.json()
+      const csrfToken = tokenJson.message
+
+      const formData = new FormData()
+      formData.append("names", JSON.stringify(selectedNames))
+
+      const method =
+        action === "cancel"
+          ? "vms.api.bulk_cancel_maintenance"
+          : "vms.api.bulk_delete_maintenance"
+
+      const res = await fetch(getApiUrl(config.api.method(method)), {
+        method: "POST",
+        credentials: "include",
+        headers: { "X-Frappe-CSRF-Token": csrfToken },
+        body: formData,
+      })
+
+      const json = await res.json()
+      if (!res.ok || json.exc) {
+        alert("Action failed.")
+        return
+      }
+
+      alert(action === "cancel" ? "Cancelled successfully." : "Deleted successfully.")
+      fetchMaintenanceLogs()
+    } catch (err) {
+      console.error(err)
+      alert("Error performing action.")
+    } finally {
+      setIsActionLoading(false)
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
+
       {/* Header */}
       <div className="flex justify-between items-center">
         <div className="relative w-80">
@@ -257,23 +458,49 @@ export function MaintenanceTable({ onNewLog, onSelectLog, refreshTrigger }: Main
           />
         </div>
 
-        <Button onClick={onNewLog} className="glow-button-pink text-white font-semibold">
-          + New Maintenance Log
-        </Button>
+        <div className="flex gap-2">
+          {/* Cancel */}
+          <Button
+            variant="outline"
+            disabled={selectedNames.length === 0 || isActionLoading}
+            onClick={() => handleBulkAction("cancel")}
+          >
+            {isActionLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Cancel
+          </Button>
+
+          {/* Delete */}
+          <Button
+            variant="destructive"
+            disabled={selectedNames.length === 0 || isActionLoading}
+            onClick={() => handleBulkAction("delete")}
+          >
+            {isActionLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Delete
+          </Button>
+
+          <Button onClick={onNewLog} className="glow-button-pink text-white font-semibold">
+            + New Maintenance Log
+          </Button>
+        </div>
       </div>
 
-      {/* TABLE */}
+      {/* Table */}
       <div className="glass-card overflow-x-auto rounded-md border border-white/10">
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-10">
+                <Checkbox
+                  checked={allVisibleSelected}
+                  onCheckedChange={(checked) => handleToggleSelectAll(checked === true)}
+                />
+              </TableHead>
               <TableHead>Issuer Name</TableHead>
               <TableHead>Registration No</TableHead>
-              <TableHead>Status (Job)</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead>Priority</TableHead>
               <TableHead>Employees</TableHead>
-
-              {/* NEW: Document Status */}
               <TableHead>Doc Status</TableHead>
             </TableRow>
           </TableHeader>
@@ -281,32 +508,40 @@ export function MaintenanceTable({ onNewLog, onSelectLog, refreshTrigger }: Main
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-4">
+                <TableCell colSpan={7} className="text-center py-4">
                   <Loader2 className="h-4 w-4 animate-spin inline" /> Loading...
                 </TableCell>
               </TableRow>
-            ) : filtered.length === 0 ? (
+            ) : paginatedLogs.length === 0 ? ( 
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-4 text-muted-foreground">
+                <TableCell colSpan={7} className="text-center py-4 text-muted-foreground">
                   No maintenance logs found
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((log) => (
+              paginatedLogs.map((log) => ( 
                 <TableRow
                   key={log.name}
                   className="cursor-pointer hover:bg-white/5"
-                  onClick={() => onSelectLog(log)}
+                  onClick={(e) => {
+                    const target = e.target as HTMLElement
+                    if (target.closest("input") || target.closest("label")) return
+                    onSelectLog(log)
+                  }}
                 >
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={selectedNames.includes(log.name)}
+                      onCheckedChange={(checked) => toggleRowSelection(log.name, checked === true)}
+                    />
+                  </TableCell>
+
                   <TableCell>{log.issuer_name}</TableCell>
                   <TableCell>{log.license_plate}</TableCell>
-
                   <TableCell>{log.status}</TableCell>
                   <TableCell>{log.priority_level}</TableCell>
-
                   <TableCell>{log.working_employee.join(", ")}</TableCell>
 
-                  {/*DOCSTATUS BADGE */}
                   <TableCell>
                     <span
                       className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${getDocStatusClass(
@@ -322,6 +557,48 @@ export function MaintenanceTable({ onNewLog, onSelectLog, refreshTrigger }: Main
           </TableBody>
         </Table>
       </div>
+
+  
+      {totalPages > 1 && (
+        <Pagination>
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault()
+                  setCurrentPage((p) => Math.max(p - 1, 1))
+                }}
+              />
+            </PaginationItem>
+
+            {Array.from({ length: totalPages }).map((_, i) => (
+              <PaginationItem key={i}>
+                <PaginationLink
+                  href="#"
+                  isActive={currentPage === i + 1}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    setCurrentPage(i + 1)
+                  }}
+                >
+                  {i + 1}
+                </PaginationLink>
+              </PaginationItem>
+            ))}
+
+            <PaginationItem>
+              <PaginationNext
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault()
+                  setCurrentPage((p) => Math.min(p + 1, totalPages))
+                }}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      )}
     </div>
   )
 }

@@ -17,53 +17,53 @@ export default function LoginPage() {
   const [error, setError] = useState("")
   const router = useRouter()
 
-const handleLogin = async (e:any) => {
-  e.preventDefault();
-  setError("");
-  setIsLoading(true);
+  const handleLogin = async (e: any) => {
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
 
-  try {
-    const LOGIN_URL = getApiUrl(config.api.login);
+    try {
+      const LOGIN_URL = getApiUrl(config.api.login);
 
-    const response = await fetch(LOGIN_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({
-        usr: email,
-        pwd: password,
-      }).toString(),
-      credentials: "include", 
-    });
-
-    const data = await response.json();
-    console.log("Login response:", data);
-
-    if (data.message?.full_name || data.message === "Logged In") {
-      // Get logged-in user's identity (email)
-      const url = getApiUrl(config.api.getLoggedUser);
-      const userRes = await fetch(url, { credentials: "include" });
-      const userInfo = await userRes.json();
-
-      const loggedEmail = userInfo.message;
-
-      useAuthStore.getState().setUser({
-        email: loggedEmail,
-        full_name: data.message?.full_name || "",
+      const response = await fetch(LOGIN_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          usr: email,
+          pwd: password,
+        }).toString(),
+        credentials: "include",
       });
 
-      router.push("/refueling");
-    } else {
-      setError(data.message || "Invalid username or password");
+      const data = await response.json();
+      console.log("Login response:", data);
+
+      if (data.message?.full_name || data.message === "Logged In") {
+        // Get logged-in user's identity (email)
+        const url = getApiUrl(config.api.getLoggedUser);
+        const userRes = await fetch(url, { credentials: "include" });
+        const userInfo = await userRes.json();
+
+        const loggedEmail = userInfo.message;
+
+        useAuthStore.getState().setUser({
+          email: loggedEmail,
+          full_name: data.message?.full_name || "",
+        });
+
+        router.push("/dashboard");
+      } else {
+        setError(data.message || "Invalid username or password");
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      setError("Server not reachable. Try later.");
+    } finally {
+      setIsLoading(false);
     }
-  } catch (error) {
-    console.error("Login error:", error);
-    setError("Server not reachable. Try later.");
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-100 dark:bg-gray-900 p-4">
       <div
@@ -88,7 +88,7 @@ const handleLogin = async (e:any) => {
           <div className="space-y-2">
             <Label className="text-gray-700 dark:text-gray-300">Email / Username</Label>
             <div className="relative">
-              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"/>
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input
                 placeholder="Enter email or username"
                 value={email}
@@ -102,7 +102,7 @@ const handleLogin = async (e:any) => {
           <div className="space-y-2">
             <Label className="text-gray-700 dark:text-gray-300">Password</Label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"/>
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input
                 type="password"
                 placeholder="Enter password"

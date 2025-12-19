@@ -382,7 +382,7 @@ export function VehicleMasterModal({ isOpen, onClose, record }: VehicleModalProp
 
           {!record && (
             <Button onClick={handleSubmit} disabled={isSubmitting}>
-              {isSubmitting ? "Saving..." : "Submit Vehicle"}
+              {isSubmitting ? "Saving..." : "Save Vehicle"}
             </Button>
           )}
           {record && (

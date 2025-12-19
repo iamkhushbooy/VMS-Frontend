@@ -20,34 +20,51 @@ interface FleetUtilizationChartProps {
 }
 
 export function FleetUtilizationChart({ data, isLoading }: FleetUtilizationChartProps) {
-  const chartData = useMemo(() => {
-    if (!data || data.length === 0) return []
+const chartData = useMemo(() => {
+  if (!data || data.length === 0) return []
 
-    // Group by date and count statuses
-    const grouped = data.reduce((acc, report) => {
-      const date = report.date || report.from_date || ""
-      if (!date) return acc
+  // Convert dd-mm-yyyy to yyyy-mm-dd
+  const parseDate = (raw: string | undefined) => {
+    if (!raw) return null
+    const onlyDate = raw.split(" ")[0]
+    const parts = onlyDate.split("-") // dd-mm-yyyy
+    if (parts.length === 3) {
+      const [dd, mm, yyyy] = parts
+      return `${yyyy}-${mm}-${dd}` // ISO format
+    }
+    return raw
+  }
 
-      if (!acc[date]) {
-        acc[date] = { date, Running: 0, Idle: 0, Breakdown: 0 }
+  // Group by actual dates only (no auto-generated days)
+  const grouped = data.reduce((acc, report) => {
+    const formattedDate = parseDate(report.date)
+    if (!formattedDate) return acc
+
+    if (!acc[formattedDate]) {
+      acc[formattedDate] = {
+        date: formattedDate,
+        Running: 0,
+        Idle: 0,
+        Breakdown: 0,
       }
+    }
 
-      const status = report.status || "Idle"
-      if (status === "Running" || status === "running") {
-        acc[date].Running += 1
-      } else if (status === "Breakdown" || status === "breakdown") {
-        acc[date].Breakdown += 1
-      } else {
-        acc[date].Idle += 1
-      }
+    const status = (report.status || "").trim()
+    if (status === "Running") acc[formattedDate].Running++
+    else if (status === "Breakdown") acc[formattedDate].Breakdown++
+    else acc[formattedDate].Idle++
 
-      return acc
-    }, {} as Record<string, { date: string; Running: number; Idle: number; Breakdown: number }>)
+    return acc
+  }, {} as Record<string, { date: string; Running: number; Idle: number; Breakdown: number }>)
 
-    return Object.values(grouped)
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-      .slice(-30) // Last 30 days
-  }, [data])
+  // Convert to array & sort
+  return Object.values(grouped).sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+  )
+}, [data])
+
+
+
 
   if (isLoading) {
     return (

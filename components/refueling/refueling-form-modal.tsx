@@ -523,7 +523,7 @@ const fetchWarehouseMeta = async (warehouseName: string) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className=" overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl">
             {docStatus === 0 ? "Refueling (Draft)" :

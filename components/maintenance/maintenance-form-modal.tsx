@@ -19,7 +19,6 @@ import { getApiUrl, config } from "@/lib/config"
 import {
   MAINTENANCE_DOCTYPE,
   VEHICLE_DOCTYPE,
-  EMPLOYEE_DOCTYPE,
   ITEM_DOCTYPE,
   priorityOptions,
   statusOptions,
@@ -666,7 +665,8 @@ export function MaintenanceFormModal({
           headers: { "X-Frappe-CSRF-Token": csrf }
         }
       )
-
+      
+       console.log("SAVE RESPONSE:", res.data);
 
       const msg = res.data.message || res.data
       const name = msg.name || msg?.message?.name
@@ -813,7 +813,7 @@ export function MaintenanceFormModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto bg-white">
+      <DialogContent className="max-h-[90vh] overflow-y-auto bg-white">
         <DialogHeader>
           <DialogTitle className="text-2xl">
             {log ? "Show" : "Create"} Maintenance Log

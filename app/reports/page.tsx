@@ -11,6 +11,8 @@ import { VehicleMasterReportTable } from "@/components/vms/reports/VehicleMaster
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { vmsApi } from "@/lib/vms-api"
 import { useRouter } from "next/navigation"
+import { RecentLogsTable } from "@/components/vms/dashboard/RecentLogsTable"
+import { RefuelingTable } from "@/components/vms/dashboard/RefuelingTable"
 
 export default function ReportsPage() {
   const router = useRouter()
@@ -22,10 +24,10 @@ export default function ReportsPage() {
   const { filters } = useVmsFilters()
 
   useEffect(() => {
-    if (!localStorage.getItem("isLoggedIn")) {
-      router.push("/Login")
-      return
-    }
+    // if (!localStorage.getItem("isLoggedIn")) {
+    //   router.push("/Login")
+    //   return
+    // }
 
     const fetchData = async () => {
       try {
@@ -92,6 +94,14 @@ export default function ReportsPage() {
               <VehicleMasterReportTable data={vehicles} isLoading={isLoading} />
             </TabsContent>
           </Tabs>
+
+                  {/* Tables */}
+          <div className="mt-10">
+            <RecentLogsTable data={logs} isLoading={isLoading} />
+          </div>
+          <div className="mt-10">
+            <RefuelingTable data={refuelings} isLoading={isLoading} />
+          </div>
         </div>
       </AppLayout>
     </div>
