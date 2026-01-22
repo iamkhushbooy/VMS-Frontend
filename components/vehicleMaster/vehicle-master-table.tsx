@@ -1,0 +1,407 @@
+"use client"
+import { useState, useEffect, useCallback } from "react"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
+} from "@/components/ui/table"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle
+} from "@/components/ui/dialog"
+import {
+  Search,
+  Loader2,
+  Car,
+} from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
+
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationPrevious,
+  PaginationNext,
+} from "@/components/ui/pagination"
+
+import { getApiUrl, config } from "@/lib/config"
+
+export interface VehicleRecord {
+  name: string
+  license_plate: string
+  make: string
+  model: string
+  location: string
+  employee: string
+  fuel_type: string
+  last_odometer: number
+  image: string | null
+}
+
+interface VehicleTableProps {
+  onAddVehicle: () => void
+  onSelectVehicle: (record: VehicleRecord) => void
+}
+
+const DOCTYPE_NAME = "Vehicle Master"
+
+export default function VehicleMasterTable({ onAddVehicle, onSelectVehicle }: VehicleTableProps) {
+  const [searchTerm, setSearchTerm] = useState("")
+  const [records, setRecords] = useState<VehicleRecord[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  const [selectedNames, setSelectedNames] = useState<string[]>([])
+  const [isActionLoading, setIsActionLoading] = useState(false)
+
+  const [previewImage, setPreviewImage] = useState<string | null>(null)
+
+  const fetchFrappeData = useCallback(async () => {
+    setIsLoading(true)
+    try {
+      const fieldsToFetch = [
+        "name", "license_plate", "make", "model",
+        "location", "employee", "fuel_type", "last_odometer", "image"
+      ]
+
+      const params = new URLSearchParams({
+        fields: JSON.stringify(fieldsToFetch),
+        limit_page_length: "2000",
+        order_by: "creation desc"
+      })
+
+      const url = `${getApiUrl(config.api.resource(DOCTYPE_NAME))}?${params.toString()}`
+
+      const response = await fetch(url, { credentials: "include" })
+      const result = await response.json()
+
+      setRecords(result.data || [])
+      setSelectedNames([])
+
+    } catch (error) {
+      console.error("Error fetching vehicles:", error)
+      setRecords([])
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchFrappeData()
+  }, [fetchFrappeData])
+
+  const filteredRecords = records.filter((r) =>
+    r.license_plate.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    r.make.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    r.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (r.location && r.location.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (r.employee && r.employee.toLowerCase().includes(searchTerm.toLowerCase()))
+  )
+
+  const ITEMS_PER_PAGE = 50
+  const [currentPage, setCurrentPage] = useState(1)
+
+  const totalPages = Math.ceil(filteredRecords.length / ITEMS_PER_PAGE)
+
+  const paginatedRecords = filteredRecords.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE,
+  )
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm])
+
+  const toggleRowSelection = (name: string, checked: boolean) => {
+    setSelectedNames((prev) =>
+      checked ? [...new Set([...prev, name])] : prev.filter((n) => n !== name)
+    )
+  }
+
+  const allVisibleSelected =
+    paginatedRecords.length > 0 &&
+    paginatedRecords.every((r) => selectedNames.includes(r.name))
+
+  const handleToggleSelectAll = (checked: boolean) => {
+    setSelectedNames(checked ? paginatedRecords.map((r) => r.name) : [])
+  }
+
+  const handleBulkDelete = async () => {
+    if (selectedNames.length === 0) {
+      alert("Please select at least one record.")
+      return
+    }
+
+    if (!window.confirm(`Are you sure you want to DELETE ${selectedNames.length} vehicle(s)?`))
+      return
+
+    try {
+      setIsActionLoading(true)
+
+      const tokenResp = await fetch(getApiUrl(config.api.getCsrfToken), {
+        credentials: "include",
+      })
+      const tokenResult = await tokenResp.json()
+      const csrfToken = tokenResult.message
+
+      const formData = new FormData()
+      formData.append("names", JSON.stringify(selectedNames))
+
+      const res = await fetch(
+        getApiUrl(config.api.method("vms.api.bulk_delete_vehicle_master")),
+        {
+          method: "POST",
+          body: formData,
+          credentials: "include",
+          headers: {
+            "X-Frappe-CSRF-Token": csrfToken
+          }
+        }
+      )
+
+      const data = await res.json()
+
+      if (!res.ok || data.exc) {
+        alert("Failed to delete.")
+        return
+      }
+
+      alert("Selected vehicles deleted successfully.")
+      setSelectedNames([])
+      await fetchFrappeData()
+
+    } catch (error) {
+      console.error(error)
+      alert("Something went wrong.")
+    } finally {
+      setIsActionLoading(false)
+    }
+  }
+
+  const getImageUrl = (path: string | null) => {
+    if (!path) return null
+    if (path.startsWith("http")) return path
+    return getApiUrl(path)
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            // Placeholder update kar diya gaya hai
+            placeholder="Search by Location Plate, Make..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 glass-card"
+          />
+        </div>
+
+        <div className="flex gap-2 flex-wrap items-center">
+          {selectedNames.length > 0 && (
+            <span className="text-sm text-muted-foreground mr-2">
+              {selectedNames.length} selected
+            </span>
+          )}
+
+          <Button
+            variant="destructive"
+            disabled={selectedNames.length === 0 || isActionLoading}
+            onClick={handleBulkDelete}
+          >
+            {isActionLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Delete
+          </Button>
+
+          <Button onClick={onAddVehicle} className="cursor-pointer glow-button-pink text-white">
+            + Add Vehicle
+          </Button>
+        </div>
+
+      </div>
+
+      <div className="glass-card overflow-hidden rounded-md border flex flex-col border-white/10">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-10">
+                  <Checkbox
+                    checked={allVisibleSelected}
+                    onCheckedChange={(checked) => handleToggleSelectAll(checked === true)}
+                  />
+                </TableHead>
+
+                <TableHead>Image</TableHead>
+                <TableHead>License Plate</TableHead>
+                <TableHead>Make & Model</TableHead>
+                <TableHead>Location</TableHead>
+                <TableHead>Employee</TableHead>
+                <TableHead>Fuel Type</TableHead>
+                <TableHead className="text-right">Odometer</TableHead>
+              </TableRow>
+            </TableHeader>
+
+            <TableBody>
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell colSpan={8} className="h-16">
+                      <div className="flex items-center justify-center">
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground/50" />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : paginatedRecords.length > 0 ? (
+                paginatedRecords.map((record) => (
+                  <TableRow
+                    key={record.name}
+                    className="cursor-pointer hover:bg-white/5"
+                    onClick={(e) => {
+                      const t = e.target as HTMLElement
+                      if (t.closest("input") || t.closest("button") || t.closest('[role="checkbox"]')) return
+                      onSelectVehicle(record)
+                    }}
+                  >
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={selectedNames.includes(record.name)}
+                        onCheckedChange={(checked) =>
+                          toggleRowSelection(record.name, checked === true)
+                        }
+                      />
+                    </TableCell>
+
+                    <TableCell>
+                      <div
+                        className="w-10 h-10 rounded-md overflow-hidden bg-white/5 border flex items-center justify-center cursor-zoom-in group"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          if (record.image) setPreviewImage(getImageUrl(record.image))
+                        }}
+                      >
+                        {record.image ? (
+                          <img
+                            src={getImageUrl(record.image)!}
+                            className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                            alt="Vehicle"
+                          />
+                        ) : (
+                          <Car className="w-5 h-5 text-muted-foreground/50" />
+                        )}
+                      </div>
+                    </TableCell>
+
+                    <TableCell className="font-medium">{record.license_plate}</TableCell>
+                    <TableCell>{record.make} {record.model}</TableCell>
+                    <TableCell>{record.location}</TableCell>
+                    <TableCell>{record.employee}</TableCell>
+                    <TableCell>{record.fuel_type}</TableCell>
+                    <TableCell className="text-right">{record.last_odometer}</TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
+                    No vehicles found.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+
+      {totalPages > 1 && (
+        <Pagination>
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault()
+                  setCurrentPage((p) => Math.max(p - 1, 1))
+                }}
+              />
+            </PaginationItem>
+
+            {(() => {
+              const itemsPerBlock = 3
+              const currentBlock = Math.ceil(currentPage / itemsPerBlock)
+
+              const startPage = (currentBlock - 1) * itemsPerBlock + 1
+              const endPage = Math.min(startPage + itemsPerBlock - 1, totalPages)
+
+              const visiblePages = []
+              for (let i = startPage; i <= endPage; i++) {
+                visiblePages.push(i)
+              }
+
+              return visiblePages.map((page) => (
+                <PaginationItem key={page}>
+                  <PaginationLink
+                    href="#"
+                    isActive={currentPage === page}
+                    className={
+                      currentPage === page
+                        ? "bg-gray-300 text-black hover:bg-gray-300 border-gray-400 hover:text-black"
+                        : "hover:bg-gray-100 hover:text-black"
+                       }
+                    onClick={(e) => {
+                      e.preventDefault()
+                      setCurrentPage(page)
+                    }}
+                  >
+                    {page}
+                  </PaginationLink>
+                </PaginationItem>
+              ))
+            })()}
+
+            <PaginationItem>
+              <PaginationNext
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault()
+                  setCurrentPage((p) => Math.min(p + 1, totalPages))
+                }}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      )}
+
+      <Dialog open={!!previewImage} onOpenChange={() => setPreviewImage(null)}>
+        <DialogContent className="max-w-4xl p-0 bg-transparent border-none shadow-none">
+          <DialogTitle className="sr-only">Image Preview</DialogTitle>
+          {previewImage && (
+            <div className="relative w-full flex flex-col items-center">
+              <div className="bg-white rounded-lg shadow-2xl overflow-hidden max-h-[80vh]">
+                <img
+                  src={previewImage}
+                  className="w-full h-auto object-contain max-h-[80vh]"
+                  alt="Preview"
+                />
+              </div>
+              <Button
+                onClick={() => setPreviewImage(null)}
+                className="mt-4 bg-white text-black hover:bg-gray-100"
+              >
+                Close Preview
+              </Button>
+             </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
