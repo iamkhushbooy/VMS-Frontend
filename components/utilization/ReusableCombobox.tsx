@@ -58,7 +58,9 @@ export const ReusableCombobox = React.forwardRef<HTMLButtonElement, ReusableComb
         <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
           <Command>
             <CommandInput placeholder={searchPlaceholder} />
-            <CommandList>
+            <CommandList
+              className="max-h-60 overflow-y-auto"
+              onWheel={(e) => e.stopPropagation()}>
               <CommandEmpty>No results found.</CommandEmpty>
               <CommandGroup>
                 {options.map((o: any) => (

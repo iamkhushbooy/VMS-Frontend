@@ -54,7 +54,7 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
     try {
       const fieldsToFetch = ["name", "date", "shift", "vehicle", "plant", "hmr", "status", "supervisor_name"]
       const fieldsParam = encodeURIComponent(JSON.stringify(fieldsToFetch))
-      const url = `${getApiUrl(config.api.resource(DOCTYPE_NAME))}?fields=${fieldsParam}&limit_page_length=2000` 
+      const url = `${getApiUrl(config.api.resource(DOCTYPE_NAME))}?fields=${fieldsParam}&order_by=modified desc&limit_page_length=None`
       
       const response = await fetch(url, {
         credentials: "include", 
@@ -71,7 +71,7 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
 
       const result = await response.json()
       const data = result.data || []
-      setRecords(data.reverse())
+      setRecords(data)
       setSelectedNames([])
     } catch (error) {
       console.error("Error fetching data from Frappe:", error)
@@ -270,7 +270,7 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
                   </TableCell>
 
                   <TableCell className="font-medium">{record.name}</TableCell>
-                  <TableCell>{record.date}</TableCell>
+                  <TableCell>{record.date?.split(" ")[0]}</TableCell>
                   <TableCell>
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
                       {record.shift}

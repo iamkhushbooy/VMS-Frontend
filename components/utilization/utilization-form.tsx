@@ -7,6 +7,7 @@ import axios from "axios"
 import { useAuthStore } from "@/context/auth_store"
 import { getApiUrl, config } from "@/lib/config"
 import { UtilizationLogEventForm } from "./utilization-log-event-form"
+import { VEHICLE_DOCTYPE } from "../maintenance/MaintenanceShared"
 
 const DOCTYPE_NAME = "Utilization Report"
 interface FrappeDoc {
@@ -23,13 +24,36 @@ interface UtilizationFormProps {
 const formatDateTimeForInput = (d?: string) =>
   d ? d.replace(" ", "T").substring(0, 16) : ""
 
+// const fetchFrappeDoctype = async (
+//   doctype: string,
+//   fields: string[] = ["name"]
+// ): Promise<FrappeDoc[]> => {
+//   const url = `${getApiUrl(config.api.resource(doctype))}?fields=${encodeURIComponent(
+//     JSON.stringify(fields)
+//   )}&limit_page_length=2000`
+
+//   try {
+//     const response = await fetch(url, { credentials: "include" })
+//     if (!response.ok) throw new Error(response.statusText)
+//     const data = await response.json()
+//     return data.data || []
+//   } catch (e) {
+//     console.error("fetch error:", e)
+//     return []
+//   }
+// }
 const fetchFrappeDoctype = async (
   doctype: string,
-  fields: string[] = ["name"]
+  fields: string[] = ["name"],
+  filters: any[] = []
 ): Promise<FrappeDoc[]> => {
-  const url = `${getApiUrl(config.api.resource(doctype))}?fields=${encodeURIComponent(
+  let url = `${getApiUrl(config.api.resource(doctype))}?fields=${encodeURIComponent(
     JSON.stringify(fields)
   )}&limit_page_length=2000`
+
+  if (filters && filters.length > 0) {
+    url += `&filters=${encodeURIComponent(JSON.stringify(filters))}`
+  }
 
   try {
     const response = await fetch(url, { credentials: "include" })
@@ -44,7 +68,6 @@ const fetchFrappeDoctype = async (
 
 export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationFormProps) {
   const loggedUser = useAuthStore((s) => s.user)
-
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split("T")[0],
     fromDate: "",
@@ -59,6 +82,20 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
     status: "Running",
     company: ""
   })
+  const emptyForm = {
+    date: new Date().toISOString().split("T")[0],
+    fromDate: "",
+    toDate: "",
+    shift: "A",
+    plant: "",
+    costCenter: "",
+    warehouse: "",
+    vehicle: "",
+    supervisorName: loggedUser?.email || "",
+    hmr: "",
+    status: "Running",
+    company: ""
+  }
 
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -72,13 +109,40 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
   const [allWarehouseOptions, setAllWarehouseOptions] = useState<FrappeDoc[]>([])
   const shiftOptions = [{ name: "A" }, { name: "B" }, { name: "C" }, { name: "G" }]
   const statusOptions = [{ name: "Running" }, { name: "Breakdown" }, { name: "Idle" }]
+  const getErrorMessage = (err: any) => {
+  let msg = '';
+  if (typeof err?.response?.data === 'string' && (err.response.data.includes('<!DOCTYPE') || err.response.data.includes('<html'))) {
+    return 'Server is currently unavailable. Please try again later.';
+  }
+  if (err?.response?.data?._server_messages) {
+    try {
+      const messages = JSON.parse(err.response.data._server_messages);
+      if (Array.isArray(messages) && messages.length > 0) {
+        const firstMsg = JSON.parse(messages[0]);
+        msg = firstMsg.message;
+      }
+    } catch (e) { /* Fallthrough */ }
+  }
+  else if (err?.response?.data?.exception) {
+    const exc = err.response.data.exception;
+    if (typeof exc === 'string' && exc.includes(':')) {
+      msg = exc.split(':').slice(1).join(':').trim();
+    } else {
+      msg = exc;
+    }
+  }
+  if (!msg) {
+    msg = err?.response?.data?.message || err?.message || 'Something went wrong. Please try again.';
+  }
+  return msg.replace(/<[^>]*>/g, '');
+};
   const fetchWarehouseMeta = async (warehouseName: string) => {
     if (!warehouseName) return null;
-  
+
     const fieldsParam = encodeURIComponent(
       JSON.stringify(["name", "cost_center"])   // company removed
     );
-  
+
     try {
       const res = await fetch(
         `${getApiUrl(config.api.resource("Warehouse"))}/${encodeURIComponent(
@@ -86,7 +150,7 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
         )}?fields=${fieldsParam}`,
         { credentials: "include" }
       );
-  
+
       const json = await res.json();
 
       return json.data || null;
@@ -102,27 +166,19 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
     const load = async () => {
       try {
         const url = getApiUrl(
-          `/api/resource/User Permission?filters=${encodeURIComponent(
-            JSON.stringify([
-              ["user", "=", user.email],
-              ["allow", "=", "Company"]
-            ])
-          )}&fields=${encodeURIComponent(JSON.stringify(["for_value", "allow"]))}`
+          `/api/resource/Company?fields=${encodeURIComponent(JSON.stringify(["name"]))}`
         );
-
         const x = await fetch(url, {
           method: "GET",
           credentials: "include",
         });
         const companyData = await x.json();
-        const assignedCompanies = companyData?.data?.map((c: { for_value: string }) => c.for_value) || [];
-
-
-        const [branches, costCenters, warehousesAll, vehicles, companies] = await Promise.all([
+        const assignedCompanies =
+          companyData?.data?.map((c: { name: string }) => c.name) || [];
+        const [branches, costCenters, warehousesAll, companies] = await Promise.all([
           fetchFrappeDoctype("Branch", ["name"]),
           fetchFrappeDoctype("Cost Center", ["name"]),
           fetchFrappeDoctype("Warehouse", ["name", "company"]),
-          fetchFrappeDoctype("Vehicle Master", ["name"]),
           fetchFrappeDoctype("Company", ["name"])
         ])
         const filteredCompanies = companies.filter((item: { name: string }) =>
@@ -133,7 +189,6 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
         setCostCenterOptions(costCenters)
         setAllWarehouseOptions(warehousesAll);
         setWarehouseOptions([])
-        setVehicleOptions(vehicles)
         setCompanyOptions(filteredCompanies)
         if (!record && filteredCompanies.length > 0) {
           setFormData(prev => ({
@@ -172,11 +227,11 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
             company: doc.company || ""
           })
         } else {
-          // default new
-          setFormData((p) => ({
-            ...p,
-            supervisorName: loggedUser?.email || "",
-          }))
+          setFormData({
+            ...emptyForm,
+            company: filteredCompanies.length > 0 ? filteredCompanies[0].name : "",
+            supervisorName: loggedUser?.email || ""
+          })
         }
       } catch (e) {
         console.error(e)
@@ -198,39 +253,74 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
       wh => wh.company === formData.company
     );
 
-    
+
     setWarehouseOptions(filteredWarehouses);
   }, [formData.company, allWarehouseOptions]);
-  
-    useEffect(() => {
+
+  useEffect(() => {
     if (!formData.warehouse) return;
-  
+
     let cancelled = false;
-  
+
     const autoFillFromWarehouse = async () => {
       const w = await fetchWarehouseMeta(formData.warehouse);
       if (!w || cancelled) return;
-  
+
       const costCenter =
         w.cost_center ||
         w.default_cost_center ||
         w.parent_cost_center ||
         w.costcenter ||
         "";
-  
+
       setFormData((prev) => ({
         ...prev,
-        costCenter: costCenter || prev.costCenter, 
+        costCenter: costCenter || prev.costCenter,
       }));
     };
-  
+
     autoFillFromWarehouse();
-  
+
     return () => {
       cancelled = true;
     };
   }, [formData.warehouse]);
-  
+  useEffect(() => {
+    if (!isOpen || !formData.warehouse) {
+      setVehicleOptions([]);
+      return;
+    }
+
+    const fetchVehicles = async () => {
+      setIsLoading(true);
+      try {
+        const vehicles = await fetchFrappeDoctype(
+          VEHICLE_DOCTYPE,
+          ["name"],
+          [["warehouse", "=", formData.warehouse]]
+        ) as FrappeDoc[];
+
+        console.log("Fetched vehicles for", formData.warehouse, vehicles);
+        setVehicleOptions(vehicles);
+      } catch (e) {
+        console.error("Vehicle fetch error:", e);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchVehicles();
+  }, [formData.warehouse, isOpen]);
+
+  const checkWarehouseSelection = () => {
+    if (!formData.warehouse) {
+      alert("Please select a Source Warehouse first to filter Registration No.");
+      return false;
+    }
+    return true;
+  };
+
+
 
   const handleSelectChange = (key: string, value: string) =>
     setFormData((p) => ({ ...p, [key]: value }))
@@ -238,81 +328,132 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
   const handleInputChange = (e: any) =>
     setFormData((p) => ({ ...p, [e.target.name]: e.target.value }))
 
+  // const handleSubmit = async () => {
+  //   setIsSubmitting(true)
+  //   try {
+  //     const token = await (
+  //       await fetch(getApiUrl(config.api.getCsrfToken), { credentials: "include" })
+  //     ).json()
+
+  //     const fd = new FormData()
+  //     fd.append("data", JSON.stringify({
+  //       date: formData.date,
+  //       from_date: formData.fromDate,
+  //       to_date: formData.toDate,
+  //       shift: formData.shift,
+  //       plant: formData.plant,
+  //       cost_center: formData.costCenter,
+  //       company: formData.company,
+  //       warehouse: formData.warehouse,
+  //       vehicle: formData.vehicle,
+  //       supervisor_name: formData.supervisorName,
+  //       hmr: formData.hmr,
+  //       status: formData.status,
+  //     }))
+
+  //     await axios.post(
+  //       getApiUrl(config.api.method("vms.api.submit_utilization_report")),
+  //       fd,
+  //       { withCredentials: true, headers: { "X-Frappe-CSRF-Token": token.message } }
+  //     )
+
+  //     alert("Saved!")
+  //     window.location.reload()
+  //   } catch (err) {
+  //     console.error(err)
+  //     alert("Failed")
+  //   } finally {
+  //     setIsSubmitting(false)
+  //   }
+  // }
   const handleSubmit = async () => {
-    setIsSubmitting(true)
-    try {
-      const token = await (
-        await fetch(getApiUrl(config.api.getCsrfToken), { credentials: "include" })
-      ).json()
+  setIsSubmitting(true)
+  try {
+    const token = await (await fetch(getApiUrl(config.api.getCsrfToken), { credentials: "include" })).json()
+    const fd = new FormData()
+    fd.append("data", JSON.stringify({
+      ...formData,
+      from_date: formData.fromDate,
+      to_date: formData.toDate,
+      cost_center: formData.costCenter,
+      supervisor_name: formData.supervisorName,
+    }))
 
-      const fd = new FormData()
-      fd.append("data", JSON.stringify({
-        date: formData.date,
-        from_date: formData.fromDate,
-        to_date: formData.toDate,
-        shift: formData.shift,
-        plant: formData.plant,
-        cost_center: formData.costCenter,
-        warehouse: formData.warehouse,
-        vehicle: formData.vehicle,
-        supervisor_name: formData.supervisorName,
-        hmr: formData.hmr,
-        status: formData.status,
-      }))
+    await axios.post(getApiUrl(config.api.method("vms.api.submit_utilization_report")), fd, {
+      withCredentials: true,
+      headers: { "X-Frappe-CSRF-Token": token.message }
+    })
 
-      await axios.post(
-        getApiUrl(config.api.method("vms.api.submit_utilization_report")),
-        fd,
-        { withCredentials: true, headers: { "X-Frappe-CSRF-Token": token.message } }
-      )
+    alert("Saved Successfully!")
+    onClose()
+    window.location.reload()
+  } catch (err) {
+    const errorMsg = getErrorMessage(err);
+    alert(errorMsg);
+  } finally { setIsSubmitting(false) }
+}
 
-      alert("Saved!")
-      window.location.reload()
-    } catch (err) {
-      console.error(err)
-      alert("Failed")
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
+  // const handleUpdate = async () => {
+  //   if (!record) return alert("Record missing")
 
+  //   setIsSubmitting(true)
+
+  //   try {
+  //     const token = await (
+  //       await fetch(getApiUrl(config.api.getCsrfToken), { credentials: "include" })
+  //     ).json()
+
+  //     await axios.put(
+  //       getApiUrl(`${config.api.resource(DOCTYPE_NAME)}/${record.name}`),
+  //       {
+  //         date: formData.date,
+  //         from_date: formData.fromDate,
+  //         to_date: formData.toDate,
+  //         shift: formData.shift,
+  //         plant: formData.plant,
+  //         cost_center: formData.costCenter,
+  //         company: formData.company,
+  //         warehouse: formData.warehouse,
+  //         vehicle: formData.vehicle,
+  //         supervisor_name: formData.supervisorName,
+  //         hmr: formData.hmr,
+  //         status: formData.status,
+  //       },
+  //       { withCredentials: true, headers: { "X-Frappe-CSRF-Token": token.message } }
+  //     )
+
+  //     alert("Updated!")
+  //     window.location.reload()
+  //   } catch (e) {
+  //     console.error(e)
+  //     alert("Failed")
+  //   } finally {
+  //     setIsSubmitting(false)
+  //   }
+  // }
   const handleUpdate = async () => {
-    if (!record) return alert("Record missing")
-
-    setIsSubmitting(true)
-
-    try {
-      const token = await (
-        await fetch(getApiUrl(config.api.getCsrfToken), { credentials: "include" })
-      ).json()
-
-      await axios.put(
-        getApiUrl(`${config.api.resource(DOCTYPE_NAME)}/${record.name}`),
-        {
-          date: formData.date,
-          from_date: formData.fromDate,
-          to_date: formData.toDate,
-          shift: formData.shift,
-          plant: formData.plant,
-          cost_center: formData.costCenter,
-          warehouse: formData.warehouse,
-          vehicle: formData.vehicle,
-          supervisor_name: formData.supervisorName,
-          hmr: formData.hmr,
-          status: formData.status,
-        },
-        { withCredentials: true, headers: { "X-Frappe-CSRF-Token": token.message } }
-      )
-
-      alert("Updated!")
-      window.location.reload()
-    } catch (e) {
-      console.error(e)
-      alert("Failed")
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
+  if (!record) return
+  setIsSubmitting(true)
+  try {
+    const token = await (await fetch(getApiUrl(config.api.getCsrfToken), { credentials: "include" })).json()
+    await axios.put(getApiUrl(`${config.api.resource(DOCTYPE_NAME)}/${record.name}`), {
+      ...formData,
+      from_date: formData.fromDate,
+      to_date: formData.toDate,
+      cost_center: formData.costCenter,
+      supervisor_name: formData.supervisorName,
+    }, {
+      withCredentials: true,
+      headers: { "X-Frappe-CSRF-Token": token.message }
+    })
+    alert("Updated Successfully!")
+    onClose()
+    window.location.reload()
+  } catch (err) {
+    const errorMsg = getErrorMessage(err);
+    alert(errorMsg);
+  } finally { setIsSubmitting(false) }
+}
 
   const isBusy = isLoading || isSubmitting
 
@@ -340,6 +481,7 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
           statusOptions={statusOptions}
           isBusy={isBusy}
           isLoading={isLoading}
+          onEmployeeFieldClick={checkWarehouseSelection}
 
         />
 

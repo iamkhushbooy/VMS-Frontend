@@ -59,7 +59,7 @@ export function MaintenanceFormModal({
     last_odometer_value: "" as number | string,
     registration_no: "",
     priority: "Medium",
-   date_and_time_of_job_initiation: getLocalISOString(),
+    date_and_time_of_job_initiation: getLocalISOString(),
     ptw_no: "",
     status: "Pending",
     date_and_time_of_job_completion: "",
@@ -117,35 +117,35 @@ export function MaintenanceFormModal({
   const [currentName, setCurrentName] = useState<string | null>(null)
   const [allEmployeeOptions, setAllEmployeeOptions] = useState<FrappeDoc[]>([])
   const [allWarehouseOptions, setAllWarehouseOptions] = useState<FrappeDoc[]>([])
-  
+
 
   const getErrorMessage = (err: any) => {
     let msg = '';
     if (typeof err?.response?.data === 'string' && (err.response.data.includes('<!DOCTYPE') || err.response.data.includes('<html'))) {
-        return 'Server is currently unavailable. Please check your internet connection or try again later.';
+      return 'Server is currently unavailable. Please check your internet connection or try again later.';
     }
     if (err?.response?.data?._server_messages) {
-        try {
-            const messages = JSON.parse(err.response.data._server_messages);
-            if (Array.isArray(messages) && messages.length > 0) {
-                const firstMsg = JSON.parse(messages[0]);
-                msg = firstMsg.message;
-            }
-        } catch (e) { /* Fallthrough */ }
+      try {
+        const messages = JSON.parse(err.response.data._server_messages);
+        if (Array.isArray(messages) && messages.length > 0) {
+          const firstMsg = JSON.parse(messages[0]);
+          msg = firstMsg.message;
+        }
+      } catch (e) { /* Fallthrough */ }
     }
     else if (err?.response?.data?.exception) {
-        const exc = err.response.data.exception;
-        if (typeof exc === 'string' && exc.includes(':')) {
-            msg = exc.split(':').slice(1).join(':').trim();
-        } else {
-            msg = exc;
-        }
+      const exc = err.response.data.exception;
+      if (typeof exc === 'string' && exc.includes(':')) {
+        msg = exc.split(':').slice(1).join(':').trim();
+      } else {
+        msg = exc;
+      }
     }
     if (!msg) {
-        msg = err?.response?.data?.message || err?.message || 'Something went wrong. Please try again.';
+      msg = err?.response?.data?.message || err?.message || 'Something went wrong. Please try again.';
     }
     return msg.replace(/<[^>]*>/g, '');
-};
+  };
 
   const fetchAvailableQty = async (itemCode: string, uom: string) => {
     try {
@@ -202,7 +202,7 @@ export function MaintenanceFormModal({
         issuer_name: "",
         job_cards_type: "",
         current_odometer_value: "",
-           last_odometer_value: "",
+        last_odometer_value: "",
         registration_no: "",
         priority: "Medium",
         date_and_time_of_job_initiation: getLocalISOString(),
@@ -269,19 +269,19 @@ export function MaintenanceFormModal({
           companyData?.data?.map((c: { name: string }) => c.name) || [];
 
         const [
-          vehicles,
           items,
           warehousesAll,
           allCompanies
         ] = await Promise.all([
-          fetchFrappeDoctype(VEHICLE_DOCTYPE, ["name", "make", "model","last_odometer"]) as Promise<VehicleDoc[]>,
-          fetchFrappeDoctype(ITEM_DOCTYPE, ["name", "item_name", "item_group", "stock_uom"]) as Promise<ItemDoc[]>,
+          fetchFrappeDoctype(
+            ITEM_DOCTYPE,
+            ["name", "item_name", "item_group", "stock_uom"],
+            [["disabled", "=", 0]]
+          ) as Promise<ItemDoc[]>,
           fetchFrappeDoctype("Warehouse", ["name", "company", "cost_center"]),
           fetchFrappeDoctype("Company", ["name"])
         ]);
 
-        console.log("odometer",vehicles);
-        
         const filteredCompanies = allCompanies.filter(item =>
           assignedCompanies.includes(item.name)
         );
@@ -297,7 +297,6 @@ export function MaintenanceFormModal({
 
         if (cancelled) return;
         setCompanyOptions(filteredCompanies)
-        setVehicleOptions(vehicles);
         setAllEmployeeOptions(eAll.message);
         setAllWarehouseOptions(warehousesAll);
         if (!log && filteredCompanies.length > 0) {
@@ -333,7 +332,7 @@ export function MaintenanceFormModal({
 
         const findItemDisplay = (itemId: string) => {
           const item = itemOptions.find((i) => i.name === itemId)
-          return item?.item_name || itemId
+          return item?.name || itemId
         }
 
         const loadedEmployees = (doc.working_employee || []).map((row: any) => row.employee);
@@ -415,36 +414,37 @@ export function MaintenanceFormModal({
 
     return () => { cancelled = true }
   }, [isOpen, log])
+  
+  useEffect(() => {
+    if (!isOpen || !formData.warehouse) {
+      setVehicleOptions([]);
+      return;
+    }
 
-  // useEffect(() => {
-  //   console.log("Company Changed To: ", formData.company);   
+    const fetchVehicles = async () => {
+      setIsLoading(true);
+      try {
+        const vehicles = await fetchFrappeDoctype(
+          VEHICLE_DOCTYPE,
+          ["name", "make", "model", "last_odometer"],
+          [["warehouse", "=", formData.warehouse]]
+        ) as VehicleDoc[];
+        
+        console.log("Fetched vehicles for", formData.warehouse, vehicles);
+        setVehicleOptions(vehicles);
+      } catch (e) {
+        console.error("Vehicle fetch error:", e);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  //   if (!formData.company) {
-  //     console.log("No company selected → clearing options");
-  //     setEmployeeOptions([]);
-  //     setWarehouseOptions([]);
-  //     return;
-  //   }
-
-  //   const filteredEmployees = allEmployeeOptions.filter(
-  //     emp => emp.company === formData.company
-  //   );
-  //   const filteredWarehouses = allWarehouseOptions.filter(
-  //     wh => wh.company === formData.company
-  //   );
-
-  //   console.log("Filtered Employees: ", filteredEmployees);   
-  //   console.log("Filtered Warehouses: ", filteredWarehouses);
-
-  //   setEmployeeOptions(filteredEmployees);
-  //   setWarehouseOptions(filteredWarehouses);
-  // }, [formData.company, allEmployeeOptions, allWarehouseOptions]);
-
-
+    fetchVehicles();
+  }, [formData.warehouse, isOpen]);
 
   const checkWarehouseSelection = () => {
     if (!formData.warehouse) {
-      alert("Please select a Source Warehouse first to filter the Working Employees and Issuer Name.");
+      alert("Please select a Source Warehouse first to filter the Working Employees,Issuer Name and Registration No.");
       return false;
     }
     return true;
@@ -461,7 +461,7 @@ export function MaintenanceFormModal({
       );
       setWarehouseOptions(filteredWarehouses);
       if (formData.warehouse) {
-        setIsLoading(true); 
+        setIsLoading(true);
         try {
           const selectedWhDoc = allWarehouseOptions.find(w => w.name === formData.warehouse);
           const targetCostCenter = selectedWhDoc?.cost_center;
@@ -539,73 +539,43 @@ export function MaintenanceFormModal({
     if (newPendingJob.trim()) { setPendingJobEntries((prev) => [...prev, { id: Date.now().toString(), pending_job_detail: newPendingJob }]); setNewPendingJob("") }
   }
 
+  const handleNewPartChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
 
-  // const handleNewPartChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  //   const { name, value } = e.target;
+    setNewPart((prev) => {
+      let updated = { ...prev, [name]: value };
+      const currentQty = name === "qty" ? Number(value) : Number(prev.qty);
+      const currentRate = Number(prev.rate);
 
-  //   setNewPart((prev) => {
-  //     let updated = { ...prev, [name]: value };
+      if (name === "qty") {
+        const stockNum = Number(prev.stock_qty);
 
-  //     if (name === "qty") {
-  //       const qtyNum = Number(value);
-  //       const stockNum = Number(prev.stock_qty);
-  //       if (qtyNum > stockNum) {
-  //         alert("Quantity cannot exceed available stock!");
-  //         updated.qty = "";
-  //         updated.expense = "";
-  //         return updated;
-  //       }
-  //       if (qtyNum > 0 && Number(prev.rate) > 0) {
-  //         updated.expense = qtyNum * Number(prev.rate);
-  //       }
-  //     }
-  //     console.log("ecpence",updated);
-      
-  //     return updated;
-  //   });
-  // };
+        if (currentQty > stockNum) {
+          alert("Quantity cannot exceed available stock!");
+          updated.qty = "";
+          updated.expense = "";
+          return updated;
+        }
 
-const handleNewPartChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  const { name, value } = e.target;
-
-  setNewPart((prev) => {
-    let updated = { ...prev, [name]: value };
-
-    // Debugging ke liye values nikalna
-    const currentQty = name === "qty" ? Number(value) : Number(prev.qty);
-    const currentRate = Number(prev.rate);
-
-    if (name === "qty") {
-      const stockNum = Number(prev.stock_qty);
-      
-      if (currentQty > stockNum) {
-        alert("Quantity cannot exceed available stock!");
-        updated.qty = "";
-        updated.expense = "";
-        return updated;
+        if (currentQty > 0 && currentRate > 0) {
+          let rawExpense = currentQty * currentRate;
+          updated.expense = Math.floor(rawExpense);
+        } else {
+          updated.expense = 0;
+        }
       }
 
-      // Calculation logic
-    if (currentQty > 0 && currentRate > 0) {
-        let rawExpense = currentQty * currentRate;
-        updated.expense = Math.floor(rawExpense); 
-      } else {
-        updated.expense = 0;
-      }
-    }
+      console.group("Part Change Debug");
+      console.log("Field Updated:", name);
+      console.log("Current Qty:", currentQty);
+      console.log("Current Rate:", currentRate);
+      console.log("Calculated Expense:", updated.expense);
+      console.log("Full Object:", updated);
+      console.groupEnd();
 
-    // --- Console Logs ---
-    console.group("Part Change Debug");
-    console.log("Field Updated:", name);
-    console.log("Current Qty:", currentQty);
-    console.log("Current Rate:", currentRate);
-    console.log("Calculated Expense:", updated.expense);
-    console.log("Full Object:", updated);
-    console.groupEnd();
-    
-    return updated;
-  });
-};
+      return updated;
+    });
+  };
 
   const handlePartItemSelect = async (itemId: string) => {
     if (!formData.warehouse) {
@@ -647,69 +617,41 @@ const handleNewPartChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     }
   }
 
-  // const handleNewLubeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  //   const { name, value } = e.target
-
-  //   setNewLube((prev) => {
-  //     let updated: any = { ...prev, [name]: value }
-
-  //     if (name === "qty") {
-  //       const qtyNum = Number(value)
-  //       const stockNum = Number(prev.stock_qty)
-
-  //       if (qtyNum > stockNum) {
-  //         alert("Quantity cannot be more than available stock!")
-  //         updated.qty = ""
-  //         updated.expense = ""
-  //         return updated
-  //       }
-
-  //       if (qtyNum > 0 && Number(prev.rate) > 0) {
-  //         updated.expense = qtyNum * Number(prev.rate)
-  //       } else {
-  //         updated.expense = ""
-  //       }
-  //     }
-
-  //     return updated
-  //   })
-  // }
-
   const handleNewLubeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  const { name, value } = e.target
+    const { name, value } = e.target
 
-  setNewLube((prev) => {
-    let updated: any = { ...prev, [name]: value }
-    const qtyNum = name === "qty" ? Number(value) : Number(prev.qty);
-    const rateNum = Number(prev.rate);
+    setNewLube((prev) => {
+      let updated: any = { ...prev, [name]: value }
+      const qtyNum = name === "qty" ? Number(value) : Number(prev.qty);
+      const rateNum = Number(prev.rate);
 
-    if (name === "qty") {
-      const stockNum = Number(prev.stock_qty)
+      if (name === "qty") {
+        const stockNum = Number(prev.stock_qty)
 
-      if (qtyNum > stockNum) {
-        alert("Quantity cannot be more than available stock!")
-        updated.qty = ""
-        updated.expense = ""
-        return updated
+        if (qtyNum > stockNum) {
+          alert("Quantity cannot be more than available stock!")
+          updated.qty = ""
+          updated.expense = ""
+          return updated
+        }
+        if (qtyNum > 0 && rateNum > 0) {
+          let totalExpense = qtyNum * rateNum;
+          updated.expense = Math.floor(totalExpense);
+        } else {
+          updated.expense = 0;
+        }
       }
-      if (qtyNum > 0 && rateNum > 0) {
-        let totalExpense = qtyNum * rateNum;
-        updated.expense = Math.floor(totalExpense);
-      } else {
-        updated.expense = 0; 
-      }
-    }
 
 
-    console.log("--- Lube Calculation Debug ---");
-    console.log("Quantity (Qty):", qtyNum);
-    console.log("Rate:", rateNum);
-    console.log("Final Expense (Bina Decimal):", updated.expense);
-    console.log("------------------------------");
+      console.log("--- Lube Calculation Debug ---");
+      console.log("Quantity (Qty):", qtyNum);
+      console.log("Rate:", rateNum);
+      console.log("Final Expense (Bina Decimal):", updated.expense);
+      console.log("------------------------------");
 
-    return updated
-  })
-}
+      return updated
+    })
+  }
 
   const handleLubeItemSelect = async (itemId: string) => {
     if (!formData.warehouse) {
@@ -834,7 +776,7 @@ const handleNewPartChange = (e: React.ChangeEvent<HTMLInputElement>) => {
           headers: { "X-Frappe-CSRF-Token": csrf }
         }
       )
-  
+
       const msg = res.data.message || res.data
       const name = msg.name || msg?.message?.name
       const status = msg.docstatus ?? msg?.message?.docstatus ?? 0
@@ -844,7 +786,7 @@ const handleNewPartChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       onSuccess?.()
       alert(currentName ? "Updated successfully." : "Saved successfully.")
     } catch (err: any) {
-      
+
       const errorMsg = getErrorMessage(err);
       alert(errorMsg);
     } finally {
@@ -976,6 +918,13 @@ const handleNewPartChange = (e: React.ChangeEvent<HTMLInputElement>) => {
   const isBusy = isLoading || isSubmitting
   const showTimeField = ["Completed"].includes(formData.status)
 
+  const removePartEntry = (id: string) => {
+    setPartEntries((prev) => prev.filter((entry) => entry.id !== id))
+  }
+
+  const removeLubeEntry = (id: string) => {
+    setLubeEntries((prev) => prev.filter((entry) => entry.id !== id))
+  }
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-h-[90vh] overflow-y-auto bg-white">
@@ -1041,6 +990,7 @@ const handleNewPartChange = (e: React.ChangeEvent<HTMLInputElement>) => {
             handleNewPartChange={handleNewPartChange}
             handlePartItemSelect={handlePartItemSelect}
             addPartEntry={addPartEntry}
+            removePartEntry={removePartEntry}
             isBusy={isBusy}
           />
 
@@ -1052,6 +1002,7 @@ const handleNewPartChange = (e: React.ChangeEvent<HTMLInputElement>) => {
             handleNewLubeChange={handleNewLubeChange}
             handleLubeItemSelect={handleLubeItemSelect}
             addLubeEntry={addLubeEntry}
+            removeLubeEntry={removeLubeEntry}
             isBusy={isBusy}
           />
         </div>

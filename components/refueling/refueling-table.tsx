@@ -71,6 +71,47 @@ export function RefuelingTable({
   const router = useRouter()
 
 
+  // const fetchFrappeData = useCallback(async () => {
+  //   setIsLoading(true)
+  //   try {
+  //     const fieldsToFetch = [
+  //       "name",
+  //       "issuer_name",
+  //       "fuel_item",
+  //       "company",
+  //       "date",
+  //       "docstatus",
+  //     ]
+  //     const fieldsParam = encodeURIComponent(JSON.stringify(fieldsToFetch))
+  //     const url = `${getApiUrl(
+  //       config.api.resource(DOCTYPE_NAME),
+  //     )}?fields=${fieldsParam}&limit_page_length=2000`
+
+  //     const response = await fetch(url, { credentials: "include" })
+
+  //     if (response.status === 401) {
+  //       alert("Session expired. Please login again.")
+  //     }
+
+  //     if (response.status === 403) {
+  //       console.error("403 Forbidden")
+  //       alert("Permission Denied")
+  //       setRecords([])
+  //       return
+  //     }
+
+  //     if (!response.ok) throw new Error(`Frappe API Error: ${response.status}`)
+
+  //     const result = await response.json()
+  //     setRecords(result.data || [])
+  //     setSelectedNames([])
+  //   } catch (error) {
+  //     console.error("Error fetching data from Frappe:", error)
+  //     setRecords([])
+  //   } finally {
+  //     setIsLoading(false)
+  //   }
+  // }, [router])
   const fetchFrappeData = useCallback(async () => {
     setIsLoading(true)
     try {
@@ -83,9 +124,11 @@ export function RefuelingTable({
         "docstatus",
       ]
       const fieldsParam = encodeURIComponent(JSON.stringify(fieldsToFetch))
+      
+      // Added '&order_by=modified desc' to the URL
       const url = `${getApiUrl(
         config.api.resource(DOCTYPE_NAME),
-      )}?fields=${fieldsParam}&limit_page_length=2000`
+      )}?fields=${fieldsParam}&order_by=modified desc&limit_page_length=2000`
 
       const response = await fetch(url, { credentials: "include" })
 
@@ -103,6 +146,7 @@ export function RefuelingTable({
       if (!response.ok) throw new Error(`Frappe API Error: ${response.status}`)
 
       const result = await response.json()
+      // result.data will now be pre-sorted from the backend
       setRecords(result.data || [])
       setSelectedNames([])
     } catch (error) {

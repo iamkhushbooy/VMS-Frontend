@@ -11,10 +11,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Plus } from "lucide-react"
+import { Plus, Trash2 } from "lucide-react"
 import {
   ItemNameCombobox,
-  ReusableCombobox,
   type ItemDoc,
   type LubeEntry,
 } from "./MaintenanceShared"
@@ -26,6 +25,7 @@ interface LubeDetailProps {
   handleNewLubeChange: (e: React.ChangeEvent<HTMLInputElement>) => void
   handleLubeItemSelect: (itemId: string) => void
   addLubeEntry: () => void
+  removeLubeEntry: (id: string) => void
   isBusy: boolean
 }
 
@@ -36,6 +36,7 @@ export function LubeDetailSection({
   handleNewLubeChange,
   handleLubeItemSelect,
   addLubeEntry,
+  removeLubeEntry,
   isBusy,
 }: LubeDetailProps) {
   return (
@@ -47,34 +48,43 @@ export function LubeDetailSection({
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
-              <TableHead>Item Name</TableHead>
+              <TableHead>Item Code</TableHead>
               <TableHead>Item Group</TableHead>
               <TableHead>Stock Qty</TableHead>
               <TableHead>UOM</TableHead>
-              {/* <TableHead>Rate</TableHead> */}
               <TableHead>Qty</TableHead>
               <TableHead>Expense</TableHead>
               <TableHead>Remark</TableHead>
+              <TableHead className="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {lubeEntries.map((entry) => (
               <TableRow key={entry.id}>
-                <TableCell>{entry.item_display || entry.item_name}</TableCell>
+                <TableCell>{entry.item_name}</TableCell>
                 <TableCell>{entry.item_group}</TableCell>
                 <TableCell>{entry.stock_qty}</TableCell>
                 <TableCell>{entry.uom}</TableCell>
-                {/* <TableCell>{entry.rate}</TableCell> */}
                 <TableCell>{entry.qty}</TableCell>
                 <TableCell>{entry.expense}</TableCell>
                 <TableCell>{entry.remark}</TableCell>
+                <TableCell className="text-right">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeLubeEntry(entry.id)}
+                    disabled={isBusy}
+                    className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </div>
 
-      {/* New Lube Entry Form */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-4 border-t border-border pt-4">
         <div className="col-span-2 md:col-span-1">
           <Label className="text-xs">Item Name (Link)</Label>
@@ -82,9 +92,9 @@ export function LubeDetailSection({
             options={itemOptions}
             value={newLube.item_name}
             onValueChange={handleLubeItemSelect}
-            placeholder="Select item"
-            searchPlaceholder="Search items..."
-            displayField="item_name"
+            placeholder="Select Item Code"
+            searchPlaceholder="Search by Item Code..."
+            displayField="name"
             isLoading={isBusy}
           />
         </div>
@@ -93,7 +103,6 @@ export function LubeDetailSection({
           <Input
             name="item_group"
             value={newLube.item_group}
-            onChange={handleNewLubeChange}
             className="bg-input"
             disabled={isBusy}
             readOnly
@@ -105,9 +114,8 @@ export function LubeDetailSection({
             name="stock_qty"
             type="number"
             value={newLube.stock_qty}
-            onChange={handleNewLubeChange}
             className="bg-input [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-            disabled={isBusy}
+            readOnly
           />
         </div>
         <div>
@@ -115,28 +123,17 @@ export function LubeDetailSection({
           <Input
             name="uom"
             value={newLube.uom}
-            onChange={handleNewLubeChange}
             className="bg-input"
             disabled={isBusy}
             readOnly
           />
         </div>
-        {/* <div>
-          <Label className="text-xs">Rate</Label>
-          <Input
-            name="rate"
-            type="number"
-            value={newLube.rate}
-            onChange={handleNewLubeChange}
-            className="bg-input [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-            disabled={isBusy}
-          />
-        </div> */}
         <div>
           <Label className="text-xs">Qty</Label>
           <Input
             name="qty"
             type="number"
+            min={0}
             value={newLube.qty}
             onChange={handleNewLubeChange}
             className="bg-input [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"

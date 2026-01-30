@@ -67,7 +67,7 @@ export function MaintenanceTable({ onNewLog, onSelectLog, refreshTrigger }: Main
         ...log,
         docstatus: log.docstatus ?? 0,
       }))
-
+      fixed.sort((a: any, b: any) => new Date(b.modified).getTime() - new Date(a.modified).getTime())
       setLogs(fixed)
       setSelectedNames([])
     } catch (e) {

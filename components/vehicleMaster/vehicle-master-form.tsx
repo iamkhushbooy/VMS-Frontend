@@ -1,5 +1,4 @@
 "use client"
-
 import React, { useState, useEffect } from "react"
 import {
   Dialog,
@@ -8,14 +7,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import {
-  Loader2,
-  Car,
-  Image as ImageIcon,
-} from "lucide-react"
 import axios from "axios"
 import { FormSection } from "./FormLayout"
-
+import { Image as ImageIcon } from "lucide-react"
 import VehicleIdentitySection from "./VehicleIdentitySection"
 import VehicleDetailsSection from "./DetailsSection"
 import VehicleInsuranceSection from "./InsuranceSection"
@@ -68,7 +62,7 @@ export function VehicleMasterModal({ isOpen, onClose, record }: VehicleModalProp
     image: "",
     lastOdometer: "",
     acquisitionDate: "",
-    location: "",
+    warehouse: "",
     chassisNo: "",
     vehicleValue: "",
     employee: "",
@@ -87,6 +81,7 @@ export function VehicleMasterModal({ isOpen, onClose, record }: VehicleModalProp
   const [vehicleImage, setVehicleImage] = useState<File | null>(null)
   const [employeeOptions, setEmployeeOptions] = useState<FrappeDoc[]>([])
   const [uomOptions, setUomOptions] = useState<FrappeDoc[]>([])
+  const [warehouseOptions, setWarehouseOptions] = useState<FrappeDoc[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -128,21 +123,20 @@ export function VehicleMasterModal({ isOpen, onClose, record }: VehicleModalProp
 
   useEffect(() => {
     if (!isOpen) return
-
     let cancel = false
     setIsLoading(true)
 
     const loadData = async () => {
-      const [emps, uom] = await Promise.all([
+      const [emps, uom, warehouseOptions] = await Promise.all([
         fetchFrappeDoctype("Employee", ["name", "employee_name"]),
         fetchFrappeDoctype("UOM", ["name"]),
+        fetchFrappeDoctype("Warehouse", ["name"]),
       ])
-
      const uoms=uom.filter((item,index)=>(item.name==="Litre"))
-
       if (cancel) return
       setEmployeeOptions(emps)
       setUomOptions(uoms)
+      setWarehouseOptions(warehouseOptions)
 
       if (record) {
         const result = await fetch(
@@ -158,7 +152,7 @@ export function VehicleMasterModal({ isOpen, onClose, record }: VehicleModalProp
           image: doc.image || "",
           lastOdometer: doc.last_odometer || "",
           acquisitionDate: doc.acquisition_date || "",
-          location: doc.location || "",
+          warehouse: doc.warehouse || "",
           chassisNo: doc.chassis_no || "",
           vehicleValue: doc.vehicle_value || "",
           employee: doc.employee || "",
@@ -274,7 +268,7 @@ const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         image: uploadedImage,
         last_odometer: formData.lastOdometer,
         acquisition_date: formData.acquisitionDate,
-        location: formData.location,
+        warehouse: formData.warehouse,
         chassis_no: formData.chassisNo,
         vehicle_value: formData.vehicleValue,
         employee: formData.employee,
@@ -289,6 +283,7 @@ const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         wheels: formData.wheels,
         doors: formData.doors,
       }
+      console.log("Payload to submit:", payload);
 
       const fd = new FormData()
       fd.append("data", JSON.stringify(payload))
@@ -302,8 +297,8 @@ const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         }
       )
 
-      alert("Vehicle Submitted Successfully!")
-      window.location.reload()
+      alert("Vehicle Saved Successfully!")
+      window.location.reload();
 
     } catch (err:any) {
       const errorMsg = getErrorMessage(err);
@@ -334,7 +329,7 @@ const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         image: uploadedImage,
         last_odometer: formData.lastOdometer,
         acquisition_date: formData.acquisitionDate,
-        location: formData.location,
+        warehouse: formData.warehouse,
         chassis_no: formData.chassisNo,
         vehicle_value: formData.vehicleValue,
         employee: formData.employee,
@@ -363,7 +358,7 @@ const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       )
 
       alert("Vehicle Updated Successfully!")
-      window.location.reload()
+      // window.location.reload();
     } catch (err) {
       console.error(err)
       alert("Error Updating")
@@ -418,6 +413,7 @@ const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
             handleInputChange={handleInputChange}
             handleSelectChange={handleSelectChange}
             employeeOptions={employeeOptions}
+            warehouseOptions={warehouseOptions}
             isViewMode={!!record}
           />
 

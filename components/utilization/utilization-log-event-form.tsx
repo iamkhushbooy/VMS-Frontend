@@ -1,10 +1,10 @@
 "use client"
-
 import React from "react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Loader2 } from "lucide-react"
 import { ReusableCombobox } from "./ReusableCombobox"
+import { on } from "events"
 
 interface FrappeDoc {
   name: string
@@ -15,7 +15,7 @@ interface UtilizationLogEventFormProps {
   formData: any
   onInputChange: (e: any) => void
   onSelectChange: (key: string, value: string) => void
-
+  onEmployeeFieldClick: () => void
   plantOptions: FrappeDoc[]
   costCenterOptions: FrappeDoc[]
   warehouseOptions: FrappeDoc[]
@@ -43,6 +43,7 @@ export function UtilizationLogEventForm({
   statusOptions,
   isBusy,
   isLoading,
+  onEmployeeFieldClick
 }: UtilizationLogEventFormProps) {
   const showTimeField = ["Breakdown", "Idle"].includes(formData.status)
 
@@ -189,7 +190,7 @@ export function UtilizationLogEventForm({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
 
           {/* Vehicle */}
-          <div className="space-y-1.5">
+          <div onMouseDown={onEmployeeFieldClick} className="space-y-1.5">
             <Label htmlFor="vehicle" className="text-sm font-medium text-gray-700">Registration No</Label>
             <ReusableCombobox
               options={vehicleOptions}
@@ -221,12 +222,13 @@ export function UtilizationLogEventForm({
               id="hmr"
               name="hmr"
               type="number"
-              step="0.1"
+              min={0}
               value={formData.hmr}
               onChange={onInputChange}
               placeholder="e.g., 125430.5"
               disabled={isBusy}
               className="bg-white border-gray-200"
+              required
             />
           </div>
 

@@ -124,7 +124,7 @@ export const fetchFrappeDoctype = async (
   filters: any[] = [],
 ): Promise<FrappeDoc[]> => {
   const fieldsParam = encodeURIComponent(JSON.stringify(fields))
-  let url = `${getApiUrl(config.api.resource(doctype))}?fields=${fieldsParam}&limit_page_length=2000`
+  let url = `${getApiUrl(config.api.resource(doctype))}?fields=${fieldsParam}&limit_page_length=None`
   if (filters && filters.length > 0) {
     url += `&filters=${encodeURIComponent(JSON.stringify(filters))}`
   }
@@ -180,55 +180,53 @@ export const ReusableCombobox = React.forwardRef<HTMLButtonElement, any>(
             </span>
           </Button>
         </PopoverTrigger>
-<PopoverContent 
-  align="start" 
-  sideOffset={4}
-  collisionPadding={10}
-  // Width ko thoda aur adjust kiya taaki bade text ke liye jagah rahe
-  className="z-[9999] w-[var(--radix-popover-trigger-width)] min-w-[220px] sm:min-w-[300px] max-w-[95vw] p-0 shadow-xl border border-slate-200"
->
-  <Command className="w-full">
-    {/* Input text ko text-sm (14px) kiya gaya hai */}
-    <CommandInput placeholder={searchPlaceholder} className="h-9 text-sm" />
-    
-    <CommandList className="max-h-[350px]">
-      {options.length === 0 && (
-        <CommandEmpty className="text-sm p-3 text-muted-foreground">
-          No results found.
-        </CommandEmpty>
-      )}
-      
-      <CommandGroup>
-        {options.map((option: any, i: number) => (
-          <CommandItem
-            key={i}
-            // Text size ko [13px] ya sm (14px) par set karein
-            // py-2 kiya hai taaki bade font ke saath spacing sahi dikhe
-            className="text-sm py-2 cursor-pointer flex items-center gap-2 hover:bg-slate-100 transition-colors"
-            value={option[displayField] || option.name}
-            onSelect={(currentValue) => {
-              const selected = options.find(
-                (opt: any) =>
-                  (opt[displayField] || opt.name).toLowerCase() ===
-                  currentValue.toLowerCase(),
-              )
-              const newValue = selected ? selected.name : ""
-              onValueChange(newValue === value ? "" : newValue)
-              setOpen(false)
-            }}
-          >
-            {/* Icon size ko h-4 w-4 kiya hai font ke saath match karne ke liye */}
-            <Check className={cn("h-4 w-4 shrink-0", value === option.name ? "opacity-100" : "opacity-0")} />
-            
-            <span className="truncate leading-tight">
-              {option[displayField] || option.name}
-            </span>
-          </CommandItem>
-        ))}
-      </CommandGroup>
-    </CommandList>
-  </Command>
-</PopoverContent>
+        <PopoverContent
+          align="start"
+          sideOffset={4}
+          collisionPadding={10}
+          className="z-[9999] w-[var(--radix-popover-trigger-width)] min-w-[220px] sm:min-w-[300px] max-w-[95vw] p-0 shadow-xl border border-slate-200"
+        >
+          <Command className="w-full">
+            <CommandInput placeholder={searchPlaceholder} className="h-9 text-sm" />
+
+            <CommandList
+              className="max-h-[350px] overflow-y-auto"
+              onWheel={(e) => e.stopPropagation()}>
+              {options.length === 0 && (
+                <CommandEmpty className="text-sm p-3 text-muted-foreground">
+                  No results found.
+                </CommandEmpty>
+              )}
+
+              <CommandGroup>
+                {options.map((option: any, i: number) => (
+                  <CommandItem
+                    key={i}
+
+                    className="text-sm py-2 cursor-pointer flex items-center gap-2 hover:bg-slate-100 transition-colors"
+                    value={option[displayField] || option.name}
+                    onSelect={(currentValue) => {
+                      const selected = options.find(
+                        (opt: any) =>
+                          (opt[displayField] || opt.name).toLowerCase() ===
+                          currentValue.toLowerCase(),
+                      )
+                      const newValue = selected ? selected.name : ""
+                      onValueChange(newValue === value ? "" : newValue)
+                      setOpen(false)
+                    }}
+                  >
+                    <Check className={cn("h-4 w-4 shrink-0", value === option.name ? "opacity-100" : "opacity-0")} />
+
+                    <span className="truncate leading-tight">
+                      {option[displayField] || option.name}
+                    </span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
       </Popover>
     )
   },
@@ -289,7 +287,9 @@ export const MultiSelectCombobox = React.forwardRef<HTMLButtonElement, any>(
         <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
           <Command>
             <CommandInput placeholder={searchPlaceholder} />
-            <CommandList>
+            <CommandList
+              className=" overflow-y-auto"
+              onWheel={(e) => e.stopPropagation()}>
               {options.length === 0 && <CommandEmpty>No results found.</CommandEmpty>}
               <CommandGroup>
                 {options.map((option: any) => {
@@ -320,6 +320,113 @@ export const MultiSelectCombobox = React.forwardRef<HTMLButtonElement, any>(
 )
 MultiSelectCombobox.displayName = "MultiSelectCombobox"
 
+// export const ItemNameCombobox = React.forwardRef<HTMLButtonElement, any>(
+//   (props, ref) => {
+//     const {
+//       options = [],
+//       value,
+//       onValueChange,
+//       placeholder,
+//       searchPlaceholder,
+//       displayField = "item_name",
+//       isLoading = false,
+//       disabled = false,
+//     } = props
+
+//     const [open, setOpen] = useState(false)
+
+//     const getDisplayValue = (val: string) => {
+//       const selected = options.find((o: any) => o.name === val)
+//       if (!selected) return placeholder
+//       return selected[displayField] || selected.name
+//     }
+
+//     return (
+//       <Popover open={open} onOpenChange={setOpen}>
+//         <PopoverTrigger asChild>
+//           <Button
+//             variant="outline"
+//             role="combobox"
+//             aria-expanded={open}
+//             // Trigger button hamesha container ki full width lega
+//             className="w-full justify-between bg-input border-slate-200"
+//             disabled={isLoading || disabled}
+//             ref={ref}
+//           >
+//             <span className="flex items-center w-full">
+//               <span className="truncate">
+//                 {value ? getDisplayValue(value) : placeholder}
+//               </span>
+//               <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
+//             </span>
+//           </Button>
+//         </PopoverTrigger>
+
+//         <PopoverContent
+//           align="start"
+//           sideOffset={4}
+//           // Yahan specific width 500px set ki gayi hai
+//           className="z-[9999] w-[500px] max-w-[95vw] p-0 shadow-2xl border border-slate-200"
+//         >
+//           <Command className="w-full">
+//             <CommandInput placeholder={searchPlaceholder} className="h-10 text-sm" />
+//             <CommandList className="max-h-[400px] overflow-y-auto"
+//               onWheel={(e) => e.stopPropagation()}
+//             >
+//               {options.length === 0 && (
+//                 <CommandEmpty className="p-4 text-sm text-muted-foreground text-center">
+//                   No items found.
+//                 </CommandEmpty>
+//               )}
+//               <CommandGroup>
+//                 {options.map((option: any, i: number) => (
+//                   <CommandItem
+//                     key={i}
+//                     className="group text-sm py-3 px-4 cursor-pointer flex items-center justify-between gap-4 
+//                                data-[selected='true']:bg-blue-600 data-[selected='true']:text-white transition-colors"
+//                     value={option[displayField] || option.name}
+//                     onSelect={(currentValue) => {
+//                       const selected = options.find(
+//                         (opt: any) =>
+//                           (opt[displayField] || opt.name).toLowerCase() ===
+//                           currentValue.toLowerCase(),
+//                       )
+//                       const newValue = selected ? selected.name : ""
+//                       onValueChange(newValue)
+//                       setOpen(false)
+//                     }}
+//                   >
+//                     <div className="flex items-center gap-3 overflow-hidden">
+//                       <Check className={cn(
+//                         "h-4 w-4 shrink-0",
+//                         value === option.name ? "opacity-100" : "opacity-0",
+//                         "group-data-[selected='true']:text-white text-blue-600"
+//                       )} />
+
+//                       <div className="flex flex-col overflow-hidden">
+//                         <span className="font-medium truncate">
+//                           {option[displayField] || option.name}
+//                         </span>
+//                         {option.name !== option[displayField] && (
+//                           <span className="text-[10px] truncate opacity-70 group-data-[selected='true']:text-white group-data-[selected='true']:opacity-100 text-muted-foreground">
+//                             ID: {option.name}
+//                           </span>
+//                         )}
+//                       </div>
+//                     </div>
+//                   </CommandItem>
+//                 ))}
+//               </CommandGroup>
+//             </CommandList>
+//           </Command>
+//         </PopoverContent>
+//       </Popover>
+//     )
+//   },
+// )
+// ItemNameCombobox.displayName = "ItemNameCombobox"
+
+
 export const ItemNameCombobox = React.forwardRef<HTMLButtonElement, any>(
   (props, ref) => {
     const {
@@ -328,7 +435,7 @@ export const ItemNameCombobox = React.forwardRef<HTMLButtonElement, any>(
       onValueChange,
       placeholder,
       searchPlaceholder,
-      displayField = "item_name",
+      displayField = "name",
       isLoading = false,
       disabled = false,
     } = props
@@ -348,7 +455,6 @@ export const ItemNameCombobox = React.forwardRef<HTMLButtonElement, any>(
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            // Trigger button hamesha container ki full width lega
             className="w-full justify-between bg-input border-slate-200"
             disabled={isLoading || disabled}
             ref={ref}
@@ -361,16 +467,15 @@ export const ItemNameCombobox = React.forwardRef<HTMLButtonElement, any>(
             </span>
           </Button>
         </PopoverTrigger>
-        
-        <PopoverContent 
-          align="start" 
+
+        <PopoverContent
+          align="start"
           sideOffset={4}
-          // Yahan specific width 500px set ki gayi hai
           className="z-[9999] w-[500px] max-w-[95vw] p-0 shadow-2xl border border-slate-200"
         >
           <Command className="w-full">
             <CommandInput placeholder={searchPlaceholder} className="h-10 text-sm" />
-            <CommandList className="max-h-[400px]">
+            <CommandList className="max-h-[400px] overflow-y-auto" onWheel={(e) => e.stopPropagation()}>
               {options.length === 0 && (
                 <CommandEmpty className="p-4 text-sm text-muted-foreground text-center">
                   No items found.
@@ -380,41 +485,28 @@ export const ItemNameCombobox = React.forwardRef<HTMLButtonElement, any>(
                 {options.map((option: any, i: number) => (
                   <CommandItem
                     key={i}
-                    // Hover/Selection State: Blue background and White text
                     className="group text-sm py-3 px-4 cursor-pointer flex items-center justify-between gap-4 
                                data-[selected='true']:bg-blue-600 data-[selected='true']:text-white transition-colors"
-                    value={option[displayField] || option.name}
+                    value={option.name}
                     onSelect={(currentValue) => {
-                      const selected = options.find(
-                        (opt: any) =>
-                          (opt[displayField] || opt.name).toLowerCase() ===
-                          currentValue.toLowerCase(),
-                      )
-                      const newValue = selected ? selected.name : ""
-                      onValueChange(newValue)
+                      onValueChange(currentValue)
                       setOpen(false)
                     }}
                   >
                     <div className="flex items-center gap-3 overflow-hidden">
-                      {/* Check icon jo hover pe white ho jata hai */}
                       <Check className={cn(
-                        "h-4 w-4 shrink-0", 
+                        "h-4 w-4 shrink-0",
                         value === option.name ? "opacity-100" : "opacity-0",
                         "group-data-[selected='true']:text-white text-blue-600"
                       )} />
-                      
+
                       <div className="flex flex-col overflow-hidden">
-                        {/* Item Name */}
                         <span className="font-medium truncate">
-                          {option[displayField] || option.name}
+                          {option.name}
                         </span>
-                        
-                        {/* ID Text: Hover pe white aur fully visible */}
-                        {option.name !== option[displayField] && (
-                          <span className="text-[10px] truncate opacity-70 group-data-[selected='true']:text-white group-data-[selected='true']:opacity-100 text-muted-foreground">
-                            ID: {option.name}
-                          </span>
-                        )}
+                        <span className="text-[10px] truncate opacity-70 group-data-[selected='true']:text-white text-muted-foreground">
+                          {option.item_name}
+                        </span>
                       </div>
                     </div>
                   </CommandItem>

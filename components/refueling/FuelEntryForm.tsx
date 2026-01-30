@@ -1,5 +1,4 @@
 "use client"
-
 import React from "react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -36,6 +35,7 @@ interface FuelEntryFormProps {
   setNewEntry: React.Dispatch<React.SetStateAction<Partial<FuelEntry>>>
   vehicleOptions: VehicleDoc[]
   addFuelEntry: () => void
+  onVehicleFieldClick: () => void
 }
 
 const ReusableCombobox = React.forwardRef<HTMLButtonElement, any>(
@@ -72,28 +72,39 @@ const ReusableCombobox = React.forwardRef<HTMLButtonElement, any>(
             <ChevronsUpDown className="opacity-50 h-4 w-4" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="p-0 w-[--radix-popover-trigger-width]">
+        <PopoverContent
+          className="w-[--radix-popover-trigger-width] p-0 pointer-events-auto"
+          align="start"
+        >
           <Command>
             <CommandInput placeholder={searchPlaceholder} />
-            <CommandList>
+            <CommandList
+              className="max-h-60 overflow-y-auto"
+              onWheel={(e) => e.stopPropagation()}
+            >
               <CommandEmpty>No results found.</CommandEmpty>
               <CommandGroup>
-                {options.map((opt: any) => (
+                {options.map((option: any) => (
                   <CommandItem
-                    key={opt.name}
-                    value={opt[displayField] || opt.name}
-                    onSelect={() => {
-                      onValueChange(opt.name)
+                    key={option.name}
+                    value={(option[displayField] || option.name)}
+                    onSelect={(currentValue) => {
+                      const selected = options.find(
+                        (opt: any) =>
+                          (opt[displayField] || opt.name).toLowerCase() ===
+                          currentValue.toLowerCase()
+                      )
+                      onValueChange(selected ? selected.name : "")
                       setOpen(false)
                     }}
                   >
                     <Check
                       className={cn(
                         "mr-2 h-4 w-4",
-                        opt.name === value ? "opacity-100" : "opacity-0"
+                        value === option.name ? "opacity-100" : "opacity-0"
                       )}
                     />
-                    {opt[displayField] || opt.name}
+                    {option[displayField] || option.name}
                   </CommandItem>
                 ))}
               </CommandGroup>
@@ -111,11 +122,12 @@ export function FuelEntryForm({
   setNewEntry,
   vehicleOptions,
   addFuelEntry,
+  onVehicleFieldClick,
 }: FuelEntryFormProps) {
   const maxDate = "2099-12-31"
   return (
     <div className="grid grid-cols-3 gap-4 p-4 border mt-2 rounded-lg">
-      <div>
+      <div onMouseDown={onVehicleFieldClick}>
         <Label>Reg No</Label>
         <ReusableCombobox
           options={vehicleOptions}
@@ -142,6 +154,7 @@ export function FuelEntryForm({
           }
         />
       </div>
+
       <div>
         <Label>Fuel Qty</Label>
         <Input
@@ -152,13 +165,16 @@ export function FuelEntryForm({
               e.preventDefault();
             }
           }}
-          value={newEntry.fuelQty}
-          onChange={(e) =>
+          // Agar value 0 ya undefined hai toh khali string dikhayein
+          value={newEntry.fuelQty === undefined || newEntry.fuelQty === 0 ? "" : newEntry.fuelQty}
+          onChange={(e) => {
+            const val = e.target.value;
             setNewEntry((p) => ({
               ...p,
-              fuelQty: Number(e.target.value),
+              // Khali string hone par undefined rakhein, warna Number mein convert karein
+              fuelQty: val === "" ? undefined : Number(val),
             }))
-          }
+          }}
         />
       </div>
       <div>
@@ -171,13 +187,15 @@ export function FuelEntryForm({
               e.preventDefault();
             }
           }}
-          value={newEntry.current_hmrkms}
-          onChange={(e) =>
+          // Agar value undefined ya 0 hai toh khali rakhein
+          value={newEntry.current_hmrkms === undefined || newEntry.current_hmrkms === 0 ? "" : newEntry.current_hmrkms}
+          onChange={(e) => {
+            const val = e.target.value;
             setNewEntry((p) => ({
               ...p,
-              current_hmrkms: Number(e.target.value),
+              current_hmrkms: val === "" ? undefined : Number(val),
             }))
-          }
+          }}
         />
       </div>
       <div>
@@ -190,13 +208,14 @@ export function FuelEntryForm({
               e.preventDefault();
             }
           }}
-          value={newEntry.fuelConsumption}
-          onChange={(e) =>
+          value={newEntry.fuelConsumption === undefined || newEntry.fuelConsumption === 0 ? "" : newEntry.fuelConsumption}
+          onChange={(e) => {
+            const val = e.target.value;
             setNewEntry((p) => ({
               ...p,
-              fuelConsumption: Number(e.target.value),
+              fuelConsumption: val === "" ? undefined : Number(val),
             }))
-          }
+          }}
         />
       </div>
       <div className="flex items-end">

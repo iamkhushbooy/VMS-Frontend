@@ -10,6 +10,7 @@ interface VehicleDetailsSectionProps {
   handleInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void
   handleSelectChange: (field: string, value: string) => void
   employeeOptions: any[]
+  warehouseOptions: any[]
   isViewMode: boolean
 }
 
@@ -18,6 +19,7 @@ const VehicleDetailsSection: React.FC<VehicleDetailsSectionProps> = ({
   handleInputChange,
   handleSelectChange,
   employeeOptions,
+  warehouseOptions,
   isViewMode
 }) => {
   const maxDate = "2099-12-31"
@@ -54,19 +56,16 @@ const VehicleDetailsSection: React.FC<VehicleDetailsSectionProps> = ({
         />
       </InputGroup>
 
-      <InputGroup label="Location" required>
-        <div className="relative">
-          <MapPin className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
-          <Input
-            name="location"
-            value={formData.location}
-            onChange={handleInputChange}
-        
-            placeholder="Enter Location"
-            className="pl-9"
+        <InputGroup label="Source Warehouse" required>
+          <ReusableCombobox
+            options={warehouseOptions}
+            value={formData.warehouse}
+            onValueChange={(v: string) => handleSelectChange("warehouse", v)}
+            placeholder="Select Warehouse"
+            searchPlaceholder="Search..."
+            isLoading={false}
           />
-        </div>
-      </InputGroup>
+        </InputGroup>
 
       <InputGroup label="Chassis No" required>
         <Input

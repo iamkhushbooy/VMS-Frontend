@@ -37,8 +37,6 @@ export function GeneralDetailsSection({
   handleInputChange,
   handleVehicleSelect,
   handleMultiSelectChange,
-
-  seriesOptions,
   employeeOptions,
   jobCardTypeOptions,
   vehicleOptions,
@@ -107,7 +105,7 @@ export function GeneralDetailsSection({
           <ReusableCombobox options={priorityOptions} value={formData.priority} onValueChange={(v: string) => handleSelectChange("priority", v)} placeholder="Select priority" searchPlaceholder="Search..." isLoading={isBusy} />
         </div>
 
-        <div>
+        <div onMouseDown={onEmployeeFieldClick}>
           <Label htmlFor="registration_no" className="text-foreground mb-1">Registration No <span className="text-red-800">*</span></Label>
           <ReusableCombobox options={vehicleOptions} value={formData.registration_no} onValueChange={handleVehicleSelect} placeholder="Select vehicle" searchPlaceholder="Search..." displayField="name" isLoading={isBusy} />
         </div>

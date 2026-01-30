@@ -73,7 +73,7 @@ export default function VehicleMasterTable({ onAddVehicle, onSelectVehicle }: Ve
       const params = new URLSearchParams({
         fields: JSON.stringify(fieldsToFetch),
         limit_page_length: "2000",
-        order_by: "creation desc"
+        order_by: "modified desc"
       })
 
       const url = `${getApiUrl(config.api.resource(DOCTYPE_NAME))}?${params.toString()}`

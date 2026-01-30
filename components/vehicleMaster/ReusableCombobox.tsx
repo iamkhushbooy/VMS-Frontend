@@ -16,9 +16,9 @@ import {
   PopoverTrigger
 } from "@/components/ui/popover"
 import { cn } from "./FormLayout"
-import { Check, ChevronsUpDown, Calendar as CalendarIcon } from "lucide-react" // Added CalendarIcon
-import { format, parseISO } from "date-fns" // Required for date formatting
-import { Calendar } from "@/components/ui/calendar" // Required for the picker
+import { Check, ChevronsUpDown, Calendar as CalendarIcon } from "lucide-react"
+import { format, parseISO } from "date-fns"
+import { Calendar } from "@/components/ui/calendar"
 
 interface ReusableComboboxProps {
   options: any[]
@@ -60,7 +60,7 @@ const ReusableCombobox = React.forwardRef<HTMLButtonElement, ReusableComboboxPro
             role="combobox"
             aria-expanded={open}
             className={cn(
-              "w-full justify-between bg-background text-left font-normal hover:bg-accent/50 transition-colors h-10",
+              "w-full justify-between bg-background text-left font-normal transition-colors h-10",
               !value && "text-muted-foreground"
             )}
             disabled={isLoading}
@@ -77,7 +77,10 @@ const ReusableCombobox = React.forwardRef<HTMLButtonElement, ReusableComboboxPro
         <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
           <Command>
             <CommandInput placeholder={searchPlaceholder} />
-            <CommandList>
+            <CommandList
+              className=" overflow-y-auto"
+              onWheel={(e) => e.stopPropagation()}>
+
               <CommandEmpty>No results found.</CommandEmpty>
               <CommandGroup>
                 {options.map((option: any) => (
@@ -116,46 +119,3 @@ const ReusableCombobox = React.forwardRef<HTMLButtonElement, ReusableComboboxPro
 ReusableCombobox.displayName = "ReusableCombobox"
 
 export default ReusableCombobox
-
-interface DatePickerFieldProps {
-  value: string
-  onChange: (val: string) => void
-  placeholder: string
-  min?: string
-}
-
-export const DatePickerField = ({ value, onChange, placeholder, min }: DatePickerFieldProps) => {
-  const date = value ? parseISO(value) : undefined
-
-  return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          className={cn(
-            "w-full justify-start text-left font-normal pl-9 h-10 bg-background relative",
-            !value && "text-muted-foreground"
-          )}
-        >
-          <CalendarIcon className="w-4 h-4 absolute left-3 text-muted-foreground" />
-          {/* Display format: DD/MM/YYYY */}
-          {value ? format(date!, "dd/MM/yyyy") : <span>{placeholder}</span>}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
-        <Calendar
-          mode="single"
-          selected={date}
-          onSelect={(d) => onChange(d ? format(d, "yyyy-MM-dd") : "")}
-          // Validation logic: 1900 se pehle aur 2100 ke baad ki dates disable
-          disabled={(d) => 
-            (min ? d < new Date(min) : false) || 
-            d.getFullYear() > 2100 || 
-            d.getFullYear() < 1900
-          }
-          initialFocus
-        />
-      </PopoverContent>
-    </Popover>
-  )
-}

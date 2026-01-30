@@ -20,6 +20,7 @@ import {
 import { Check, ChevronsUpDown } from "lucide-react"
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { ItemNameCombobox } from "../maintenance/MaintenanceShared"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -85,28 +86,39 @@ const ReusableCombobox = React.forwardRef<HTMLButtonElement, any>(
             <ChevronsUpDown className="opacity-50 h-4 w-4" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="p-0 w-[--radix-popover-trigger-width]">
+        <PopoverContent
+          className="w-[--radix-popover-trigger-width] p-0 pointer-events-auto"
+          align="start"
+        >
           <Command>
             <CommandInput placeholder={searchPlaceholder} />
-            <CommandList>
+            <CommandList
+              className="max-h-60 overflow-y-auto"
+              onWheel={(e) => e.stopPropagation()}
+            >
               <CommandEmpty>No results found.</CommandEmpty>
               <CommandGroup>
-                {options.map((opt: any, index: any) => (
+                {options.map((option: any) => (
                   <CommandItem
-                    key={index}
-                    value={opt[displayField] || opt.name}
-                    onSelect={() => {
-                      onValueChange(opt.name)
+                    key={option.name}
+                    value={(option[displayField] || option.name)}
+                    onSelect={(currentValue) => {
+                      const selected = options.find(
+                        (opt: any) =>
+                          (opt[displayField] || opt.name).toLowerCase() ===
+                          currentValue.toLowerCase()
+                      )
+                      onValueChange(selected ? selected.name : "")
                       setOpen(false)
                     }}
                   >
                     <Check
                       className={cn(
                         "mr-2 h-4 w-4",
-                        opt.name === value ? "opacity-100" : "opacity-0"
+                        value === option.name ? "opacity-100" : "opacity-0"
                       )}
                     />
-                    {opt[displayField] || opt.name}
+                    {option[displayField] || option.name}
                   </CommandItem>
                 ))}
               </CommandGroup>
@@ -201,17 +213,17 @@ export function RefuelingTopForm({
         />
       </div>
 
-      <div>
-        <Label>Fuel Item</Label>
-        <ReusableCombobox
+<div>
+        <Label>Fuel Item Code</Label>
+        <ItemNameCombobox
           options={itemOptions}
           value={formData.fuelItem}
           onValueChange={(v: string) =>
             setFormData((p) => ({ ...p, fuelItem: v }))
           }
-          placeholder="Select item"
-          searchPlaceholder="Search item..."
-          displayField="item_name"
+          placeholder="Select Item Code"
+          searchPlaceholder="Search by Item Code..."
+          displayField="name" 
           disabled={!isEditMode}
         />
       </div>
