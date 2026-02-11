@@ -21,9 +21,9 @@ import axios from "axios"
 import { RefuelingTopForm } from "./RefuelingTopForm"
 import { FuelEntryForm } from "./FuelEntryForm"
 import { getApiUrl, config } from "@/lib/config"
-import { useAuthStore } from "@/context/auth_store"
 import { fetchFrappeDoctype, VEHICLE_DOCTYPE } from "../maintenance/MaintenanceShared"
-
+import { refuelingErrorMessage } from "@/lib/errorMessage"
+import { Pagination } from "./Pagination"
 const DOCTYPE = "Vehicle Refueling"
 
 interface FrappeDoc {
@@ -37,13 +37,13 @@ interface VehicleDoc extends FrappeDoc {
 }
 
 export interface FuelEntry {
+  fuel_qty_in_ltrs?: number
   id: string
   vehicle: string
   registrationName: string
   date: string
-  fuelQty?: number
   current_hmrkms?: number
-  fuelConsumption?: number
+  fuel_consumption?: number
 }
 
 interface ModalProps {
@@ -69,32 +69,32 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
     vehicle: "",
     registrationName: "",
     date: new Date().toISOString().split("T")[0],
-    fuelQty: undefined,
+    fuel_qty_in_ltrs: undefined,
     current_hmrkms: undefined,
-    fuelConsumption: undefined,
+    fuel_consumption: undefined,
   })
   const resetForm = () => {
-  setFormData({
-    date: new Date().toISOString().split("T")[0],
-    issuerName: "",
-    company: companyOptions.length > 0 ? companyOptions[0].name : "",
-    sourceWarehouse: "",
-    fuelItem: "",
-    costCenter: "",
-  });
-  setFuelEntries([]);
-  setCurrentName(null);
-  setDocStatus(0);
-  setIsEditMode(true);
-  setNewEntry({
-    vehicle: "",
-    registrationName: "",
-    date: new Date().toISOString().split("T")[0],
-    fuelQty: undefined,
-    current_hmrkms: undefined,
-    fuelConsumption: undefined,
-  });
-};
+    setFormData({
+      date: new Date().toISOString().split("T")[0],
+      issuerName: "",
+      company: companyOptions.length > 0 ? companyOptions[0].name : "",
+      sourceWarehouse: "",
+      fuelItem: "",
+      costCenter: "",
+    });
+    setFuelEntries([]);
+    setCurrentName(null);
+    setDocStatus(0);
+    setIsEditMode(true);
+    setNewEntry({
+      vehicle: "",
+      registrationName: "",
+      date: new Date().toISOString().split("T")[0],
+      fuel_qty_in_ltrs: undefined,
+      current_hmrkms: undefined,
+      fuel_consumption: undefined,
+    });
+  };
 
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -109,34 +109,56 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
   const [vehicleOptions, setVehicleOptions] = useState<VehicleDoc[]>([])
   const [allEmployeeOptions, setAllEmployeeOptions] = useState<FrappeDoc[]>([])
   const [allWarehouseOptions, setAllWarehouseOptions] = useState<FrappeDoc[]>([])
-  const { user } = useAuthStore()
-  const getErrorMessage = (err: any) => {
-    let msg = '';
-    if (typeof err?.response?.data === 'string' && (err.response.data.includes('<!DOCTYPE') || err.response.data.includes('<html'))) {
-      return 'Server is currently unavailable. Please check your internet connection or try again later.';
-    }
-    if (err?.response?.data?._server_messages) {
-      try {
-        const messages = JSON.parse(err.response.data._server_messages);
-        if (Array.isArray(messages) && messages.length > 0) {
-          const firstMsg = JSON.parse(messages[0]);
-          msg = firstMsg.message;
-        }
-      } catch (e) { /* Fallthrough */ }
-    }
-    else if (err?.response?.data?.exception) {
-      const exc = err.response.data.exception;
-      if (typeof exc === 'string' && exc.includes(':')) {
-        msg = exc.split(':').slice(1).join(':').trim();
-      } else {
-        msg = exc;
-      }
-    }
-    if (!msg) {
-      msg = err?.response?.data?.message || err?.message || 'Something went wrong. Please try again.';
-    }
-    return msg.replace(/<[^>]*>/g, '');
+  const [itemLoading, setItemLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const itemsPerPage = 5;
+  const totalPages = Math.ceil(fuelEntries.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedEntries = fuelEntries.slice(startIndex, startIndex + itemsPerPage);
+  const handleAddEntry = () => {
+    addFuelEntry();
+    const newTotalPages = Math.ceil((fuelEntries.length + 1) / itemsPerPage);
+    setCurrentPage(newTotalPages);
   };
+
+  const fetchFilteredItems = useCallback(async (query: string) => {
+    setItemLoading(true);
+    try {
+      const filters = [["disabled", "=", 0]];
+      if (query) {
+        filters.push(["name", "like", `%${query}%`]);
+      }
+
+      const fieldsParam = encodeURIComponent(JSON.stringify(["name", "item_name"]));
+      const filtersParam = encodeURIComponent(JSON.stringify(filters));
+      const url = `${getApiUrl(config.api.resource("Item"))}?fields=${fieldsParam}&filters=${filtersParam}&limit_page_length=20`;
+
+      const res = await fetch(url, { credentials: "include" });
+      const json = await res.json();
+      setItemOptions(json.data || []);
+    } catch (err) {
+      console.error("Item fetch error", err);
+    } finally {
+      setItemLoading(false);
+    }
+  }, []);
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      if (isOpen) {
+        fetchFilteredItems(searchTerm);
+      }
+    }, 500);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm, isOpen, fetchFilteredItems]);
+  useEffect(() => {
+    if (isOpen) {
+      fetchFilteredItems("");
+    }
+  }, [isOpen, fetchFilteredItems]);
+
   const fetchOptions = async (doctype: string, fields = ["name"], filters: any[] = []) => {
     const fieldsParam = encodeURIComponent(JSON.stringify(fields))
     let url = `${getApiUrl(config.api.resource(doctype))}?fields=${fieldsParam}&limit_page_length=None`
@@ -163,33 +185,33 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
     const json = await res.json()
     return json.message
   }
-
   const fetchWarehouseMeta = async (warehouseName: string) => {
     if (!warehouseName) return null;
-
     const fieldsParam = encodeURIComponent(
-      JSON.stringify(["name", "cost_center"])   // company removed
+      JSON.stringify(["name", "cost_center", "is_group"])
+    );
+    const filtersParam = encodeURIComponent(
+      JSON.stringify([
+        ["name", "=", warehouseName],
+        ["is_group", "=", 0]
+      ])
     );
 
     try {
-      const res = await fetch(
-        `${getApiUrl(config.api.resource("Warehouse"))}/${encodeURIComponent(
-          warehouseName
-        )}?fields=${fieldsParam}`,
-        { credentials: "include" }
-      );
+      const url = `${getApiUrl(config.api.resource("Warehouse"))}?fields=${fieldsParam}&filters=${filtersParam}`;
 
+      const res = await fetch(url, { credentials: "include" });
       const json = await res.json();
+      if (json.data && json.data.length > 0) {
+        return json.data[0];
+      }
 
-
-      return json.data || null;
+      return null;
     } catch (error) {
       console.error("Error fetching Warehouse meta", error);
       return null;
     }
   };
-
-
   const loadRecord = useCallback(async (name: string) => {
     setIsLoading(true)
     try {
@@ -218,9 +240,9 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
           vehicle: d.vehicle,
           registrationName: d.registration_no,
           date: d.date,
-          fuelQty: d.fuel_qty_in_ltrs ?? d.fuel_qty ?? 0,
+          fuel_qty_in_ltrs: d.fuel_qty_in_ltrs ?? d.fuel_qty_in_ltrs ?? 0,
           current_hmrkms: d.current_hmrkms,
-          fuelConsumption: d.fuel_consumption,
+          fuel_consumption: d.fuel_consumption,
         })
       )
       setFuelEntries(mapped)
@@ -234,85 +256,76 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
   useEffect(() => {
     if (!isOpen) return
     if (!record) {
-    resetForm();
-  }
+      resetForm();
+    }
     let cancelled = false
-
     const loadDropdowns = async () => {
       try {
-        const url = getApiUrl(
+        setIsLoading(true);
+        const companyUrl = getApiUrl(
           `/api/resource/Company?fields=${encodeURIComponent(JSON.stringify(["name"]))}`
         );
-        const x = await fetch(url, {
-          method: "GET",
-          credentials: "include",
-        });
-        const companyData = await x.json();
-        const assignedCompanies =
-          companyData?.data?.map((c: { name: string }) => c.name) || [];
+        const companyRes = await fetch(companyUrl, { method: "GET", credentials: "include" });
+        const companyData = await companyRes.json();
+        const assignedCompanies = companyData?.data?.map((c: { name: string }) => c.name) || [];
+        const [allCompanies, warehousesAll, centers] = await Promise.all([
+          fetchOptions("Company"),
+          fetchOptions("Warehouse", ["name", "company"]),
+          fetchOptions("Cost Center"),
+        ]);
+        const empUrl = getApiUrl("/api/method/vms.api.get_all_employees");
+        const empRes = await fetch(empUrl, { method: "GET", credentials: "include" });
+        const eAll = await empRes.json();
 
-
-        setIsLoading(true)
-        const [allCompanies, warehousesAll, items, centers] =
-          await Promise.all([
-            fetchOptions("Company"),
-            fetchOptions("Warehouse", ["name", "company"]),
-            fetchOptions("Item", ["name", "item_name"], [["disabled", "=", 0]]),
-            fetchOptions("Cost Center"),
-          ])
-
+        if (cancelled) return;
         const filteredCompanies = allCompanies.filter((item: { name: string }) =>
           assignedCompanies.includes(item.name)
         );
-        const url1 = getApiUrl("/api/method/vms.api.get_all_employees");
-
-        const employeesAll = await fetch(url1, {
-          method: "GET",
-          credentials: "include"
-        });
-
-        const eAll = await employeesAll.json();
 
 
-        if (cancelled) return
-        setCompanyOptions(filteredCompanies)
-        setItemOptions(items)
-        setCostCenterOptions(centers)
-        setAllEmployeeOptions(eAll.message);
+        const empsWithCombinedLabel = (eAll.message || []).map((emp: any) => ({
+          ...emp,
+          combined_label: `${emp.name} - ${emp.employee_name}`
+        }));
+
+
+        setCompanyOptions(filteredCompanies);
+        setCostCenterOptions(centers);
+        setAllEmployeeOptions(empsWithCombinedLabel);
         setAllWarehouseOptions(warehousesAll);
+        fetchFilteredItems("");
         if (!record && filteredCompanies.length > 0) {
           setFormData(prev => ({
             ...prev,
             company: prev.company || filteredCompanies[0].name
-          }))
+          }));
         }
-        setIssuerOptions([])
-        setWarehouseOptions([])
 
         if (record?.name) {
-          await loadRecord(record.name)
+          await loadRecord(record.name);
         } else {
-          // Reset to New
-          setCurrentName(null)
-          setDocStatus(0)
-          setIsEditMode(true)
-          setFuelEntries([])
-          setFormData((p) => ({
+          setCurrentName(null);
+          setDocStatus(0);
+          setIsEditMode(true);
+          setFuelEntries([]);
+          setFormData(p => ({
             ...p,
             date: new Date().toISOString().split("T")[0],
-          }))
+          }));
         }
       } catch (err) {
-        console.error("loadDropdowns error", err)
+        console.error("loadDropdowns error", err);
       } finally {
-        if (!cancelled) setIsLoading(false)
+        if (!cancelled) setIsLoading(false);
       }
-    }
+    };
+
     loadDropdowns()
     return () => {
       cancelled = true
     }
   }, [isOpen, record, loadRecord])
+
   const checkWarehouseSelection = () => {
     if (!formData.costCenter) {
       alert("Please select a Source Warehouse first to filter the Issuer Name.");
@@ -334,6 +347,8 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
       );
       setWarehouseOptions(filteredWarehouses);
 
+
+
       if (formData.costCenter) {
         setIsLoading(true);
         try {
@@ -351,7 +366,11 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
 
             const response = await fetch(url, { method: "GET", credentials: "include" });
             const result = await response.json();
-            setIssuerOptions(result.data || []);
+            const filteredWithLabels = (result.data || []).map((emp: any) => ({
+              ...emp,
+              combined_label: `${emp.name} - ${emp.employee_name}`
+            }));
+            setIssuerOptions(filteredWithLabels);
           }
         } catch (error) {
           console.error("Failed to fetch filtered employees:", error);
@@ -422,7 +441,7 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
 
     fetchVehicles();
   }, [formData.sourceWarehouse, isOpen]);
-  
+
   const checkWarehouseForVehicle = () => {
     if (!formData.sourceWarehouse) {
       alert("Please select a Source Warehouse first to filter Registration No.");
@@ -433,16 +452,16 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
 
 
   const addFuelEntry = () => {
-    if (!newEntry.vehicle || !newEntry.fuelQty) return
+    if (!newEntry.vehicle || !newEntry.fuel_qty_in_ltrs) return
 
     const entry: FuelEntry = {
       id: `${Date.now()}`,
       vehicle: newEntry.vehicle!,
       registrationName: newEntry.registrationName || newEntry.vehicle!,
       date: newEntry.date!,
-      fuelQty: newEntry.fuelQty!,
+      fuel_qty_in_ltrs: newEntry.fuel_qty_in_ltrs!,
       current_hmrkms: newEntry.current_hmrkms,
-      fuelConsumption: newEntry.fuelConsumption,
+      fuel_consumption: newEntry.fuel_consumption,
     }
 
     setFuelEntries((prev) => [...prev, entry])
@@ -450,14 +469,10 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
       vehicle: "",
       registrationName: "",
       date: new Date().toISOString().split("T")[0],
-      fuelQty: undefined,
+      fuel_qty_in_ltrs: undefined,
       current_hmrkms: undefined,
-      fuelConsumption: undefined,
+      fuel_consumption: undefined,
     })
-  }
-
-  const removeFuelEntry = (id: string) => {
-    setFuelEntries((prev) => prev.filter((f) => f.id !== id))
   }
 
   const handleSave = async () => {
@@ -475,7 +490,7 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
         cost_center: formData.costCenter,
         vehicle_refueling_details: fuelEntries,
       }
-            console.log("Saving Payload Data:", JSON.stringify(payload, null, 2));
+      console.log("Saving Payload Data:", JSON.stringify(payload, null, 2));
 
       const fd = new FormData()
       fd.append("data", JSON.stringify(payload))
@@ -486,18 +501,22 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
         { withCredentials: true, headers: { "X-Frappe-CSRF-Token": csrf } }
       )
 
-      const name = res.data.message.message.name
-      const status = res.data.message.message.docstatus
+      if (res.status >= 200 && res.status < 300 && res.data.message) {
+      const responseData = res.data.message;
+      const docName = responseData.name || currentName;
+      const status = responseData.docstatus || 0;
 
-      setCurrentName(name)
-      setDocStatus(status)
-      setIsEditMode(true)
+      setCurrentName(docName);
+      setDocStatus(status);
+      setIsEditMode(true);
 
-      alert(currentName ? "Updated successfully" : "Saved successfully")
-      if (onSuccess) onSuccess()
+      alert(currentName ? "Updated successfully" : "Saved successfully");
+      
+      if (onSuccess) onSuccess();
+    }
 
     } catch (err: any) {
-      const errorMsg = getErrorMessage(err);
+      const errorMsg = refuelingErrorMessage(err);
       alert(errorMsg);
     } finally {
       setIsSubmitting(false)
@@ -505,10 +524,9 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
   }
 
   const handleSubmit = async () => {
-    setIsSubmitting(true)
+    setIsSubmitting(true);
     try {
-      const csrf = await getCSRF()
-
+      const csrf = await getCSRF();
       const payload: any = {
         ...(currentName ? { name: currentName } : {}),
         date: formData.date,
@@ -517,19 +535,17 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
         source_warehouse: formData.sourceWarehouse,
         fuel_item: formData.fuelItem,
         cost_center: formData.costCenter,
-        submit: true,
+        submit: 1,
         vehicle_refueling_details: fuelEntries.map((f) => ({
           vehicle: f.vehicle,
           date: f.date,
-          fuel_qty_in_ltrs: f.fuelQty,
+          fuel_qty_in_ltrs: f.fuel_qty_in_ltrs,
           current_hmrkms: f.current_hmrkms,
-          fuel_consumption: f.fuelConsumption,
+          fuel_consumption: f.fuel_consumption,
         })),
-      }
-
-      const fd = new FormData()
-      fd.append("data", JSON.stringify(payload))
-
+      };
+      const fd = new FormData();
+      fd.append("data", JSON.stringify(payload));
       const res = await axios.post(
         getApiUrl(config.api.method("vms.api.submit_vehicle_refueling")),
         fd,
@@ -537,31 +553,31 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
           withCredentials: true,
           headers: { "X-Frappe-CSRF-Token": csrf },
         }
-      )
-      const docName = res.data.message?.name || currentName
-      setCurrentName(docName)
-      setDocStatus(1) 
-      setIsEditMode(false)
-
-      alert("Saved & Submitted successfully.")
-      if (onSuccess) onSuccess()
-      onClose()
-
-
+      );
+      if (res.status >= 200 && res.status < 300 && res.data.message) {
+        const docName = res.data.message.name || currentName;
+        setCurrentName(docName);
+        setDocStatus(1);
+        setIsEditMode(false);
+        alert(`Success! Record ${docName} has been submitted.`);
+        if (onSuccess) onSuccess();
+        onClose();
+      } else {
+        throw new Error("The server acknowledged the request but did not return a valid document.");
+      }
     } catch (err: any) {
-      const errorMsg = getErrorMessage(err);
-      alert(errorMsg);
+      const errorMsg = refuelingErrorMessage(err);
+      console.error("Submission Error:", err);
+      alert(`Submission Failed: ${errorMsg}`);
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   const handleStatusAction = async () => {
     setIsSubmitting(true)
     try {
       const csrf = await getCSRF()
-
-      // CANCEL
       if (docStatus === 1 && currentName) {
         const fd = new FormData()
         fd.append("name", currentName)
@@ -617,6 +633,16 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
 
   const isBusy = isLoading || isSubmitting
 
+  const removeFuelEntry = (id: string) => {
+    setFuelEntries((prev) => {
+      const updated = prev.filter((f) => f.id !== id);
+      const maxPage = Math.ceil(updated.length / itemsPerPage) || 1;
+      if (currentPage > maxPage) {
+        setCurrentPage(maxPage);
+      }
+      return updated;
+    });
+  };
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className=" overflow-y-auto">
@@ -645,6 +671,8 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
             costCenterOptions={costCenterOptions}
             isEditMode={isEditMode}
             onEmployeeFieldClick={checkWarehouseSelection}
+            onItemSearch={fetchFilteredItems}
+            itemLoading={itemLoading}
           />
 
           <h3 className="font-semibold text-lg mt-4">Fuel Entry</h3>
@@ -654,7 +682,7 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
               newEntry={newEntry}
               setNewEntry={setNewEntry}
               vehicleOptions={vehicleOptions}
-              addFuelEntry={addFuelEntry}
+              addFuelEntry={handleAddEntry}
               onVehicleFieldClick={checkWarehouseForVehicle}
             />
           )}
@@ -671,21 +699,17 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
               </TableRow>
             </TableHeader>
             <TableBody>
-              {fuelEntries.map((f) => (
+              {paginatedEntries.map((f) => (
                 <TableRow key={f.id}>
                   <TableCell>{f.registrationName}</TableCell>
                   <TableCell>{f.date}</TableCell>
-                  <TableCell>{f.fuelQty}</TableCell>
+                  <TableCell>{f.fuel_qty_in_ltrs}</TableCell>
                   <TableCell>{f.current_hmrkms}</TableCell>
-                  <TableCell>{f.fuelConsumption}</TableCell>
+                  <TableCell>{f.fuel_consumption}</TableCell>
                   <TableCell>
                     {isEditMode && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeFuelEntry(f.id)}
-                      >
-                        <Trash2 className="text-red-500" />
+                      <Button variant="ghost" size="sm" onClick={() => removeFuelEntry(f.id)}>
+                        <Trash2 className="text-red-500 h-4 w-4" />
                       </Button>
                     )}
                   </TableCell>
@@ -693,6 +717,13 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
               ))}
             </TableBody>
           </Table>
+
+          <Pagination
+            currentPage={currentPage}     
+            totalPages={totalPages}        
+            onPageChange={setCurrentPage}  
+            disabled={isBusy}
+          />
         </div>
 
         <DialogFooter className="gap-2 flex justify-end">

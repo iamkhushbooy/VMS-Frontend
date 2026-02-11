@@ -38,7 +38,7 @@ export interface VehicleRecord {
   license_plate: string
   make: string
   model: string
-  location: string
+  warehouse: string
   employee: string
   fuel_type: string
   last_odometer: number
@@ -67,7 +67,7 @@ export default function VehicleMasterTable({ onAddVehicle, onSelectVehicle }: Ve
     try {
       const fieldsToFetch = [
         "name", "license_plate", "make", "model",
-        "location", "employee", "fuel_type", "last_odometer", "image"
+        "warehouse", "employee", "fuel_type", "last_odometer", "image"
       ]
 
       const params = new URLSearchParams({
@@ -100,7 +100,7 @@ export default function VehicleMasterTable({ onAddVehicle, onSelectVehicle }: Ve
     r.license_plate.toLowerCase().includes(searchTerm.toLowerCase()) ||
     r.make.toLowerCase().includes(searchTerm.toLowerCase()) ||
     r.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (r.location && r.location.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (r.warehouse && r.warehouse.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (r.employee && r.employee.toLowerCase().includes(searchTerm.toLowerCase()))
   )
 
@@ -197,8 +197,7 @@ export default function VehicleMasterTable({ onAddVehicle, onSelectVehicle }: Ve
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            // Placeholder update kar diya gaya hai
-            placeholder="Search by Location Plate, Make..."
+            placeholder="Search by warehouse, License Plate..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10 glass-card"
@@ -243,7 +242,7 @@ export default function VehicleMasterTable({ onAddVehicle, onSelectVehicle }: Ve
                 <TableHead>Image</TableHead>
                 <TableHead>License Plate</TableHead>
                 <TableHead>Make & Model</TableHead>
-                <TableHead>Location</TableHead>
+                <TableHead>Warehouse</TableHead>
                 <TableHead>Employee</TableHead>
                 <TableHead>Fuel Type</TableHead>
                 <TableHead className="text-right">Odometer</TableHead>
@@ -303,7 +302,7 @@ export default function VehicleMasterTable({ onAddVehicle, onSelectVehicle }: Ve
 
                     <TableCell className="font-medium">{record.license_plate}</TableCell>
                     <TableCell>{record.make} {record.model}</TableCell>
-                    <TableCell>{record.location}</TableCell>
+                    <TableCell>{record.warehouse}</TableCell>
                     <TableCell>{record.employee}</TableCell>
                     <TableCell>{record.fuel_type}</TableCell>
                     <TableCell className="text-right">{record.last_odometer}</TableCell>

@@ -61,7 +61,7 @@ export function UtilizationLogEventForm({
 
           {/* Date */}
           <div className="space-y-1.5">
-            <Label htmlFor="date" className="text-sm font-medium text-gray-700">Posting Date</Label>
+            <Label htmlFor="date" className="text-sm font-medium text-gray-700">Posting Date*</Label>
             <Input
               id="date"
               name="date"
@@ -132,7 +132,7 @@ export function UtilizationLogEventForm({
 
           {/* Warehouse */}
           <div className="space-y-1.5">
-            <Label htmlFor="warehouse" className="text-sm font-medium text-gray-700">Source Warehouse</Label>
+            <Label htmlFor="warehouse" className="text-sm font-medium text-gray-700">Source Warehouse*</Label>
             <ReusableCombobox
               options={warehouseOptions}
               value={formData.warehouse}
@@ -171,7 +171,7 @@ export function UtilizationLogEventForm({
 
           {/* Shift */}
           <div className="space-y-1.5">
-            <Label htmlFor="shift" className="text-sm font-medium text-gray-700">Shift</Label>
+            <Label htmlFor="shift" className="text-sm font-medium text-gray-700">Shift*</Label>
             <ReusableCombobox
               options={shiftOptions}
               value={formData.shift}
@@ -217,12 +217,17 @@ export function UtilizationLogEventForm({
 
           {/* HMR */}
           <div className="space-y-1.5">
-            <Label htmlFor="hmr" className="text-sm font-medium text-gray-700">Current HMR/Kms</Label>
+            <Label htmlFor="hmr" className="text-sm font-medium text-gray-700">Current HMR/Kms*</Label>
             <Input
               id="hmr"
               name="hmr"
               type="number"
               min={0}
+              onKeyDown={(e) => {
+              if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                e.preventDefault();
+               }
+              }}
               value={formData.hmr}
               onChange={onInputChange}
               placeholder="e.g., 125430.5"

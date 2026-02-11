@@ -166,13 +166,13 @@ export function FuelEntryForm({
             }
           }}
           // Agar value 0 ya undefined hai toh khali string dikhayein
-          value={newEntry.fuelQty === undefined || newEntry.fuelQty === 0 ? "" : newEntry.fuelQty}
+          value={newEntry.fuel_qty_in_ltrs === undefined || newEntry.fuel_qty_in_ltrs === 0 ? "" : newEntry.fuel_qty_in_ltrs}
           onChange={(e) => {
             const val = e.target.value;
             setNewEntry((p) => ({
               ...p,
               // Khali string hone par undefined rakhein, warna Number mein convert karein
-              fuelQty: val === "" ? undefined : Number(val),
+              fuel_qty_in_ltrs: val === "" ? undefined : Number(val),
             }))
           }}
         />
@@ -208,12 +208,12 @@ export function FuelEntryForm({
               e.preventDefault();
             }
           }}
-          value={newEntry.fuelConsumption === undefined || newEntry.fuelConsumption === 0 ? "" : newEntry.fuelConsumption}
+          value={newEntry.fuel_consumption === undefined || newEntry.fuel_consumption === 0 ? "" : newEntry.fuel_consumption}
           onChange={(e) => {
             const val = e.target.value;
             setNewEntry((p) => ({
               ...p,
-              fuelConsumption: val === "" ? undefined : Number(val),
+              fuel_consumption: val === "" ? undefined : Number(val),
             }))
           }}
         />

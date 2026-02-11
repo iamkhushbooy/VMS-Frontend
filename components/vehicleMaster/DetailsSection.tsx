@@ -48,7 +48,7 @@ const VehicleDetailsSection: React.FC<VehicleDetailsSectionProps> = ({
       <InputGroup label="Acquisition Date">
         <Input
           name="acquisitionDate"
-          
+
           type="date"
           value={formData.acquisitionDate}
           onChange={handleInputChange}
@@ -56,16 +56,16 @@ const VehicleDetailsSection: React.FC<VehicleDetailsSectionProps> = ({
         />
       </InputGroup>
 
-        <InputGroup label="Source Warehouse" required>
-          <ReusableCombobox
-            options={warehouseOptions}
-            value={formData.warehouse}
-            onValueChange={(v: string) => handleSelectChange("warehouse", v)}
-            placeholder="Select Warehouse"
-            searchPlaceholder="Search..."
-            isLoading={false}
-          />
-        </InputGroup>
+      <InputGroup label="Source Warehouse" required>
+        <ReusableCombobox
+          options={warehouseOptions}
+          value={formData.warehouse}
+          onValueChange={(v: string) => handleSelectChange("warehouse", v)}
+          placeholder="Select Warehouse"
+          searchPlaceholder="Search..."
+          isLoading={false}
+        />
+      </InputGroup>
 
       <InputGroup label="Chassis No" required>
         <Input
@@ -96,13 +96,25 @@ const VehicleDetailsSection: React.FC<VehicleDetailsSectionProps> = ({
       </InputGroup>
 
       <InputGroup label="Employee" required>
-        <ReusableCombobox
+        {/* <ReusableCombobox
           icon={User}
           options={employeeOptions}
           value={formData.employee}
           onValueChange={(v: string) => handleSelectChange("employee", v)}
           placeholder="Select Employee"
           displayField="employee_name"
+          isLoading={false}
+        />
+        */}
+
+
+        <ReusableCombobox
+          icon={User}
+          options={employeeOptions}
+          value={formData.employee}
+          onValueChange={(v: string) => handleSelectChange("employee", v)}
+          placeholder="Select Employee"
+          displayField="combined_label"
           isLoading={false}
         />
       </InputGroup>

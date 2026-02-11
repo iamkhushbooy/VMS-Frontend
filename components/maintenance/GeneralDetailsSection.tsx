@@ -85,7 +85,21 @@ export function GeneralDetailsSection({
         </div>
         <div onPointerDown={onEmployeeFieldClick}>
           <Label htmlFor="issuer_name" className="text-foreground mb-1">Issuer Name <span className="text-red-800">*</span></Label>
-          <ReusableCombobox options={employeeOptions} value={formData.issuer_name} onValueChange={(v: string) => handleSelectChange("issuer_name", v)} placeholder="Select issuer" searchPlaceholder="Search..." displayField="employee_name" isLoading={isBusy} />
+          {/* <ReusableCombobox options={employeeOptions}
+            value={formData.issuer_name}
+            onValueChange={(v: string) => handleSelectChange("issuer_name", v)}
+            placeholder="Select issuer" searchPlaceholder="Search..." displayField="employee_name"
+            isLoading={isBusy} /> */}
+          <ReusableCombobox
+            options={employeeOptions}
+            value={formData.issuer_name}
+            onValueChange={(v: string) => handleSelectChange("issuer_name", v)}
+            placeholder="Select issuer"
+            searchPlaceholder="Search by ID or Name..."
+            // Change displayField from "employee_name" to "combined_label"
+            displayField="combined_label"
+            isLoading={isBusy}
+          />
         </div>
 
         <div>
@@ -191,7 +205,19 @@ export function GeneralDetailsSection({
 
         <div onMouseDown={onEmployeeFieldClick}>
           <Label htmlFor="working_employees" className="text-foreground mb-1">Working Employees <span className="text-red-800">*</span></Label>
-          <MultiSelectCombobox options={employeeOptions} value={formData.working_employees} onValueChange={(v: string[]) => handleMultiSelectChange("working_employees", v)} placeholder="Select employees..." searchPlaceholder="Search..." displayField="employee_name" isLoading={isBusy} />
+          {/* <MultiSelectCombobox options={employeeOptions} value={formData.working_employees}
+            onValueChange={(v: string[]) => handleMultiSelectChange("working_employees", v)}
+            placeholder="Select employees..." searchPlaceholder="Search..." displayField="employee_name"
+            isLoading={isBusy} /> */}
+          <MultiSelectCombobox
+            options={employeeOptions}
+            value={formData.working_employees}
+            onValueChange={(v: string[]) => handleMultiSelectChange("working_employees", v)}
+            placeholder="Select employees..."
+            searchPlaceholder="Search by ID or Name..."
+            displayField="combined_label"
+            isLoading={isBusy}
+          />
         </div>
       </div>
     </div>

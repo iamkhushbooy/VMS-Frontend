@@ -37,8 +37,9 @@ import {
   type LubeEntry,
   type MaintenanceFormModalProps
 } from "./MaintenanceShared"
-import { useAuthStore } from '@/context/auth_store'
-
+import { useCallback } from 'react'
+import { getErrorMessage } from "@/lib/errorMessage"
+import { Pagination } from '../refueling/Pagination'
 const getLocalISOString = () => {
   const now = new Date();
   const offset = now.getTimezoneOffset() * 60000;
@@ -80,7 +81,77 @@ export function MaintenanceFormModal({
   const [newProblem, setNewProblem] = useState("")
   const [newWorkDone, setNewWorkDone] = useState("")
   const [newPendingJob, setNewPendingJob] = useState("")
-  const { user } = useAuthStore()
+  const [itemSearchTerm, setItemSearchTerm] = useState("");
+  const [itemLoading, setItemLoading] = useState(false);
+  const [partsPage, setPartsPage] = useState(1);
+  const [lubePage, setLubePage] = useState(1);
+  const itemsPerPage = 5;
+
+  // Memoized paginated data
+  const paginatedPartEntries = partEntries.slice(
+    (partsPage - 1) * itemsPerPage,
+    partsPage * itemsPerPage
+  );
+
+  const paginatedLubeEntries = lubeEntries.slice(
+    (lubePage - 1) * itemsPerPage,
+    lubePage * itemsPerPage
+  );
+
+  const totalPartPages = Math.ceil(partEntries.length / itemsPerPage);
+  const totalLubePages = Math.ceil(lubeEntries.length / itemsPerPage);
+
+  const handleAddPartEntry = () => {
+    addPartEntry();
+    // Hum length + 1 use karenge kyunki state update hone mein time lagta hai
+    const nextTotal = partEntries.length + 1;
+    const newPage = Math.ceil(nextTotal / itemsPerPage);
+    setPartsPage(newPage);
+  };
+
+  const handleAddLubeEntry = () => {
+    addLubeEntry(); // Iske andar addLubeEntry() hi call hona chahiye!
+    const nextTotal = lubeEntries.length + 1;
+    const newPage = Math.ceil(nextTotal / itemsPerPage);
+    setLubePage(newPage);
+  };
+
+
+  const fetchFilteredItems = useCallback(async (query: string) => {
+    setItemLoading(true);
+    try {
+      const filters = [["disabled", "=", 0]];
+      if (query) {
+        filters.push(["name", "like", `%${query}%`]);
+      }
+      const fields = ["name", "item_name", "item_group", "stock_uom", "standard_rate", "total_projected_qty"];
+      const fieldsParam = encodeURIComponent(JSON.stringify(fields));
+      const filtersParam = encodeURIComponent(JSON.stringify(filters));
+
+      const url = `${getApiUrl(config.api.resource("Item"))}?fields=${fieldsParam}&filters=${filtersParam}&limit_page_length=20`;
+
+      const res = await fetch(url, { credentials: "include" });
+      const json = await res.json();
+      const mappedItems = (json.data || []).map((i: any) => ({
+        ...i,
+        total_projected_qty: Number(i.total_projected_qty || 0),
+        standard_rate: Number(i.standard_rate || 0),
+      }));
+
+      setItemOptions(mappedItems);
+    } catch (err) {
+      console.error("Item fetch error", err);
+    } finally {
+      setItemLoading(false);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    const delayFn = setTimeout(() => {
+      if (isOpen) fetchFilteredItems(itemSearchTerm);
+    }, 500);
+    return () => clearTimeout(delayFn);
+  }, [itemSearchTerm, isOpen, fetchFilteredItems]);
 
   const [newPart, setNewPart] = useState<Omit<PartEntry, "id">>({
     item_name: "",
@@ -117,36 +188,6 @@ export function MaintenanceFormModal({
   const [currentName, setCurrentName] = useState<string | null>(null)
   const [allEmployeeOptions, setAllEmployeeOptions] = useState<FrappeDoc[]>([])
   const [allWarehouseOptions, setAllWarehouseOptions] = useState<FrappeDoc[]>([])
-
-
-  const getErrorMessage = (err: any) => {
-    let msg = '';
-    if (typeof err?.response?.data === 'string' && (err.response.data.includes('<!DOCTYPE') || err.response.data.includes('<html'))) {
-      return 'Server is currently unavailable. Please check your internet connection or try again later.';
-    }
-    if (err?.response?.data?._server_messages) {
-      try {
-        const messages = JSON.parse(err.response.data._server_messages);
-        if (Array.isArray(messages) && messages.length > 0) {
-          const firstMsg = JSON.parse(messages[0]);
-          msg = firstMsg.message;
-        }
-      } catch (e) { /* Fallthrough */ }
-    }
-    else if (err?.response?.data?.exception) {
-      const exc = err.response.data.exception;
-      if (typeof exc === 'string' && exc.includes(':')) {
-        msg = exc.split(':').slice(1).join(':').trim();
-      } else {
-        msg = exc;
-      }
-    }
-    if (!msg) {
-      msg = err?.response?.data?.message || err?.message || 'Something went wrong. Please try again.';
-    }
-    return msg.replace(/<[^>]*>/g, '');
-  };
-
   const fetchAvailableQty = async (itemCode: string, uom: string) => {
     try {
       const res = await axios.get(
@@ -251,10 +292,8 @@ export function MaintenanceFormModal({
       setCurrentName(null)
       return
     }
-
     let cancelled = false
     setIsLoading(true)
-
     const loadDropdowns = async () => {
       try {
         const url = getApiUrl(
@@ -269,16 +308,10 @@ export function MaintenanceFormModal({
           companyData?.data?.map((c: { name: string }) => c.name) || [];
 
         const [
-          items,
           warehousesAll,
           allCompanies
         ] = await Promise.all([
-          fetchFrappeDoctype(
-            ITEM_DOCTYPE,
-            ["name", "item_name", "item_group", "stock_uom"],
-            [["disabled", "=", 0]]
-          ) as Promise<ItemDoc[]>,
-          fetchFrappeDoctype("Warehouse", ["name", "company", "cost_center"]),
+          fetchFrappeDoctype("Warehouse", ["name", "company", "cost_center"], [["is_group", "=", 0]]),
           fetchFrappeDoctype("Company", ["name"])
         ]);
 
@@ -307,13 +340,6 @@ export function MaintenanceFormModal({
         }
         setEmployeeOptions([])
         setWarehouseOptions([])
-        setItemOptions(
-          items.map((i) => ({
-            ...i,
-            total_projected_qty: Number(i.total_projected_qty || 0),
-            standard_rate: Number(i.standard_rate || 0),
-          }))
-        );
       } catch (e) {
         console.error("loadDropdowns error:", e);
       }
@@ -414,7 +440,7 @@ export function MaintenanceFormModal({
 
     return () => { cancelled = true }
   }, [isOpen, log])
-  
+
   useEffect(() => {
     if (!isOpen || !formData.warehouse) {
       setVehicleOptions([]);
@@ -429,7 +455,7 @@ export function MaintenanceFormModal({
           ["name", "make", "model", "last_odometer"],
           [["warehouse", "=", formData.warehouse]]
         ) as VehicleDoc[];
-        
+
         console.log("Fetched vehicles for", formData.warehouse, vehicles);
         setVehicleOptions(vehicles);
       } catch (e) {
@@ -477,8 +503,10 @@ export function MaintenanceFormModal({
 
             const response = await fetch(url, { method: "GET", credentials: "include" });
             const result = await response.json();
-
-            const fetchedEmployees = result.data || [];
+            const fetchedEmployees = (result.data || []).map((emp: any) => ({
+              ...emp,
+              combined_label: `${emp.name} - ${emp.employee_name}`
+            }));
 
             if (fetchedEmployees.length > 0) {
               setEmployeeOptions(fetchedEmployees);
@@ -564,15 +592,6 @@ export function MaintenanceFormModal({
           updated.expense = 0;
         }
       }
-
-      console.group("Part Change Debug");
-      console.log("Field Updated:", name);
-      console.log("Current Qty:", currentQty);
-      console.log("Current Rate:", currentRate);
-      console.log("Calculated Expense:", updated.expense);
-      console.log("Full Object:", updated);
-      console.groupEnd();
-
       return updated;
     });
   };
@@ -641,14 +660,6 @@ export function MaintenanceFormModal({
           updated.expense = 0;
         }
       }
-
-
-      console.log("--- Lube Calculation Debug ---");
-      console.log("Quantity (Qty):", qtyNum);
-      console.log("Rate:", rateNum);
-      console.log("Final Expense (Bina Decimal):", updated.expense);
-      console.log("------------------------------");
-
       return updated
     })
   }
@@ -846,7 +857,6 @@ export function MaintenanceFormModal({
 
     setIsSubmitting(true);
     try {
-      // ⭐ CSRF token fetch
       const csrf = await getCSRF();
 
       const fd = new FormData();
@@ -919,12 +929,26 @@ export function MaintenanceFormModal({
   const showTimeField = ["Completed"].includes(formData.status)
 
   const removePartEntry = (id: string) => {
-    setPartEntries((prev) => prev.filter((entry) => entry.id !== id))
-  }
+    setPartEntries((prev) => {
+      const updated = prev.filter((entry) => entry.id !== id);
+      const maxPage = Math.ceil(updated.length / itemsPerPage) || 1;
+      if (partsPage > maxPage) {
+        setPartsPage(maxPage);
+      }
+      return updated;
+    });
+  };
 
   const removeLubeEntry = (id: string) => {
-    setLubeEntries((prev) => prev.filter((entry) => entry.id !== id))
-  }
+    setLubeEntries((prev) => {
+      const updated = prev.filter((entry) => entry.id !== id);
+      const maxPage = Math.ceil(updated.length / itemsPerPage) || 1;
+      if (lubePage > maxPage) {
+        setLubePage(maxPage);
+      }
+      return updated;
+    });
+  };
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-h-[90vh] overflow-y-auto bg-white">
@@ -984,26 +1008,42 @@ export function MaintenanceFormModal({
 
           {/* Parts Details Section */}
           <PartsDetailSection
-            partEntries={partEntries}
+            partEntries={paginatedPartEntries}
             newPart={newPart}
             itemOptions={itemOptions}
             handleNewPartChange={handleNewPartChange}
             handlePartItemSelect={handlePartItemSelect}
-            addPartEntry={addPartEntry}
+            addPartEntry={handleAddPartEntry}
             removePartEntry={removePartEntry}
             isBusy={isBusy}
+            onItemSearch={setItemSearchTerm}
+            itemLoading={itemLoading}
+          />
+          <Pagination
+            currentPage={partsPage}
+            totalPages={totalPartPages}
+            onPageChange={setPartsPage}
+            disabled={isBusy}
           />
 
           {/* Lube Details Section */}
           <LubeDetailSection
-            lubeEntries={lubeEntries}
+            lubeEntries={paginatedLubeEntries}
             newLube={newLube}
             itemOptions={itemOptions}
             handleNewLubeChange={handleNewLubeChange}
             handleLubeItemSelect={handleLubeItemSelect}
-            addLubeEntry={addLubeEntry}
+            addLubeEntry={handleAddLubeEntry}
             removeLubeEntry={removeLubeEntry}
             isBusy={isBusy}
+            onItemSearch={setItemSearchTerm}
+            itemLoading={itemLoading}
+          />
+          <Pagination
+            currentPage={lubePage}
+            totalPages={totalLubePages}
+            onPageChange={setLubePage}
+            disabled={isBusy}
           />
         </div>
 
@@ -1039,8 +1079,6 @@ export function MaintenanceFormModal({
               </Button>
             </>
           )}
-
-          {/*SUBMITTED (docstatus=1) → CANCEL */}
           {currentName && docStatus === 1 && (
             <Button
               onClick={handleCancel}
@@ -1051,8 +1089,6 @@ export function MaintenanceFormModal({
               Cancel
             </Button>
           )}
-
-          {/*CANCELLED (docstatus=2) → CREATE AMENDMENT */}
           {currentName && docStatus === 2 && (
             <Button
               onClick={handleAmend}

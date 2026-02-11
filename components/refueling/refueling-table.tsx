@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/pagination"
 
 import { getApiUrl, config } from "@/lib/config"
-
+import { checkAuth } from "@/lib/checkAuth"
 interface RefuelingRecord {
   name: string
   date: string
@@ -42,15 +42,11 @@ interface RefuelingTableProps {
 }
 
 const DOCTYPE_NAME = "Vehicle Refueling"
-
-// Status label
 const getStatusLabel = (d: number) => {
   if (d === 1) return "Submitted"
   if (d === 2) return "Cancelled"
   return "Draft"
 }
-
-// Status colors
 const getStatusClass = (d: number) => {
   if (d === 1) return "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200"
   if (d === 2) return "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200"
@@ -69,49 +65,6 @@ export function RefuelingTable({
   const [selectedNames, setSelectedNames] = useState<string[]>([])
   const [isActionLoading, setIsActionLoading] = useState(false)
   const router = useRouter()
-
-
-  // const fetchFrappeData = useCallback(async () => {
-  //   setIsLoading(true)
-  //   try {
-  //     const fieldsToFetch = [
-  //       "name",
-  //       "issuer_name",
-  //       "fuel_item",
-  //       "company",
-  //       "date",
-  //       "docstatus",
-  //     ]
-  //     const fieldsParam = encodeURIComponent(JSON.stringify(fieldsToFetch))
-  //     const url = `${getApiUrl(
-  //       config.api.resource(DOCTYPE_NAME),
-  //     )}?fields=${fieldsParam}&limit_page_length=2000`
-
-  //     const response = await fetch(url, { credentials: "include" })
-
-  //     if (response.status === 401) {
-  //       alert("Session expired. Please login again.")
-  //     }
-
-  //     if (response.status === 403) {
-  //       console.error("403 Forbidden")
-  //       alert("Permission Denied")
-  //       setRecords([])
-  //       return
-  //     }
-
-  //     if (!response.ok) throw new Error(`Frappe API Error: ${response.status}`)
-
-  //     const result = await response.json()
-  //     setRecords(result.data || [])
-  //     setSelectedNames([])
-  //   } catch (error) {
-  //     console.error("Error fetching data from Frappe:", error)
-  //     setRecords([])
-  //   } finally {
-  //     setIsLoading(false)
-  //   }
-  // }, [router])
   const fetchFrappeData = useCallback(async () => {
     setIsLoading(true)
     try {
@@ -124,8 +77,6 @@ export function RefuelingTable({
         "docstatus",
       ]
       const fieldsParam = encodeURIComponent(JSON.stringify(fieldsToFetch))
-      
-      // Added '&order_by=modified desc' to the URL
       const url = `${getApiUrl(
         config.api.resource(DOCTYPE_NAME),
       )}?fields=${fieldsParam}&order_by=modified desc&limit_page_length=2000`
@@ -146,7 +97,6 @@ export function RefuelingTable({
       if (!response.ok) throw new Error(`Frappe API Error: ${response.status}`)
 
       const result = await response.json()
-      // result.data will now be pre-sorted from the backend
       setRecords(result.data || [])
       setSelectedNames([])
     } catch (error) {
@@ -156,6 +106,57 @@ export function RefuelingTable({
       setIsLoading(false)
     }
   }, [router])
+  
+//   const fetchFrappeData = useCallback(async () => {
+//   setIsLoading(true)
+//   try {
+//     const currentUser = await checkAuth();
+//     const warehouseUrl = `${getApiUrl(config.api.resource("Warehouse"))}?fields=["name"]&limit_page_length=None`;
+//     const whResponse = await fetch(warehouseUrl, { credentials: "include" });
+//     const whResult = await whResponse.json();
+//     const assignedWarehouses = whResult.data?.map((wh: { name: string }) => wh.name) || [];
+
+//     const fieldsToFetch = [
+//       "name",
+//       "issuer_name",
+//       "fuel_item",
+//       "company",
+//       "date",
+//       "docstatus",
+//       "source_warehouse"
+//     ]
+
+//     let filters = [];
+//     if (currentUser && currentUser !== "Administrator") {
+//       filters.push(["source_warehouse", "in", assignedWarehouses]);
+//     }
+
+//     const filtersParam = encodeURIComponent(JSON.stringify(filters));
+//     const fieldsParam = encodeURIComponent(JSON.stringify(fieldsToFetch))
+    
+//     const url = `${getApiUrl(
+//       config.api.resource(DOCTYPE_NAME),
+//     )}?fields=${fieldsParam}&filters=${filtersParam}&order_by=modified desc&limit_page_length=2000`
+
+//     const response = await fetch(url, { credentials: "include" })
+
+//     if (response.status === 401) {
+//       alert("Session expired. Please login again.")
+//       return
+//     }
+
+//     if (!response.ok) throw new Error(`Frappe API Error: ${response.status}`)
+
+//     const result = await response.json()
+//     setRecords(result.data || [])
+//     setSelectedNames([])
+//   } catch (error) {
+//     console.error("Error fetching data from Frappe:", error)
+//     setRecords([])
+//   } finally {
+//     setIsLoading(false)
+//   }
+// }, [router])
 
   useEffect(() => {
     fetchFrappeData()
@@ -396,14 +397,9 @@ export function RefuelingTable({
                 }}
               />
             </PaginationItem>
-
-            {/* Block Based Page Numbers (1-3, 4-6, 7-9...) */}
             {(() => {
               const itemsPerBlock = 3
-              // Calculate which block we are in based on current page
               const currentBlock = Math.ceil(currentPage / itemsPerBlock)
-              
-              // Calculate start and end for this block
               const startPage = (currentBlock - 1) * itemsPerBlock + 1
               const endPage = Math.min(startPage + itemsPerBlock - 1, totalPages)
 

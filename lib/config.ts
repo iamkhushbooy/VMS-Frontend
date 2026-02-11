@@ -4,7 +4,7 @@ export const config = {
   frappeBaseUrl:
     process.env.NEXT_PUBLIC_FRAPPE_BASE_URL ||
     process.env.FRAPPE_BASE_URL ||
-    "http://localhost:8000",
+    "https://prayog.vaaman.in",
   // API endpoints
   api: {
     login: "/api/method/login",

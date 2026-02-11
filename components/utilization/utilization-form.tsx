@@ -8,7 +8,7 @@ import { useAuthStore } from "@/context/auth_store"
 import { getApiUrl, config } from "@/lib/config"
 import { UtilizationLogEventForm } from "./utilization-log-event-form"
 import { VEHICLE_DOCTYPE } from "../maintenance/MaintenanceShared"
-
+import { getErrorMessage } from "@/lib/errorMessage"
 const DOCTYPE_NAME = "Utilization Report"
 interface FrappeDoc {
   name: string
@@ -23,25 +23,6 @@ interface UtilizationFormProps {
 
 const formatDateTimeForInput = (d?: string) =>
   d ? d.replace(" ", "T").substring(0, 16) : ""
-
-// const fetchFrappeDoctype = async (
-//   doctype: string,
-//   fields: string[] = ["name"]
-// ): Promise<FrappeDoc[]> => {
-//   const url = `${getApiUrl(config.api.resource(doctype))}?fields=${encodeURIComponent(
-//     JSON.stringify(fields)
-//   )}&limit_page_length=2000`
-
-//   try {
-//     const response = await fetch(url, { credentials: "include" })
-//     if (!response.ok) throw new Error(response.statusText)
-//     const data = await response.json()
-//     return data.data || []
-//   } catch (e) {
-//     console.error("fetch error:", e)
-//     return []
-//   }
-// }
 const fetchFrappeDoctype = async (
   doctype: string,
   fields: string[] = ["name"],
@@ -109,33 +90,6 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
   const [allWarehouseOptions, setAllWarehouseOptions] = useState<FrappeDoc[]>([])
   const shiftOptions = [{ name: "A" }, { name: "B" }, { name: "C" }, { name: "G" }]
   const statusOptions = [{ name: "Running" }, { name: "Breakdown" }, { name: "Idle" }]
-  const getErrorMessage = (err: any) => {
-  let msg = '';
-  if (typeof err?.response?.data === 'string' && (err.response.data.includes('<!DOCTYPE') || err.response.data.includes('<html'))) {
-    return 'Server is currently unavailable. Please try again later.';
-  }
-  if (err?.response?.data?._server_messages) {
-    try {
-      const messages = JSON.parse(err.response.data._server_messages);
-      if (Array.isArray(messages) && messages.length > 0) {
-        const firstMsg = JSON.parse(messages[0]);
-        msg = firstMsg.message;
-      }
-    } catch (e) { /* Fallthrough */ }
-  }
-  else if (err?.response?.data?.exception) {
-    const exc = err.response.data.exception;
-    if (typeof exc === 'string' && exc.includes(':')) {
-      msg = exc.split(':').slice(1).join(':').trim();
-    } else {
-      msg = exc;
-    }
-  }
-  if (!msg) {
-    msg = err?.response?.data?.message || err?.message || 'Something went wrong. Please try again.';
-  }
-  return msg.replace(/<[^>]*>/g, '');
-};
   const fetchWarehouseMeta = async (warehouseName: string) => {
     if (!warehouseName) return null;
 
@@ -178,7 +132,7 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
         const [branches, costCenters, warehousesAll, companies] = await Promise.all([
           fetchFrappeDoctype("Branch", ["name"]),
           fetchFrappeDoctype("Cost Center", ["name"]),
-          fetchFrappeDoctype("Warehouse", ["name", "company"]),
+          fetchFrappeDoctype("Warehouse", ["name", "company"],[["is_group", "=", 0]]),
           fetchFrappeDoctype("Company", ["name"])
         ])
         const filteredCompanies = companies.filter((item: { name: string }) =>
@@ -328,132 +282,85 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
   const handleInputChange = (e: any) =>
     setFormData((p) => ({ ...p, [e.target.name]: e.target.value }))
 
-  // const handleSubmit = async () => {
-  //   setIsSubmitting(true)
-  //   try {
-  //     const token = await (
-  //       await fetch(getApiUrl(config.api.getCsrfToken), { credentials: "include" })
-  //     ).json()
-
-  //     const fd = new FormData()
-  //     fd.append("data", JSON.stringify({
-  //       date: formData.date,
-  //       from_date: formData.fromDate,
-  //       to_date: formData.toDate,
-  //       shift: formData.shift,
-  //       plant: formData.plant,
-  //       cost_center: formData.costCenter,
-  //       company: formData.company,
-  //       warehouse: formData.warehouse,
-  //       vehicle: formData.vehicle,
-  //       supervisor_name: formData.supervisorName,
-  //       hmr: formData.hmr,
-  //       status: formData.status,
-  //     }))
-
-  //     await axios.post(
-  //       getApiUrl(config.api.method("vms.api.submit_utilization_report")),
-  //       fd,
-  //       { withCredentials: true, headers: { "X-Frappe-CSRF-Token": token.message } }
-  //     )
-
-  //     alert("Saved!")
-  //     window.location.reload()
-  //   } catch (err) {
-  //     console.error(err)
-  //     alert("Failed")
-  //   } finally {
-  //     setIsSubmitting(false)
-  //   }
-  // }
   const handleSubmit = async () => {
-  setIsSubmitting(true)
-  try {
-    const token = await (await fetch(getApiUrl(config.api.getCsrfToken), { credentials: "include" })).json()
-    const fd = new FormData()
-    fd.append("data", JSON.stringify({
-      ...formData,
-      from_date: formData.fromDate,
-      to_date: formData.toDate,
-      cost_center: formData.costCenter,
-      supervisor_name: formData.supervisorName,
-    }))
+    setIsSubmitting(true)
+    try {
+      const token = await (
+        await fetch(getApiUrl(config.api.getCsrfToken), { credentials: "include" })
+      ).json()
 
-    await axios.post(getApiUrl(config.api.method("vms.api.submit_utilization_report")), fd, {
-      withCredentials: true,
-      headers: { "X-Frappe-CSRF-Token": token.message }
-    })
+      const fd = new FormData()
+      fd.append("data", JSON.stringify({
+        date: formData.date,
+        from_date: formData.fromDate,
+        to_date: formData.toDate,
+        shift: formData.shift,
+        plant: formData.plant,
+        cost_center: formData.costCenter,
+        company: formData.company,
+        warehouse: formData.warehouse,
+        vehicle: formData.vehicle,
+        supervisor_name: formData.supervisorName,
+        hmr: formData.hmr,
+        status: formData.status,
+      }))
 
-    alert("Saved Successfully!")
-    onClose()
-    window.location.reload()
-  } catch (err) {
-    const errorMsg = getErrorMessage(err);
-    alert(errorMsg);
-  } finally { setIsSubmitting(false) }
-}
-
-  // const handleUpdate = async () => {
-  //   if (!record) return alert("Record missing")
-
-  //   setIsSubmitting(true)
-
-  //   try {
-  //     const token = await (
-  //       await fetch(getApiUrl(config.api.getCsrfToken), { credentials: "include" })
-  //     ).json()
-
-  //     await axios.put(
-  //       getApiUrl(`${config.api.resource(DOCTYPE_NAME)}/${record.name}`),
-  //       {
-  //         date: formData.date,
-  //         from_date: formData.fromDate,
-  //         to_date: formData.toDate,
-  //         shift: formData.shift,
-  //         plant: formData.plant,
-  //         cost_center: formData.costCenter,
-  //         company: formData.company,
-  //         warehouse: formData.warehouse,
-  //         vehicle: formData.vehicle,
-  //         supervisor_name: formData.supervisorName,
-  //         hmr: formData.hmr,
-  //         status: formData.status,
-  //       },
-  //       { withCredentials: true, headers: { "X-Frappe-CSRF-Token": token.message } }
-  //     )
-
-  //     alert("Updated!")
-  //     window.location.reload()
-  //   } catch (e) {
-  //     console.error(e)
-  //     alert("Failed")
-  //   } finally {
-  //     setIsSubmitting(false)
-  //   }
-  // }
+      const res=await axios.post(
+        getApiUrl(config.api.method("vms.api.submit_utilization_report")),
+        fd,
+        { withCredentials: true, headers: { "X-Frappe-CSRF-Token": token.message } }
+      )
+      if (res.status === 200) {
+        alert("Vehicle Updated Successfully!");
+        window.location.reload()
+      }
+    } catch (err) {
+      const errorMsg = getErrorMessage(err);
+      alert(errorMsg);
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
   const handleUpdate = async () => {
-  if (!record) return
-  setIsSubmitting(true)
-  try {
-    const token = await (await fetch(getApiUrl(config.api.getCsrfToken), { credentials: "include" })).json()
-    await axios.put(getApiUrl(`${config.api.resource(DOCTYPE_NAME)}/${record.name}`), {
-      ...formData,
-      from_date: formData.fromDate,
-      to_date: formData.toDate,
-      cost_center: formData.costCenter,
-      supervisor_name: formData.supervisorName,
-    }, {
-      withCredentials: true,
-      headers: { "X-Frappe-CSRF-Token": token.message }
-    })
-    alert("Updated Successfully!")
-    onClose()
-    window.location.reload()
-  } catch (err) {
-    const errorMsg = getErrorMessage(err);
-    alert(errorMsg);
-  } finally { setIsSubmitting(false) }
-}
+    if (!record) return alert("Record missing")
+
+    setIsSubmitting(true)
+
+    try {
+      const token = await (
+        await fetch(getApiUrl(config.api.getCsrfToken), { credentials: "include" })
+      ).json()
+
+      const res=await axios.put(
+        getApiUrl(`${config.api.resource(DOCTYPE_NAME)}/${record.name}`),
+        {
+          date: formData.date,
+          from_date: formData.fromDate,
+          to_date: formData.toDate,
+          shift: formData.shift,
+          plant: formData.plant,
+          cost_center: formData.costCenter,
+          company: formData.company,
+          warehouse: formData.warehouse,
+          vehicle: formData.vehicle,
+          supervisor_name: formData.supervisorName,
+          hmr: formData.hmr,
+          status: formData.status,
+        },
+        { withCredentials: true, headers: { "X-Frappe-CSRF-Token": token.message } }
+      )
+
+      if (res.status === 200) {
+        alert("Utilization Updated Successfully!");
+        window.location.reload()
+      }
+    } catch (err) {
+      const errorMsg = getErrorMessage(err);
+      alert(errorMsg);
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   const isBusy = isLoading || isSubmitting
 

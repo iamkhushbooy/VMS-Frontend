@@ -14,7 +14,7 @@ import VehicleIdentitySection from "./VehicleIdentitySection"
 import VehicleDetailsSection from "./DetailsSection"
 import VehicleInsuranceSection from "./InsuranceSection"
 import VehicleAdditionalSection from "./AdditionalDetailsSection"
-
+import { getErrorMessage } from "@/lib/errorMessage"
 import { getApiUrl, config } from "@/lib/config"
 const DOCTYPE_NAME = "Vehicle Master"
 
@@ -84,34 +84,7 @@ export function VehicleMasterModal({ isOpen, onClose, record }: VehicleModalProp
   const [warehouseOptions, setWarehouseOptions] = useState<FrappeDoc[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-
-  const getErrorMessage = (err: any) => {
-    let msg = '';
-    if (typeof err?.response?.data === 'string' && (err.response.data.includes('<!DOCTYPE') || err.response.data.includes('<html'))) {
-        return 'Server is currently unavailable. Please check your internet connection or try again later.';
-    }
-    if (err?.response?.data?._server_messages) {
-        try {
-            const messages = JSON.parse(err.response.data._server_messages);
-            if (Array.isArray(messages) && messages.length > 0) {
-                const firstMsg = JSON.parse(messages[0]);
-                msg = firstMsg.message;
-            }
-        } catch (e) { /* Fallthrough */ }
-    }
-    else if (err?.response?.data?.exception) {
-        const exc = err.response.data.exception;
-        if (typeof exc === 'string' && exc.includes(':')) {
-            msg = exc.split(':').slice(1).join(':').trim();
-        } else {
-            msg = exc;
-        }
-    }
-    if (!msg) {
-        msg = err?.response?.data?.message || err?.message || 'Something went wrong. Please try again.';
-    }
-    return msg.replace(/<[^>]*>/g, '');
-};
+  const [currentName, setCurrentName] = useState("");
 
   const fuelTypeOptions = [
     { name: "Petrol" },
@@ -130,11 +103,16 @@ export function VehicleMasterModal({ isOpen, onClose, record }: VehicleModalProp
       const [emps, uom, warehouseOptions] = await Promise.all([
         fetchFrappeDoctype("Employee", ["name", "employee_name"]),
         fetchFrappeDoctype("UOM", ["name"]),
-        fetchFrappeDoctype("Warehouse", ["name"]),
+        fetchFrappeDoctype("Warehouse", ["name"], [["is_group", "=", 0]]),
       ])
-     const uoms=uom.filter((item,index)=>(item.name==="Litre"))
+      const empsWithCombinedLabel = emps.map((emp) => ({
+        ...emp,
+        combined_label: `${emp.name} - ${emp.employee_name}`
+      }));
+
+      const uoms = uom.filter((item, index) => (item.name === "Litre"))
       if (cancel) return
-      setEmployeeOptions(emps)
+      setEmployeeOptions(empsWithCombinedLabel);
       setUomOptions(uoms)
       setWarehouseOptions(warehouseOptions)
 
@@ -177,13 +155,13 @@ export function VehicleMasterModal({ isOpen, onClose, record }: VehicleModalProp
   const handleInputChange = (e: any) => {
     const { name, value } = e.target;
     if (name === "licensePlate" || name === "chassisNo") {
-    const alphanumericValue = value.replace(/[^a-zA-Z0-9]/g, "");
-    setFormData({ 
-      ...formData, 
-      [name]: alphanumericValue.toUpperCase()
-    });
-    return;
-  }
+      const alphanumericValue = value.replace(/[^a-zA-Z0-9]/g, "");
+      setFormData({
+        ...formData,
+        [name]: alphanumericValue.toUpperCase()
+      });
+      return;
+    }
     setFormData({ ...formData, [e.target.name]: e.target.value })
   }
 
@@ -191,26 +169,26 @@ export function VehicleMasterModal({ isOpen, onClose, record }: VehicleModalProp
     setFormData({ ...formData, [name]: value })
   }
 
-const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  const file = e.target.files?.[0];
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
 
-  if (!file) return;
-  if (!file.type.startsWith("image/")) {
-    alert("Only image files (JPG, PNG, Jpeg) are allowed.");
-    e.target.value = ""; 
-    return;
-  }
-  const maxSize = 2 * 1024 * 1024;
-  if (file.size > maxSize) {
-    alert("Error: Image size should be less than 2MB.");
-    e.target.value = "";
-    return;
-  }
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      alert("Only image files (JPG, PNG, Jpeg) are allowed.");
+      e.target.value = "";
+      return;
+    }
+    const maxSize = 2 * 1024 * 1024;
+    if (file.size > maxSize) {
+      alert("Error: Image size should be less than 2MB.");
+      e.target.value = "";
+      return;
+    }
 
-  // Agar validation pass ho jaye, toh aage ka logic (e.g., state update)
-  console.log("File accepted:", file.name);
-  // setVehicleImage(file); // Aapka state update logic yahan aayega
-};
+    // Agar validation pass ho jaye, toh aage ka logic (e.g., state update)
+    console.log("File accepted:", file.name);
+    // setVehicleImage(file); // Aapka state update logic yahan aayega
+  };
   const uploadImageToFrappe = async (file: File) => {
     const csrfRes = await fetch(getApiUrl(config.api.getCsrfToken), {
       credentials: "include"
@@ -230,7 +208,6 @@ const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         headers: { "X-Frappe-CSRF-Token": csrfToken }
       }
     )
-
     return res.data.message.file_url
   }
 
@@ -240,8 +217,8 @@ const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 
     setIsSubmitting(true)
     const existingVehicles = await fetchFrappeDoctype(
-      DOCTYPE_NAME, 
-      ["name"], 
+      DOCTYPE_NAME,
+      ["name"],
       [["license_plate", "=", formData.licensePlate]]
     );
 
@@ -288,7 +265,7 @@ const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const fd = new FormData()
       fd.append("data", JSON.stringify(payload))
 
-      await axios.post(
+      const res = await axios.post(
         getApiUrl(config.api.method("vms.api.submit_vehicle_master")),
         fd,
         {
@@ -296,17 +273,20 @@ const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
           headers: { "X-Frappe-CSRF-Token": csrfToken }
         }
       )
+      if (res.status === 200) {
+        alert("Vehicle Updated Successfully!");
+        window.location.reload()
+      }
 
-      alert("Vehicle Saved Successfully!")
-      window.location.reload();
-
-    } catch (err:any) {
+    } catch (err: any) {
+      console.error("Backend Error Response:", err.response?.data);
       const errorMsg = getErrorMessage(err);
       alert(errorMsg);
     }
 
     setIsSubmitting(false)
   }
+
   const handleUpdate = async () => {
     setIsSubmitting(true)
 
@@ -348,7 +328,7 @@ const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const fd = new FormData()
       fd.append("data", JSON.stringify(payload))
 
-      await axios.put(
+      const res = await axios.put(
         getApiUrl(config.api.method("vms.api.update_vehicle_master")),
         fd,
         {
@@ -356,14 +336,16 @@ const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
           headers: { "X-Frappe-CSRF-Token": csrfToken }
         }
       )
+      console.log("update:", res);
 
-      alert("Vehicle Updated Successfully!")
-      // window.location.reload();
+      if (res.status === 200) {
+        alert("Vehicle Updated Successfully!");
+        window.location.reload()
+      }
     } catch (err) {
-      console.error(err)
-      alert("Error Updating")
+      const errorMsg = getErrorMessage(err);
+      alert(errorMsg);
     }
-
     setIsSubmitting(false)
   }
 
@@ -434,7 +416,7 @@ const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         </div>
 
         <div className="p-4 border-t flex justify-end gap-3">
-          <Button  onClick={onClose}>
+          <Button onClick={onClose}>
             Cancel
           </Button>
 

@@ -65,6 +65,12 @@ const VehicleAdditionalSection: React.FC<VehicleAdditionalSectionProps> = ({
         <Input
           name="wheels"
           type="number"
+          min={0}
+          onKeyDown={(e) => {
+              if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                e.preventDefault();
+               }
+          }}
           value={formData.wheels}
           onChange={handleInputChange}
         />
@@ -74,6 +80,12 @@ const VehicleAdditionalSection: React.FC<VehicleAdditionalSectionProps> = ({
         <Input
           name="doors"
           type="number"
+          min={0}
+          onKeyDown={(e) => {
+              if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                e.preventDefault();
+               }
+          }}
           value={formData.doors}
           onChange={handleInputChange}
         />

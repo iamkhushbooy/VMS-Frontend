@@ -50,6 +50,8 @@ interface RefuelingTopFormProps {
   costCenterOptions: FrappeDoc[]
   isEditMode: boolean
   onEmployeeFieldClick: () => void
+  onItemSearch: (query: string) => void;
+  itemLoading: boolean;
 }
 
 const ReusableCombobox = React.forwardRef<HTMLButtonElement, any>(
@@ -140,6 +142,8 @@ export function RefuelingTopForm({
   itemOptions,
   costCenterOptions,
   isEditMode,
+  onItemSearch,
+  itemLoading,
   onEmployeeFieldClick,
 }: RefuelingTopFormProps) {
   return (
@@ -200,7 +204,7 @@ export function RefuelingTopForm({
       </div>
       <div onMouseDown={onEmployeeFieldClick}>
         <Label>Issuer Name</Label>
-        <ReusableCombobox
+        {/* <ReusableCombobox
           options={issuerOptions}
           value={formData.issuerName}
           onValueChange={(v: string) =>
@@ -211,19 +215,32 @@ export function RefuelingTopForm({
           displayField="employee_name"
           disabled={!isEditMode}
         />
+         */}
+
+        <ReusableCombobox
+          options={issuerOptions}
+          value={formData.issuerName}
+          onValueChange={(v: string) => setFormData({ ...formData, issuerName: v })}
+          placeholder="Select Issuer"
+          searchPlaceholder="Search by ID or Name..."
+          // Change displayField from "employee_name" to "combined_label"
+          displayField="combined_label"
+          isLoading={isEditMode ? false : true}
+          disabled={!isEditMode}
+        />
       </div>
 
-<div>
+      <div>
         <Label>Fuel Item Code</Label>
         <ItemNameCombobox
           options={itemOptions}
           value={formData.fuelItem}
-          onValueChange={(v: string) =>
-            setFormData((p) => ({ ...p, fuelItem: v }))
-          }
+          onValueChange={(v: string) => setFormData((p) => ({ ...p, fuelItem: v }))}
+          onSearchChange={onItemSearch}
+          isLoading={itemLoading}
           placeholder="Select Item Code"
           searchPlaceholder="Search by Item Code..."
-          displayField="name" 
+          displayField="name"
           disabled={!isEditMode}
         />
       </div>
