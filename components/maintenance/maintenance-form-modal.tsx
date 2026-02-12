@@ -601,6 +601,7 @@ export function MaintenanceFormModal({
       alert("Please select a Warehouse first!");
       return;
     }
+    setItemSearchTerm("");
 
     const selectedItem = itemOptions.find((i) => i.name === itemId);
     setNewPart((prev) => ({
@@ -669,6 +670,7 @@ export function MaintenanceFormModal({
       alert("Please select a Warehouse first to fetch the correct rate and stock.")
       return
     }
+    setItemSearchTerm("");
     const selectedItem = itemOptions.find((i) => i.name === itemId)
     setNewLube((prev) => ({
       ...prev,
@@ -949,6 +951,9 @@ export function MaintenanceFormModal({
       return updated;
     });
   };
+  const removeProblemEntry = (id: string) => setProblemEntries(prev => prev.filter(i => i.id !== id));
+  const removeWorkDoneEntry = (id: string) => setWorkDoneEntries(prev => prev.filter(i => i.id !== id));
+  const removePendingJobEntry = (id: string) => setPendingJobEntries(prev => prev.filter(i => i.id !== id));
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-h-[90vh] overflow-y-auto bg-white">
@@ -995,14 +1000,19 @@ export function MaintenanceFormModal({
             newProblem={newProblem}
             setNewProblem={setNewProblem}
             addProblemEntry={addProblemEntry}
+            removeProblemEntry={removeProblemEntry}
+
             workDoneEntries={workDoneEntries}
             newWorkDone={newWorkDone}
             setNewWorkDone={setNewWorkDone}
             addWorkDoneEntry={addWorkDoneEntry}
+            removeWorkDoneEntry={removeWorkDoneEntry}
+
             pendingJobEntries={pendingJobEntries}
             newPendingJob={newPendingJob}
             setNewPendingJob={setNewPendingJob}
             addPendingJobEntry={addPendingJobEntry}
+            removePendingJobEntry={removePendingJobEntry}
             isBusy={isBusy}
           />
 

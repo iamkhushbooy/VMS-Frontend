@@ -51,6 +51,7 @@ interface RefuelingTopFormProps {
   isEditMode: boolean
   onEmployeeFieldClick: () => void
   onItemSearch: (query: string) => void;
+  onFuelItemSelect: (val: string) => void;
   itemLoading: boolean;
 }
 
@@ -143,6 +144,7 @@ export function RefuelingTopForm({
   costCenterOptions,
   isEditMode,
   onItemSearch,
+  onFuelItemSelect,
   itemLoading,
   onEmployeeFieldClick,
 }: RefuelingTopFormProps) {
@@ -204,18 +206,6 @@ export function RefuelingTopForm({
       </div>
       <div onMouseDown={onEmployeeFieldClick}>
         <Label>Issuer Name</Label>
-        {/* <ReusableCombobox
-          options={issuerOptions}
-          value={formData.issuerName}
-          onValueChange={(v: string) =>
-            setFormData((p) => ({ ...p, issuerName: v }))
-          }
-          placeholder="Select issuer"
-          searchPlaceholder="Search issuer..."
-          displayField="employee_name"
-          disabled={!isEditMode}
-        />
-         */}
 
         <ReusableCombobox
           options={issuerOptions}
@@ -223,7 +213,6 @@ export function RefuelingTopForm({
           onValueChange={(v: string) => setFormData({ ...formData, issuerName: v })}
           placeholder="Select Issuer"
           searchPlaceholder="Search by ID or Name..."
-          // Change displayField from "employee_name" to "combined_label"
           displayField="combined_label"
           isLoading={isEditMode ? false : true}
           disabled={!isEditMode}
@@ -235,7 +224,7 @@ export function RefuelingTopForm({
         <ItemNameCombobox
           options={itemOptions}
           value={formData.fuelItem}
-          onValueChange={(v: string) => setFormData((p) => ({ ...p, fuelItem: v }))}
+          onValueChange={onFuelItemSelect}
           onSearchChange={onItemSearch}
           isLoading={itemLoading}
           placeholder="Select Item Code"

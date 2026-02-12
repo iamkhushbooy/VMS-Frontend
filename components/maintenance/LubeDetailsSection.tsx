@@ -99,6 +99,11 @@ export function LubeDetailSection({
             name="qty"
             type="number"
             min={0}
+            onKeyDown={(e) => {
+            if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+              e.preventDefault();
+            }
+          }}
             value={newLube.qty}
             onChange={handleNewLubeChange}
             className="bg-input [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"

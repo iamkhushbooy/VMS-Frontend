@@ -120,6 +120,16 @@ export function MaintenanceTable({ onNewLog, onSelectLog, refreshTrigger }: Main
       alert("Please select at least one record.")
       return
     }
+    if (action === "cancel") {
+    const draftSelected = logs.filter(
+      (log) => selectedNames.includes(log.name) && log.docstatus === 0
+    )
+
+    if (draftSelected.length > 0) {
+      alert("Draft records cannot be cancelled. Only submitted records can be cancelled.")
+      return
+    }
+  }
 
     const confirmText =
       action === "cancel"

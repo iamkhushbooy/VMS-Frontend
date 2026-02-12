@@ -502,18 +502,18 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
       )
 
       if (res.status >= 200 && res.status < 300 && res.data.message) {
-      const responseData = res.data.message;
-      const docName = responseData.name || currentName;
-      const status = responseData.docstatus || 0;
+        const responseData = res.data.message;
+        const docName = responseData.name || currentName;
+        const status = responseData.docstatus || 0;
 
-      setCurrentName(docName);
-      setDocStatus(status);
-      setIsEditMode(true);
+        setCurrentName(docName);
+        setDocStatus(status);
+        setIsEditMode(true);
 
-      alert(currentName ? "Updated successfully" : "Saved successfully");
-      
-      if (onSuccess) onSuccess();
-    }
+        alert(currentName ? "Updated successfully" : "Saved successfully");
+
+        if (onSuccess) onSuccess();
+      }
 
     } catch (err: any) {
       const errorMsg = refuelingErrorMessage(err);
@@ -633,6 +633,11 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
 
   const isBusy = isLoading || isSubmitting
 
+  const handleFuelItemSelect = (val: string) => {
+    setFormData((prev) => ({ ...prev, fuelItem: val }));
+    setSearchTerm("");
+  };
+
   const removeFuelEntry = (id: string) => {
     setFuelEntries((prev) => {
       const updated = prev.filter((f) => f.id !== id);
@@ -671,7 +676,8 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
             costCenterOptions={costCenterOptions}
             isEditMode={isEditMode}
             onEmployeeFieldClick={checkWarehouseSelection}
-            onItemSearch={fetchFilteredItems}
+            onItemSearch={setSearchTerm} 
+            onFuelItemSelect={handleFuelItemSelect}
             itemLoading={itemLoading}
           />
 
@@ -719,9 +725,9 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
           </Table>
 
           <Pagination
-            currentPage={currentPage}     
-            totalPages={totalPages}        
-            onPageChange={setCurrentPage}  
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
             disabled={isBusy}
           />
         </div>

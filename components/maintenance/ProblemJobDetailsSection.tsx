@@ -9,7 +9,7 @@ import {
   TableCell,
   TableRow,
 } from "@/components/ui/table"
-import { Plus } from "lucide-react"
+import { Plus,Trash2} from "lucide-react"
 import {
   type ProblemEntry,
   type WorkDoneEntry,
@@ -22,18 +22,20 @@ interface ProblemJobDetailProps {
   newProblem: string
   setNewProblem: (val: string) => void
   addProblemEntry: () => void
-
   // Work Done
   workDoneEntries: WorkDoneEntry[]
   newWorkDone: string
   setNewWorkDone: (val: string) => void
   addWorkDoneEntry: () => void
-
   // Pending
   pendingJobEntries: PendingJobEntry[]
   newPendingJob: string
   setNewPendingJob: (val: string) => void
   addPendingJobEntry: () => void
+
+  removeProblemEntry: (id: string) => void
+  removeWorkDoneEntry: (id: string) => void
+  removePendingJobEntry: (id: string) => void
 
   isBusy: boolean
 }
@@ -51,6 +53,9 @@ export function ProblemJobDetailSection({
   newPendingJob,
   setNewPendingJob,
   addPendingJobEntry,
+  removeProblemEntry,
+  removeWorkDoneEntry,
+  removePendingJobEntry,
   isBusy,
 }: ProblemJobDetailProps) {
   return (
@@ -79,6 +84,16 @@ export function ProblemJobDetailSection({
             {problemEntries.map((entry) => (
               <TableRow key={entry.id}>
                 <TableCell>{entry.problem_detail}</TableCell>
+                <TableCell className="text-right">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => removeProblemEntry(entry.id)}
+                    disabled={isBusy}
+                  >
+                    <Trash2 className="w-4 h-4 text-destructive" />
+                  </Button>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -101,11 +116,16 @@ export function ProblemJobDetailSection({
             <Plus className="w-4 h-4 mr-2" /> Add
           </Button>
         </div>
-        <Table>
+      <Table>
           <TableBody>
             {workDoneEntries.map((entry) => (
               <TableRow key={entry.id}>
                 <TableCell>{entry.work_done_detail}</TableCell>
+                <TableCell className="text-right">
+                  <Button variant="ghost" size="icon" onClick={() => removeWorkDoneEntry(entry.id)} disabled={isBusy}>
+                    <Trash2 className="w-4 h-4 text-destructive" />
+                  </Button>
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -129,15 +149,20 @@ export function ProblemJobDetailSection({
           </Button>
         </div>
       </div>
-      <Table>
-        <TableBody>
-          {pendingJobEntries.map((entry) => (
-            <TableRow key={entry.id}>
-              <TableCell>{entry.pending_job_detail}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+     <Table>
+          <TableBody>
+            {pendingJobEntries.map((entry) => (
+              <TableRow key={entry.id}>
+                <TableCell>{entry.pending_job_detail}</TableCell>
+                <TableCell className="text-right">
+                  <Button variant="ghost" size="icon" onClick={() => removePendingJobEntry(entry.id)} disabled={isBusy}>
+                    <Trash2 className="w-4 h-4 text-destructive" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
     </div>
   )
 }

@@ -99,6 +99,11 @@ export function PartsDetailSection({
             name="qty"
             type="number"
             min={0}
+            onKeyDown={(e) => {
+            if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+              e.preventDefault();
+            }
+          }}
             value={newPart.qty}
             onChange={handleNewPartChange}
             className="bg-input [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"

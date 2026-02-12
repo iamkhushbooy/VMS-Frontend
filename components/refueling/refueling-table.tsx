@@ -107,56 +107,6 @@ export function RefuelingTable({
     }
   }, [router])
   
-//   const fetchFrappeData = useCallback(async () => {
-//   setIsLoading(true)
-//   try {
-//     const currentUser = await checkAuth();
-//     const warehouseUrl = `${getApiUrl(config.api.resource("Warehouse"))}?fields=["name"]&limit_page_length=None`;
-//     const whResponse = await fetch(warehouseUrl, { credentials: "include" });
-//     const whResult = await whResponse.json();
-//     const assignedWarehouses = whResult.data?.map((wh: { name: string }) => wh.name) || [];
-
-//     const fieldsToFetch = [
-//       "name",
-//       "issuer_name",
-//       "fuel_item",
-//       "company",
-//       "date",
-//       "docstatus",
-//       "source_warehouse"
-//     ]
-
-//     let filters = [];
-//     if (currentUser && currentUser !== "Administrator") {
-//       filters.push(["source_warehouse", "in", assignedWarehouses]);
-//     }
-
-//     const filtersParam = encodeURIComponent(JSON.stringify(filters));
-//     const fieldsParam = encodeURIComponent(JSON.stringify(fieldsToFetch))
-    
-//     const url = `${getApiUrl(
-//       config.api.resource(DOCTYPE_NAME),
-//     )}?fields=${fieldsParam}&filters=${filtersParam}&order_by=modified desc&limit_page_length=2000`
-
-//     const response = await fetch(url, { credentials: "include" })
-
-//     if (response.status === 401) {
-//       alert("Session expired. Please login again.")
-//       return
-//     }
-
-//     if (!response.ok) throw new Error(`Frappe API Error: ${response.status}`)
-
-//     const result = await response.json()
-//     setRecords(result.data || [])
-//     setSelectedNames([])
-//   } catch (error) {
-//     console.error("Error fetching data from Frappe:", error)
-//     setRecords([])
-//   } finally {
-//     setIsLoading(false)
-//   }
-// }, [router])
 
   useEffect(() => {
     fetchFrappeData()
@@ -214,6 +164,16 @@ export function RefuelingTable({
       alert("Please select at least one record.")
       return
     }
+    if (action === "cancel") {
+    const draftSelected = records.filter(
+      (r) => selectedNames.includes(r.name) && r.docstatus === 0
+    );
+
+    if (draftSelected.length > 0) {
+      alert("Draft records cannot be cancelled. Only submitted records can be cancelled.");
+      return;
+    }
+  }
 
     const confirmText =
       action === "cancel"

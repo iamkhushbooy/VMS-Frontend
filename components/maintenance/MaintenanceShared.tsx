@@ -282,7 +282,7 @@ export const MultiSelectCombobox = React.forwardRef<HTMLButtonElement, any>(
           </Button>
         </PopoverTrigger>
 
-        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+        {/* <PopoverContent className="z-[9999] w-[500px] max-w-[95vw] p-0 shadow-2xl border border-slate-200">
           <Command>
             <CommandInput placeholder={searchPlaceholder} />
             <CommandList
@@ -305,6 +305,37 @@ export const MultiSelectCombobox = React.forwardRef<HTMLButtonElement, any>(
                     >
                       <Check className={cn("mr-2 h-4 w-4", isSelected ? "opacity-100" : "opacity-0")} />
                       {option[displayField] || option.name}
+                    </CommandItem>
+                  )
+                })}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent> */}
+        <PopoverContent 
+          align="start"
+          className="z-[9999] w-[--radix-popover-trigger-width] p-0 shadow-2xl border border-slate-200"
+        >
+          <Command className="w-full">
+            <CommandInput placeholder={searchPlaceholder} className="h-9" />
+            <CommandList className="max-h-64 overflow-y-auto" onWheel={(e) => e.stopPropagation()}>
+              {options.length === 0 && <CommandEmpty>No results found.</CommandEmpty>}
+              <CommandGroup>
+                {options.map((option: any) => {
+                  const isSelected = value.includes(option.name)
+                  return (
+                    <CommandItem
+                      key={option.name}
+                      value={option[displayField] || option.name}
+                      onSelect={() => {
+                        let newValue = isSelected
+                          ? value.filter((v: string) => v !== option.name)
+                          : [...value, option.name];
+                        onValueChange(newValue)
+                      }}
+                    >
+                      <Check className={cn("mr-2 h-4 w-4", isSelected ? "opacity-100" : "opacity-0")} />
+                      <span className="truncate">{option[displayField] || option.name}</span>
                     </CommandItem>
                   )
                 })}
