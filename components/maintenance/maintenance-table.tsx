@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Search, Loader2 } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useRouter } from "next/navigation"
-
+import { getErrorMessage } from "@/lib/errorMessage"
 import {
   Pagination,
   PaginationContent,
@@ -18,7 +18,6 @@ import {
 } from "@/components/ui/pagination"
 
 import { getApiUrl, config } from "@/lib/config"
-
 interface MaintenanceLog {
   name: string
   issuer_name: string
@@ -123,11 +122,11 @@ export function MaintenanceTable({ onNewLog, onSelectLog, refreshTrigger }: Main
     if (action === "cancel") {
     const draftSelected = logs.filter(
       (log) => selectedNames.includes(log.name) && log.docstatus === 0
-    )
+    );
 
     if (draftSelected.length > 0) {
-      alert("Draft records cannot be cancelled. Only submitted records can be cancelled.")
-      return
+      alert("Draft records cannot be cancelled. Only submitted records can be cancelled.");
+      return;
     }
   }
 
@@ -163,6 +162,7 @@ export function MaintenanceTable({ onNewLog, onSelectLog, refreshTrigger }: Main
       })
 
       const json = await res.json()
+
       if (!res.ok || json.exc) {
         alert("Action failed.")
         return
@@ -170,14 +170,12 @@ export function MaintenanceTable({ onNewLog, onSelectLog, refreshTrigger }: Main
 
       alert(action === "cancel" ? "Cancelled successfully." : "Deleted successfully.")
       fetchMaintenanceLogs()
-    } catch (err) {
-      console.error(err)
-      alert("Error performing action.")
+    } catch (error) {
+      alert(getErrorMessage(error))
     } finally {
       setIsActionLoading(false)
     }
   }
-
   return (
     <div className="flex flex-col gap-6">
 

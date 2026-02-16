@@ -772,14 +772,47 @@ export function MaintenanceFormModal({
 
     return payload
   }
-  const handleSave = async () => {
-    setIsSubmitting(true)
-    try {
-      const payload = buildPayload()
-      const formDataToSend = new FormData()
-      formDataToSend.append("data", JSON.stringify(payload))
+  // const handleSave = async () => {
+  //   setIsSubmitting(true)
+  //   try {
+  //     const payload = buildPayload()
+  //     const formDataToSend = new FormData()
+  //     formDataToSend.append("data", JSON.stringify(payload))
 
-      const csrf = await getCSRF()
+  //     const csrf = await getCSRF()
+
+  //     const res = await axios.post(
+  //       getApiUrl(config.api.method("vms.api.save_vehicle_log_master")),
+  //       formDataToSend,
+  //       {
+  //         withCredentials: true,
+  //         headers: { "X-Frappe-CSRF-Token": csrf }
+  //       }
+  //     )
+
+  //     const msg = res.data.message || res.data
+  //     const name = msg.name || msg?.message?.name
+  //     const status = msg.docstatus ?? msg?.message?.docstatus ?? 0
+
+  //     if (name) setCurrentName(name)
+  //     setDocStatus(status)
+  //     onSuccess?.()
+  //     alert(currentName ? "Updated successfully." : "Saved successfully.")
+  //   } catch (err: any) {
+  //     const errorMsg = getErrorMessage(err);
+  //     alert(errorMsg);
+  //   } finally {
+  //     setIsSubmitting(false)
+  //   }
+  // }
+  const handleSave = async () => {
+    setIsSubmitting(true);
+    try {
+      const payload = buildPayload();
+      const formDataToSend = new FormData();
+      formDataToSend.append("data", JSON.stringify(payload));
+
+      const csrf = await getCSRF();
 
       const res = await axios.post(
         getApiUrl(config.api.method("vms.api.save_vehicle_log_master")),
@@ -788,24 +821,23 @@ export function MaintenanceFormModal({
           withCredentials: true,
           headers: { "X-Frappe-CSRF-Token": csrf }
         }
-      )
+      );
+      if (res.status >= 200 && res.status < 300 && res.data.message) {
+        const { name: newName, docstatus: newStatus } = res.data.message;
 
-      const msg = res.data.message || res.data
-      const name = msg.name || msg?.message?.name
-      const status = msg.docstatus ?? msg?.message?.docstatus ?? 0
-
-      if (name) setCurrentName(name)
-      setDocStatus(status)
-      onSuccess?.()
-      alert(currentName ? "Updated successfully." : "Saved successfully.")
+        setCurrentName(newName);
+        setDocStatus(newStatus);
+        onSuccess?.();
+        alert(currentName ? "Updated successfully." : "Saved successfully.");
+      }
     } catch (err: any) {
-
       const errorMsg = getErrorMessage(err);
+      console.error("Save Error:", err);
       alert(errorMsg);
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   const handleSubmitFinal = async () => {
     if (!formData.registration_no || formData.working_employees.length === 0) {
@@ -832,23 +864,20 @@ export function MaintenanceFormModal({
           }
         }
       )
-
-
-      const msg = res.data.message || res.data
-      const name = msg.name || msg?.message?.name
-      if (name) setCurrentName(name)
-      setDocStatus(1)
-      onSuccess?.()
-
-      alert("Maintenance Log submitted successfully.")
-      onClose()
-    } catch (err) {
-      console.error("Submit error:", err)
-      if (axios.isAxiosError(err)) {
-        alert(`Submission Failed: ${err.response?.data?.message || err.message}`)
+      if (res.status >= 200 && res.status < 300 && res.data.message) {
+        const docName = res.data.message.name || currentName;
+        setCurrentName(docName);
+        setDocStatus(1);
+        alert(`Success! Record ${docName} has been submitted.`);
+        if (onSuccess) onSuccess();
+        onClose();
       } else {
-        alert("An unexpected error occurred during submission.")
+        throw new Error("The server acknowledged the request but did not return a valid document.");
       }
+    } catch (err) {
+     const errorMsg = getErrorMessage(err);
+      console.error("Submission Error:", err);
+      alert(`Submission Failed: ${errorMsg}`);
     } finally {
       setIsSubmitting(false)
     }
