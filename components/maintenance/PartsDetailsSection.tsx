@@ -119,6 +119,7 @@ export function PartsDetailSection({
             onChange={handleNewPartChange}
             className="bg-input [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             disabled={isBusy}
+            readOnly
           />
         </div>
         <div className="col-span-2">

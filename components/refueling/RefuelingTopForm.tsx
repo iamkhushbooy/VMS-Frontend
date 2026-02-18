@@ -151,7 +151,7 @@ export function RefuelingTopForm({
   return (
     <div className="grid grid-cols-2 gap-4 p-4 border rounded-lg">
       <div>
-        <Label>Date</Label>
+        <Label>Date*</Label>
         <Input
           type="date"
           value={formData.date}
@@ -163,7 +163,7 @@ export function RefuelingTopForm({
       </div>
 
       <div>
-        <Label>Company</Label>
+        <Label>Company*</Label>
         <ReusableCombobox
           options={companyOptions}
           value={formData.company}
@@ -175,11 +175,8 @@ export function RefuelingTopForm({
           disabled={!isEditMode}
         />
       </div>
-
-
-
       <div>
-        <Label>Source Warehouse</Label>
+        <Label>Source Warehouse*</Label>
         <ReusableCombobox
           options={warehouseOptions}
           value={formData.sourceWarehouse}
@@ -192,7 +189,7 @@ export function RefuelingTopForm({
         />
       </div>
       <div>
-        <Label>Cost Center</Label>
+        <Label>Cost Center*</Label>
         <ReusableCombobox
           options={costCenterOptions}
           value={formData.costCenter}
@@ -205,7 +202,7 @@ export function RefuelingTopForm({
         />
       </div>
       <div onMouseDown={onEmployeeFieldClick}>
-        <Label>Issuer Name</Label>
+        <Label>Issuer Name*</Label>
 
         <ReusableCombobox
           options={issuerOptions}
@@ -220,7 +217,7 @@ export function RefuelingTopForm({
       </div>
 
       <div>
-        <Label>Fuel Item Code</Label>
+        <Label>Fuel Item Code*</Label>
         <ItemNameCombobox
           options={itemOptions}
           value={formData.fuelItem}
@@ -233,8 +230,6 @@ export function RefuelingTopForm({
           disabled={!isEditMode}
         />
       </div>
-
-
     </div>
   )
 }

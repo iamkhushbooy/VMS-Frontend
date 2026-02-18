@@ -22,7 +22,7 @@ import { RefuelingTopForm } from "./RefuelingTopForm"
 import { FuelEntryForm } from "./FuelEntryForm"
 import { getApiUrl, config } from "@/lib/config"
 import { fetchFrappeDoctype, VEHICLE_DOCTYPE } from "../maintenance/MaintenanceShared"
-import { refuelingErrorMessage } from "@/lib/errorMessage"
+import { getErrorMessage } from "@/lib/errorMessage"
 import { Pagination } from "./Pagination"
 const DOCTYPE = "Vehicle Refueling"
 
@@ -502,21 +502,22 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
       )
 
       if (res.status >= 200 && res.status < 300 && res.data.message) {
-        const responseData = res.data.message;
-        const docName = responseData.name || currentName;
-        const status = responseData.docstatus || 0;
-
-        setCurrentName(docName);
-        setDocStatus(status);
-        setIsEditMode(true);
-
-        alert(currentName ? "Updated successfully" : "Saved successfully");
-
-        if (onSuccess) onSuccess();
+        const responseData = res.data.message.message || res.data.message;
+        const docName = responseData.name;
+        const status = responseData.docstatus ?? 0;
+        if (docName) {
+          setCurrentName(docName);
+          setDocStatus(status);
+          setIsEditMode(true);
+          alert(currentName ? "Updated successfully" : "Saved successfully");
+          if (onSuccess) onSuccess();
+        } else {
+          console.error("Doc Name still null after extraction attempt");
+        }
       }
 
     } catch (err: any) {
-      const errorMsg = refuelingErrorMessage(err);
+      const errorMsg = getErrorMessage(err);
       alert(errorMsg);
     } finally {
       setIsSubmitting(false)
@@ -566,7 +567,7 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
         throw new Error("The server acknowledged the request but did not return a valid document.");
       }
     } catch (err: any) {
-      const errorMsg = refuelingErrorMessage(err);
+      const errorMsg = getErrorMessage(err);
       console.error("Submission Error:", err);
       alert(`Submission Failed: ${errorMsg}`);
     } finally {
@@ -676,7 +677,7 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
             costCenterOptions={costCenterOptions}
             isEditMode={isEditMode}
             onEmployeeFieldClick={checkWarehouseSelection}
-            onItemSearch={setSearchTerm} 
+            onItemSearch={setSearchTerm}
             onFuelItemSelect={handleFuelItemSelect}
             itemLoading={itemLoading}
           />

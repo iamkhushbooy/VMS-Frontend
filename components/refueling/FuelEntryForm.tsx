@@ -57,6 +57,7 @@ const ReusableCombobox = React.forwardRef<HTMLButtonElement, any>(
       const selected = options.find((o: any) => o.name === val)
       return selected ? selected[displayField] || selected.name : placeholder
     }
+    
 
     return (
       <Popover open={open} onOpenChange={setOpen}>
@@ -117,6 +118,116 @@ const ReusableCombobox = React.forwardRef<HTMLButtonElement, any>(
 )
 ReusableCombobox.displayName = "ReusableCombobox"
 
+// export function FuelEntryForm({
+//   newEntry,
+//   setNewEntry,
+//   vehicleOptions,
+//   addFuelEntry,
+//   onVehicleFieldClick,
+// }: FuelEntryFormProps) {
+//   const maxDate = "2099-12-31"
+//   return (
+//     <div className="grid grid-cols-3 gap-4 p-4 border mt-2 rounded-lg">
+//       <div onMouseDown={onVehicleFieldClick}>
+//         <Label>Reg No</Label>
+//         <ReusableCombobox
+//           options={vehicleOptions}
+//           value={newEntry.vehicle || ""}
+//           onValueChange={(v: string) =>
+//             setNewEntry((p) => ({
+//               ...p,
+//               vehicle: v,
+//               registrationName: v,
+//             }))
+//           }
+//           placeholder="Select vehicle"
+//           searchPlaceholder="Search vehicle..."
+//         />
+//       </div>
+//       <div>
+//         <Label>Date</Label>
+//         <Input
+//           type="date"
+//           max={maxDate}
+//           value={newEntry.date}
+//           onChange={(e) =>
+//             setNewEntry((p) => ({ ...p, date: e.target.value }))
+//           }
+//         />
+//       </div>
+
+//       <div>
+//         <Label>Fuel Qty</Label>
+//         <Input
+//           type="number"
+//           min="0"
+//           onKeyDown={(e) => {
+//             if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+//               e.preventDefault();
+//             }
+//           }}
+//           // Agar value 0 ya undefined hai toh khali string dikhayein
+//           value={newEntry.fuel_qty_in_ltrs === undefined || newEntry.fuel_qty_in_ltrs === 0 ? "" : newEntry.fuel_qty_in_ltrs}
+//           onChange={(e) => {
+//             const val = e.target.value;
+//             setNewEntry((p) => ({
+//               ...p,
+//               // Khali string hone par undefined rakhein, warna Number mein convert karein
+//               fuel_qty_in_ltrs: val === "" ? undefined : Number(val),
+//             }))
+//           }}
+//         />
+//       </div>
+//       <div>
+//         <Label>HMR</Label>
+//         <Input
+//           type="number"
+//           min="0"
+//           onKeyDown={(e) => {
+//             if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+//               e.preventDefault();
+//             }
+//           }}
+//           // Agar value undefined ya 0 hai toh khali rakhein
+//           value={newEntry.current_hmrkms === undefined || newEntry.current_hmrkms === 0 ? "" : newEntry.current_hmrkms}
+//           onChange={(e) => {
+//             const val = e.target.value;
+//             setNewEntry((p) => ({
+//               ...p,
+//               current_hmrkms: val === "" ? undefined : Number(val),
+//             }))
+//           }}
+//         />
+//       </div>
+//       <div>
+//         <Label>Fuel Consumption</Label>
+//         <Input
+//           type="number"
+//           min="0"
+//           onKeyDown={(e) => {
+//             if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+//               e.preventDefault();
+//             }
+//           }}
+//           value={newEntry.fuel_consumption === undefined || newEntry.fuel_consumption === 0 ? "" : newEntry.fuel_consumption}
+//           onChange={(e) => {
+//             const val = e.target.value;
+//             setNewEntry((p) => ({
+//               ...p,
+//               fuel_consumption: val === "" ? undefined : Number(val),
+//             }))
+//           }}
+//         />
+//       </div>
+//       <div className="flex items-end">
+//         <Button onClick={addFuelEntry} className="w-full">
+//           <Plus className="w-4 h-4 mr-2" /> Add
+//         </Button>
+//       </div>
+//     </div>
+//   )
+// }
+
 export function FuelEntryForm({
   newEntry,
   setNewEntry,
@@ -125,8 +236,39 @@ export function FuelEntryForm({
   onVehicleFieldClick,
 }: FuelEntryFormProps) {
   const maxDate = "2099-12-31"
+
+  // Validation Logic: Check if all fields are filled before adding
+  const validateAndAdd = () => {
+    const { vehicle, date, fuel_qty_in_ltrs, current_hmrkms, fuel_consumption } = newEntry;
+
+    if (!vehicle) {
+        alert("Please select a Vehicle (Reg No).");
+        return;
+    }
+    if (!date) {
+        alert("Please select a Date.");
+        return;
+    }
+    if (fuel_qty_in_ltrs === undefined || fuel_qty_in_ltrs === 0) {
+        alert("Please enter Fuel Quantity.");
+        return;
+    }
+    if (current_hmrkms === undefined || current_hmrkms === 0) {
+        alert("Please enter HMR/KMs.");
+        return;
+    }
+    if (fuel_consumption === undefined || fuel_consumption === 0) {
+        alert("Please enter Fuel Consumption.");
+        return;
+    }
+
+    // Agar sab fields valid hain, tabhi add hoga
+    addFuelEntry();
+  };
+
   return (
-    <div className="grid grid-cols-3 gap-4 p-4 border mt-2 rounded-lg">
+    <div className="grid grid-cols-3 gap-4 p-4 border mt-2 rounded-lg bg-card">
+      {/* Registration Number Field */}
       <div onMouseDown={onVehicleFieldClick}>
         <Label>Reg No</Label>
         <ReusableCombobox
@@ -143,20 +285,23 @@ export function FuelEntryForm({
           searchPlaceholder="Search vehicle..."
         />
       </div>
+
+      {/* Date Field */}
       <div>
         <Label>Date</Label>
         <Input
           type="date"
           max={maxDate}
-          value={newEntry.date}
+          value={newEntry.date || ""}
           onChange={(e) =>
             setNewEntry((p) => ({ ...p, date: e.target.value }))
           }
         />
       </div>
 
+      {/* Fuel Quantity Field */}
       <div>
-        <Label>Fuel Qty</Label>
+        <Label>Fuel Qty (Ltrs)</Label>
         <Input
           type="number"
           min="0"
@@ -165,18 +310,18 @@ export function FuelEntryForm({
               e.preventDefault();
             }
           }}
-          // Agar value 0 ya undefined hai toh khali string dikhayein
           value={newEntry.fuel_qty_in_ltrs === undefined || newEntry.fuel_qty_in_ltrs === 0 ? "" : newEntry.fuel_qty_in_ltrs}
           onChange={(e) => {
             const val = e.target.value;
             setNewEntry((p) => ({
               ...p,
-              // Khali string hone par undefined rakhein, warna Number mein convert karein
               fuel_qty_in_ltrs: val === "" ? undefined : Number(val),
             }))
           }}
         />
       </div>
+
+      {/* HMR/KMs Field */}
       <div>
         <Label>HMR</Label>
         <Input
@@ -187,7 +332,6 @@ export function FuelEntryForm({
               e.preventDefault();
             }
           }}
-          // Agar value undefined ya 0 hai toh khali rakhein
           value={newEntry.current_hmrkms === undefined || newEntry.current_hmrkms === 0 ? "" : newEntry.current_hmrkms}
           onChange={(e) => {
             const val = e.target.value;
@@ -198,6 +342,8 @@ export function FuelEntryForm({
           }}
         />
       </div>
+
+      {/* Fuel Consumption Field */}
       <div>
         <Label>Fuel Consumption</Label>
         <Input
@@ -218,9 +364,11 @@ export function FuelEntryForm({
           }}
         />
       </div>
+
+      {/* Add Button */}
       <div className="flex items-end">
-        <Button onClick={addFuelEntry} className="w-full">
-          <Plus className="w-4 h-4 mr-2" /> Add
+        <Button onClick={validateAndAdd} className="w-full">
+          <Plus className="w-4 h-4 mr-2" /> Add Entry
         </Button>
       </div>
     </div>
