@@ -40,6 +40,8 @@ import {
 import { useCallback } from 'react'
 import { getErrorMessage } from "@/lib/errorMessage"
 import { Pagination } from '../refueling/Pagination'
+import CustomAlert from "../alert/alert"
+import { AlertButton } from "../alert/types"
 const getLocalISOString = () => {
   const now = new Date();
   const offset = now.getTimezoneOffset() * 60000;
@@ -59,10 +61,10 @@ export function MaintenanceFormModal({
     current_odometer_value: "" as number | string,
     last_odometer_value: "" as number | string,
     registration_no: "",
-    priority: "Medium",
+    priority: "High",
     date_and_time_of_job_initiation: getLocalISOString(),
     ptw_no: "",
-    status: "Pending",
+    status: "Open",
     date_and_time_of_job_completion: "",
     jsa_jra_tool_box_task: "",
     house_keeping: "",
@@ -85,6 +87,30 @@ export function MaintenanceFormModal({
   const [itemLoading, setItemLoading] = useState(false);
   const [partsPage, setPartsPage] = useState(1);
   const [lubePage, setLubePage] = useState(1);
+
+  const [alertState, setAlertState] = useState<{
+    visible: boolean;
+    title?: string;
+    message?: string;
+    buttons: AlertButton[];
+  }>({
+    visible: false,
+    title: "",
+    message: "",
+    buttons: [],
+  });
+  const showAlert = (title: string, message: string, buttons?: AlertButton[]) => {
+    setAlertState({
+      visible: true,
+      title,
+      message,
+      buttons: buttons || [{ text: "OK", style: "cancel" }],
+    });
+  };
+  const closeAlert = () => {
+    setAlertState((p) => ({ ...p, visible: false }));
+  };
+
   const itemsPerPage = 5;
 
   // Memoized paginated data
@@ -245,10 +271,10 @@ export function MaintenanceFormModal({
         current_odometer_value: "",
         last_odometer_value: "",
         registration_no: "",
-        priority: "Medium",
+        priority: "High",
         date_and_time_of_job_initiation: getLocalISOString(),
         ptw_no: "",
-        status: "Pending",
+        status: "Open",
         date_and_time_of_job_completion: "",
         jsa_jra_tool_box_task: "",
         house_keeping: "",
@@ -373,10 +399,10 @@ export function MaintenanceFormModal({
           current_odometer_value: doc.current_odometer_value || "",
           last_odometer_value: doc.last_odometer_value || "",
           registration_no: doc.license_plate || "",
-          priority: doc.priority_level || "Medium",
+          priority: doc.priority_level || "High",
           date_and_time_of_job_initiation: doc.date_and_time_of_job_initiation || new Date().toISOString().slice(0, 16),
           ptw_no: doc.ptw_no || "",
-          status: doc.status || "Pending",
+          status: doc.status || "Open",
           date_and_time_of_job_completion: doc.date_and_time_of_job_completion || "",
           jsa_jra_tool_box_task: doc.jsajratool_box_task || "",
           house_keeping: doc.house_keeping_after_shift_work || "",
@@ -470,7 +496,7 @@ export function MaintenanceFormModal({
 
   const checkWarehouseSelection = () => {
     if (!formData.warehouse) {
-      alert("Please select a Source Warehouse first to filter the Working Employees,Issuer Name and Registration No.");
+      showAlert("Error", "Please select a Source Warehouse first to filter the Working Employees,Issuer Name and Registration No.");
       return false;
     }
     return true;
@@ -579,7 +605,7 @@ export function MaintenanceFormModal({
         const stockNum = Number(prev.stock_qty);
 
         if (currentQty > stockNum) {
-          alert("Quantity cannot exceed available stock!");
+          showAlert("Error", "Quantity cannot exceed available stock!");
           updated.qty = "";
           updated.expense = "";
           return updated;
@@ -598,7 +624,7 @@ export function MaintenanceFormModal({
 
   const handlePartItemSelect = async (itemId: string) => {
     if (!formData.warehouse) {
-      alert("Please select a Warehouse first!");
+      showAlert("Error", "Please select a Warehouse first!");
       return;
     }
     setItemSearchTerm("");
@@ -649,7 +675,7 @@ export function MaintenanceFormModal({
         const stockNum = Number(prev.stock_qty)
 
         if (qtyNum > stockNum) {
-          alert("Quantity cannot be more than available stock!")
+          showAlert("Error", "Quantity cannot be more than available stock!")
           updated.qty = ""
           updated.expense = ""
           return updated
@@ -667,7 +693,7 @@ export function MaintenanceFormModal({
 
   const handleLubeItemSelect = async (itemId: string) => {
     if (!formData.warehouse) {
-      alert("Please select a Warehouse first to fetch the correct rate and stock.")
+      showAlert("Error", "Please select a Warehouse first to fetch the correct rate and stock.")
       return
     }
     setItemSearchTerm("");
@@ -805,7 +831,10 @@ export function MaintenanceFormModal({
   //     setIsSubmitting(false)
   //   }
   // }
-  const handleSave = async () => {
+
+  
+  // 1. API Worker (Does the actual work)
+  const executeSave = async () => {
     setIsSubmitting(true);
     try {
       const payload = buildPayload();
@@ -822,36 +851,95 @@ export function MaintenanceFormModal({
           headers: { "X-Frappe-CSRF-Token": csrf }
         }
       );
+
       if (res.status >= 200 && res.status < 300 && res.data.message) {
         const { name: newName, docstatus: newStatus } = res.data.message;
 
+        // Update local context
+        const isUpdating = !!currentName;
         setCurrentName(newName);
         setDocStatus(newStatus);
+
+        // Refresh parent data if needed
         onSuccess?.();
-        alert(currentName ? "Updated successfully." : "Saved successfully.");
+
+        // Show Elegant Success Alert
+        showAlert(
+          "Success",
+          isUpdating ? "Updated successfully." : "Saved successfully.",
+          [{ text: "OK", style: "default" }]
+        );
       }
     } catch (err: any) {
       const errorMsg = getErrorMessage(err);
       console.error("Save Error:", err);
-      alert(errorMsg);
+
+      // Show Elegant Error Alert
+      showAlert("Save Error", errorMsg, [{ text: "Close", style: "cancel" }]);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleSubmitFinal = async () => {
-    if (!formData.registration_no || formData.working_employees.length === 0) {
-      alert("Validation Error: Please select Registration No and at least one Working Employee.");
-      return;
-    }
+  // 2. The Handle Function (Triggered by Button Click)
+  const handleSave = async () => {
+    // We call executeSave directly. 
+    // This keeps the validation logic and the API logic separate.
+    executeSave();
+  };
 
-    setIsSubmitting(true)
+  // const handleSubmitFinal = async () => {
+  //   if (!formData.registration_no || formData.working_employees.length === 0) {
+  //     alert("Validation Error: Please select Registration No and at least one Working Employee.");
+  //     return;
+  //   }
+
+  //   setIsSubmitting(true)
+  //   try {
+  //     const payload = buildPayload()
+  //     const formDataToSend = new FormData()
+  //     formDataToSend.append("data", JSON.stringify(payload))
+
+  //     const csrf = await getCSRF()
+
+  //     const res = await axios.post(
+  //       getApiUrl(config.api.method("vms.api.submit_vehicle_log_master")),
+  //       formDataToSend,
+  //       {
+  //         withCredentials: true,
+  //         headers: {
+  //           Accept: "*/*",
+  //           "X-Frappe-CSRF-Token": csrf
+  //         }
+  //       }
+  //     )
+  //     if (res.status >= 200 && res.status < 300 && res.data.message) {
+  //       const docName = res.data.message.name || currentName;
+  //       setCurrentName(docName);
+  //       setDocStatus(1);
+  //       alert(`Success! Record ${docName} has been submitted.`);
+  //       if (onSuccess) onSuccess();
+  //       onClose();
+  //     } else {
+  //       throw new Error("The server acknowledged the request but did not return a valid document.");
+  //     }
+  //   } catch (err) {
+  //     const errorMsg = getErrorMessage(err);
+  //     console.error("Submission Error:", err);
+  //     alert(`Submission Failed: ${errorMsg}`);
+  //   } finally {
+  //     setIsSubmitting(false)
+  //   }
+  // }
+
+  const executeSubmitFinal = async () => {
+    setIsSubmitting(true);
     try {
-      const payload = buildPayload()
-      const formDataToSend = new FormData()
-      formDataToSend.append("data", JSON.stringify(payload))
+      const payload = buildPayload();
+      const formDataToSend = new FormData();
+      formDataToSend.append("data", JSON.stringify(payload));
 
-      const csrf = await getCSRF()
+      const csrf = await getCSRF();
 
       const res = await axios.post(
         getApiUrl(config.api.method("vms.api.submit_vehicle_log_master")),
@@ -863,33 +951,100 @@ export function MaintenanceFormModal({
             "X-Frappe-CSRF-Token": csrf
           }
         }
-      )
+      );
+
       if (res.status >= 200 && res.status < 300 && res.data.message) {
         const docName = res.data.message.name || currentName;
         setCurrentName(docName);
         setDocStatus(1);
-        alert(`Success! Record ${docName} has been submitted.`);
-        if (onSuccess) onSuccess();
-        onClose();
+
+        // Elegant Success Alert
+        showAlert(
+          "Submitted Successfully",
+          `Success! Record ${docName} has been submitted and locked.`,
+          [{
+            text: "Finish",
+            style: "default",
+            onPress: () => {
+              onSuccess?.();
+              onClose();
+            }
+          }]
+        );
       } else {
         throw new Error("The server acknowledged the request but did not return a valid document.");
       }
     } catch (err) {
-     const errorMsg = getErrorMessage(err);
+      const errorMsg = getErrorMessage(err);
       console.error("Submission Error:", err);
-      alert(`Submission Failed: ${errorMsg}`);
+      showAlert("Submission Failed", errorMsg, [{ text: "Close", style: "cancel" }]);
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
+  const handleSubmitFinal = async () => {
+    // 1. Validation Logic
+    if (!formData.registration_no || formData.working_employees.length === 0) {
+      showAlert(
+        "Validation Error",
+        "Please select Registration No and at least one Working Employee.",
+        [{ text: "Fix Errors", style: "default" }]
+      );
+      return;
+    }
 
-  const handleCancel = async () => {
+    // 2. Confirmation Alert (Final Warning)
+    showAlert(
+      "Final Submission",
+      "Are you sure you want to submit? This action will finalize the record and prevent further editing.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Confirm & Submit",
+          style: "default", // Primary dark button
+          onPress: () => executeSubmitFinal()
+        }
+      ]
+    );
+  };
+
+  // const handleCancel = async () => {
+  //   if (!currentName) return;
+
+  //   setIsSubmitting(true);
+  //   try {
+  //     const csrf = await getCSRF();
+
+  //     const fd = new FormData();
+  //     fd.append("name", currentName);
+
+  //     const res = await axios.post(
+  //       getApiUrl(config.api.method("vms.api.cancel_vehicle_log_master")),
+  //       fd,
+  //       {
+  //         withCredentials: true,
+  //         headers: { "X-Frappe-CSRF-Token": csrf }
+  //       }
+  //     );
+
+  //     const msg = res.data.message || res.data;
+  //     const status = msg.docstatus ?? 2;
+  //     setDocStatus(status);
+
+  //     alert("Maintenance Log cancelled.");
+  //   } catch (err) {
+  //     console.error("Cancel error:", err);
+  //     alert("Failed to cancel Maintenance Log.");
+  //   } finally {
+  //     setIsSubmitting(false);
+  //   }
+  // };
+  const executeCancel = async () => {
     if (!currentName) return;
 
     setIsSubmitting(true);
     try {
       const csrf = await getCSRF();
-
       const fd = new FormData();
       fd.append("name", currentName);
 
@@ -906,25 +1061,85 @@ export function MaintenanceFormModal({
       const status = msg.docstatus ?? 2;
       setDocStatus(status);
 
-      alert("Maintenance Log cancelled.");
+      // Elegant Success Alert
+      showAlert(
+        "Cancelled",
+        "Maintenance Log cancelled.",
+        [{ text: "OK", style: "default", onPress: () => onSuccess?.() }]
+      );
     } catch (err) {
       console.error("Cancel error:", err);
-      alert("Failed to cancel Maintenance Log.");
+      showAlert("Error", "Failed to cancel Maintenance Log.", [{ text: "Close", style: "cancel" }]);
     } finally {
       setIsSubmitting(false);
     }
   };
+  const handleCancel = async () => {
+    if (!currentName) return;
+
+    // Trigger Confirmation Alert
+    showAlert(
+      "Confirm Cancellation",
+      "Are you sure you want to cancel this Maintenance Log.",
+      [
+        { text: "No, Keep It", style: "cancel" },
+        {
+          text: "Yes, Cancel",
+          style: "destructive", // This renders the red button in your elegant design
+          onPress: () => executeCancel()
+        }
+      ]
+    );
+  };
+
+  // const handleAmend = async () => {
+  //   if (!currentName) return
+
+  //   setIsSubmitting(true)
+  //   try {
+  //     const fd = new FormData()
+  //     fd.append("name", currentName)
+
+  //     const csrf = await getCSRF()
+
+  //     const res = await axios.post(
+  //       getApiUrl(config.api.method("vms.api.amend_vehicle_log_master")),
+  //       fd,
+  //       {
+  //         withCredentials: true,
+  //         headers: { "X-Frappe-CSRF-Token": csrf }
+  //       }
+  //     )
 
 
-  const handleAmend = async () => {
-    if (!currentName) return
+  //     const msg = res.data.message || res.data
+  //     const newName = msg.name || msg?.message?.name
 
-    setIsSubmitting(true)
+  //     if (newName) {
+  //       setCurrentName(newName)
+  //       onSuccess?.()
+
+  //       setDocStatus(0)
+  //       alert("You can now edit and submit again.")
+  //     } else {
+  //       alert("Amendment created but new document name not returned.")
+  //     }
+  //   } catch (err) {
+  //     console.error("Amend error:", err)
+  //     alert("Failed to create amendment.")
+  //   } finally {
+  //     setIsSubmitting(false)
+  //   }
+  // }
+  const executeAmend = async () => {
+    if (!currentName) return;
+
+    setIsSubmitting(true);
     try {
-      const fd = new FormData()
-      fd.append("name", currentName)
+      const fd = new FormData();
+      fd.append("name", currentName);
 
-      const csrf = await getCSRF()
+      const csrf = await getCSRF();
 
       const res = await axios.post(
         getApiUrl(config.api.method("vms.api.amend_vehicle_log_master")),
@@ -933,28 +1148,49 @@ export function MaintenanceFormModal({
           withCredentials: true,
           headers: { "X-Frappe-CSRF-Token": csrf }
         }
-      )
+      );
 
-
-      const msg = res.data.message || res.data
-      const newName = msg.name || msg?.message?.name
+      const msg = res.data.message || res.data;
+      const newName = msg.name || msg?.message?.name;
 
       if (newName) {
-        setCurrentName(newName)
-        onSuccess?.()
+        setCurrentName(newName);
+        setDocStatus(0); // Set status back to Draft
+        onSuccess?.();
 
-        setDocStatus(0)
-        alert("You can now edit and submit again.")
+        // Elegant Success Alert
+        showAlert(
+          "Draft Created",
+          "A new draft has been created. You can now edit and submit again.",
+          [{ text: "Start Editing", style: "default" }]
+        );
       } else {
-        alert("Amendment created but new document name not returned.")
+        showAlert("Error", "Amendment created but new document name not returned.");
       }
     } catch (err) {
-      console.error("Amend error:", err)
-      alert("Failed to create amendment.")
+      console.error("Amend error:", err);
+      showAlert("Error", "Failed to create amendment.", [{ text: "Close", style: "cancel" }]);
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
+  const handleAmend = async () => {
+    if (!currentName) return;
+
+    // Trigger Confirmation Alert
+    showAlert(
+      "Amend Record",
+      "Do you want to create a new draft version of this record for editing?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Create Draft",
+          style: "default", // Dark primary button
+          onPress: () => executeAmend()
+        }
+      ]
+    );
+  };
 
   const isBusy = isLoading || isSubmitting
   const showTimeField = ["Completed"].includes(formData.status)
@@ -1141,6 +1377,13 @@ export function MaintenanceFormModal({
         </DialogFooter>
 
       </DialogContent>
+      <CustomAlert
+        visible={alertState.visible}
+        title={alertState.title}
+        message={alertState.message}
+        buttons={alertState.buttons}
+        onClose={closeAlert}
+      />
     </Dialog>
   )
 }

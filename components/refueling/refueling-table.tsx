@@ -25,7 +25,8 @@ import {
 } from "@/components/ui/pagination"
 
 import { getApiUrl, config } from "@/lib/config"
-import { checkAuth } from "@/lib/checkAuth"
+import CustomAlert from "../alert/alert"
+import { AlertButton } from "../alert/types"
 interface RefuelingRecord {
   name: string
   date: string
@@ -64,6 +65,30 @@ export function RefuelingTable({
 
   const [selectedNames, setSelectedNames] = useState<string[]>([])
   const [isActionLoading, setIsActionLoading] = useState(false)
+
+  const [alertState, setAlertState] = useState<{
+    visible: boolean;
+    title?: string;
+    message?: string;
+    buttons: AlertButton[];
+  }>({
+    visible: false,
+    title: "",
+    message: "",
+    buttons: [],
+  });
+  const showAlert = (title: string, message: string, buttons?: AlertButton[]) => {
+    setAlertState({
+      visible: true,
+      title,
+      message,
+      buttons: buttons || [{ text: "OK", style: "cancel" }],
+    });
+  };
+  const closeAlert = () => {
+    setAlertState((p) => ({ ...p, visible: false }));
+  };
+
   const router = useRouter()
   const fetchFrappeData = useCallback(async () => {
     setIsLoading(true)
@@ -84,14 +109,22 @@ export function RefuelingTable({
       const response = await fetch(url, { credentials: "include" })
 
       if (response.status === 401) {
-        alert("Session expired. Please login again.")
+        showAlert(
+          "Session Expired",
+          "Your session has timed out. Please log in again to continue.",
+          [{ text: "Log In", style: "default", onPress: () => router.push('/login') }]
+        );
+        return;
       }
 
       if (response.status === 403) {
-        console.error("403 Forbidden")
-        alert("Permission Denied")
-        setRecords([])
-        return
+        showAlert(
+          "Permission Denied",
+          "You do not have the required permissions to view these records. Please contact your administrator.",
+          [{ text: "Close", style: "cancel" }]
+        );
+        setRecords([]);
+        return;
       }
 
       if (!response.ok) throw new Error(`Frappe API Error: ${response.status}`)
@@ -106,7 +139,7 @@ export function RefuelingTable({
       setIsLoading(false)
     }
   }, [router])
-  
+
 
   useEffect(() => {
     fetchFrappeData()
@@ -159,69 +192,164 @@ export function RefuelingTable({
   }
 
 
-  const handleBulkAction = async (action: "cancel" | "delete") => {
-    if (selectedNames.length === 0) {
-      alert("Please select at least one record.")
-      return
-    }
-    if (action === "cancel") {
-    const draftSelected = records.filter(
-      (r) => selectedNames.includes(r.name) && r.docstatus === 0
-    );
+  // const handleBulkAction = async (action: "cancel" | "delete") => {
+  //   if (selectedNames.length === 0) {
+  //     showAlert("Error","Please select at least one record.")
+  //     return
+  //   }
+  //   if (action === "cancel") {
+  //     const draftSelected = records.filter(
+  //       (r) => selectedNames.includes(r.name) && r.docstatus === 0
+  //     );
 
-    if (draftSelected.length > 0) {
-      alert("Draft records cannot be cancelled. Only submitted records can be cancelled.");
-      return;
-    }
-  }
+  //     if (draftSelected.length > 0) {
+  //       showAlert("Error","Draft records cannot be cancelled. Only submitted records can be cancelled.");
+  //       return;
+  //     }
+  //   }
 
-    const confirmText =
-      action === "cancel"
-        ? `Are you sure you want to CANCEL ${selectedNames.length} record(s)?`
-        : `Are you sure you want to DELETE ${selectedNames.length} record(s)?`
+  //   const confirmText =
+  //     action === "cancel"
+  //       ? `Are you sure you want to CANCEL ${selectedNames.length} record(s)?`
+  //       : `Are you sure you want to DELETE ${selectedNames.length} record(s)?`
 
-    if (!window.confirm(confirmText)) return
+  //   if (!window.confirm(confirmText)) return
 
+  //   try {
+  //     setIsActionLoading(true)
+
+  //     const tokenResp = await fetch(getApiUrl(config.api.getCsrfToken), {
+  //       credentials: "include",
+  //     })
+  //     const tokenJson = await tokenResp.json()
+  //     const csrfToken = tokenJson.message
+
+  //     const formData = new FormData()
+  //     formData.append("names", JSON.stringify(selectedNames))
+
+  //     const method =
+  //       action === "cancel"
+  //         ? "vms.api.bulk_cancel_refueling"
+  //         : "vms.api.bulk_delete_refueling"
+
+  //     const res = await fetch(getApiUrl(config.api.method(method)), {
+  //       method: "POST",
+  //       credentials: "include",
+  //       headers: { "X-Frappe-CSRF-Token": csrfToken },
+  //       body: formData,
+  //     })
+
+  //     const json = await res.json()
+
+  //     if (!res.ok || json.exc) {
+  //       alert("Action failed.")
+  //       return
+  //     }
+
+  //     alert(action === "cancel" ? "Cancelled successfully." : "Deleted successfully.")
+  //     fetchFrappeData()
+  //   } catch (error) {
+  //     console.error(error)
+  //     alert("Error performing action.")
+  //   } finally {
+  //     setIsActionLoading(false)
+  //   }
+  // }
+
+  // This function executes the actual API call after the user confirms
+  const executeBulkAction = async (action: "cancel" | "delete") => {
     try {
-      setIsActionLoading(true)
+      setIsActionLoading(true);
 
+      // 1. Get CSRF Token
       const tokenResp = await fetch(getApiUrl(config.api.getCsrfToken), {
         credentials: "include",
-      })
-      const tokenJson = await tokenResp.json()
-      const csrfToken = tokenJson.message
+      });
+      const tokenJson = await tokenResp.json();
+      const csrfToken = tokenJson.message;
 
-      const formData = new FormData()
-      formData.append("names", JSON.stringify(selectedNames))
+      // 2. Prepare Data
+      const formData = new FormData();
+      formData.append("names", JSON.stringify(selectedNames));
 
       const method =
         action === "cancel"
           ? "vms.api.bulk_cancel_refueling"
-          : "vms.api.bulk_delete_refueling"
+          : "vms.api.bulk_delete_refueling";
 
+      // 3. API Request
       const res = await fetch(getApiUrl(config.api.method(method)), {
         method: "POST",
         credentials: "include",
         headers: { "X-Frappe-CSRF-Token": csrfToken },
         body: formData,
-      })
+      });
 
-      const json = await res.json()
+      const json = await res.json();
 
+      // 4. Handle Result
       if (!res.ok || json.exc) {
-        alert("Action failed.")
-        return
+        showAlert("Error", "Action failed.");
+        return;
       }
 
-      alert(action === "cancel" ? "Cancelled successfully." : "Deleted successfully.")
-      fetchFrappeData()
+      // Success Notification
+      const successMsg = action === "cancel" ? "Cancelled successfully." : "Deleted successfully.";
+      showAlert("Success", successMsg, [
+        {
+          text: "OK",
+          style: "default",
+          onPress: () => fetchFrappeData()
+        }
+      ]);
+
     } catch (error) {
-      console.error(error)
-      alert("Error performing action.")
+      console.error(error);
+      showAlert("Error", "Error performing action.");
     } finally {
-      setIsActionLoading(false)
+      setIsActionLoading(false);
     }
-  }
+  };
+  const handleBulkAction = async (action: "cancel" | "delete") => {
+    // Validation: No records selected
+    if (selectedNames.length === 0) {
+      showAlert("Error", "Please select at least one record.");
+      return;
+    }
+
+    // Validation: Cancel logic for drafts
+    if (action === "cancel") {
+      const draftSelected = records.filter(
+        (r) => selectedNames.includes(r.name) && r.docstatus === 0
+      );
+
+      if (draftSelected.length > 0) {
+        showAlert("Error", "Draft records cannot be cancelled. Only submitted records can be cancelled.");
+        return;
+      }
+    }
+
+    // Define Confirmation Content
+    const confirmTitle = action === "cancel" ? "Confirm Cancel" : "Confirm Delete";
+    const confirmText =
+      action === "cancel"
+        ? `Are you sure you want to CANCEL ${selectedNames.length} record(s)?`
+        : `Are you sure you want to DELETE ${selectedNames.length} record(s)?`;
+
+    // Trigger Elegant Confirmation instead of window.confirm
+    showAlert(
+      confirmTitle,
+      confirmText,
+      [
+        { text: "No, Go Back", style: "cancel" },
+        {
+          text: action === "cancel" ? "Yes, Cancel" : "Yes, Delete",
+          style: "destructive", // This makes the button Red in your elegant design
+          onPress: () => executeBulkAction(action)
+        }
+      ]
+    );
+  };
 
 
 
@@ -264,7 +392,7 @@ export function RefuelingTable({
             + Log Refueling
           </Button>
         </div>
-        
+
       </div>
 
       {/* Table */}
@@ -377,7 +505,7 @@ export function RefuelingTable({
                       currentPage === page
                         ? "bg-gray-300 text-black hover:bg-gray-300 border-gray-400 hover:text-black"
                         : "hover:bg-gray-100 hover:text-black"
-                       }
+                    }
                     onClick={(e) => {
                       e.preventDefault()
                       setCurrentPage(page)
@@ -402,6 +530,13 @@ export function RefuelingTable({
           </PaginationContent>
         </Pagination>
       )}
+      <CustomAlert
+        visible={alertState.visible}
+        title={alertState.title}
+        message={alertState.message}
+        buttons={alertState.buttons}
+        onClose={closeAlert}
+      />
     </div>
   )
 }

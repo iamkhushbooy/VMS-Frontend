@@ -61,7 +61,7 @@ export function GeneralDetailsSection({
           <ReusableCombobox options={seriesOptions} value={formData.series} onValueChange={(v: string) => handleSelectChange("series", v)} placeholder="Select series" searchPlaceholder="Search..." isLoading={isBusy} disabled={isBusy || !!log} />
         </div> */}
         <div>
-          <Label htmlFor="company" className="text-foreground mb-1">Company <span className="text-red-800">*</span></Label>
+          <Label htmlFor="company" className="text-foreground mb-1">Company*</Label>
           <ReusableCombobox
             options={companyOptions}
             value={formData.company}
@@ -73,7 +73,7 @@ export function GeneralDetailsSection({
         </div>
 
         <div>
-          <Label htmlFor="warehouse" className="text-foreground mb-1">Source Warehouse <span className="text-red-800">*</span></Label>
+          <Label htmlFor="warehouse" className="text-foreground mb-1">Source Warehouse*</Label>
           <ReusableCombobox
             options={warehouseOptions}
             value={formData.warehouse}
@@ -84,7 +84,7 @@ export function GeneralDetailsSection({
           />
         </div>
         <div onPointerDown={onEmployeeFieldClick}>
-          <Label htmlFor="issuer_name" className="text-foreground mb-1">Issuer Name <span className="text-red-800">*</span></Label>
+          <Label htmlFor="issuer_name" className="text-foreground mb-1">Issuer Name*</Label>
           {/* <ReusableCombobox options={employeeOptions}
             value={formData.issuer_name}
             onValueChange={(v: string) => handleSelectChange("issuer_name", v)}
@@ -103,7 +103,7 @@ export function GeneralDetailsSection({
         </div>
 
         <div>
-          <Label htmlFor="job_cards_type" className="text-foreground mb-1">Job Card Type <span className="text-red-800">*</span></Label>
+          <Label htmlFor="job_cards_type" className="text-foreground mb-1">Job Card Type*</Label>
           <ReusableCombobox
             options={jobCardTypeOptions}
             value={formData.job_cards_type}
@@ -120,7 +120,7 @@ export function GeneralDetailsSection({
         </div>
 
         <div onMouseDown={onEmployeeFieldClick}>
-          <Label htmlFor="registration_no" className="text-foreground mb-1">Registration No <span className="text-red-800">*</span></Label>
+          <Label htmlFor="registration_no" className="text-foreground mb-1">Registration No*<span className="text-red-800">*</span></Label>
           <ReusableCombobox options={vehicleOptions} value={formData.registration_no} onValueChange={handleVehicleSelect} placeholder="Select vehicle" searchPlaceholder="Search..." displayField="name" isLoading={isBusy} />
         </div>
         {formData.registration_no && (
@@ -134,7 +134,7 @@ export function GeneralDetailsSection({
               <Input id="model" name="model" value={formData.model} readOnly className="mt-1 bg-input" disabled />
             </div>
             <div>
-              <Label htmlFor="last_odometer_value" className="text-foreground">Last Odometer Value</Label>
+              <Label htmlFor="last_odometer_value" className="text-foreground">Last Odometer Value*</Label>
               <Input
                 id="last_odometer_value"
                 name="last_odometer_value"
@@ -151,7 +151,7 @@ export function GeneralDetailsSection({
 
         <div>
           <Label htmlFor="current_odometer_value" className="text-foreground">
-            Current Odometer Value <span className="text-red-800">*</span>
+            Current Odometer Value*
           </Label>
           <Input
             id="current_odometer_value"
@@ -204,7 +204,7 @@ export function GeneralDetailsSection({
         </div>
 
         <div onMouseDown={onEmployeeFieldClick}>
-          <Label htmlFor="working_employees" className="text-foreground mb-1">Working Employees <span className="text-red-800">*</span></Label>
+          <Label htmlFor="working_employees" className="text-foreground mb-1">Working Employees*</Label>
           {/* <MultiSelectCombobox options={employeeOptions} value={formData.working_employees}
             onValueChange={(v: string[]) => handleMultiSelectChange("working_employees", v)}
             placeholder="Select employees..." searchPlaceholder="Search..." displayField="employee_name"

@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Search, Loader2 } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
+import CustomAlert from "../alert/alert"
+import { AlertButton } from "../alert/types"
 
 import {
   Pagination,
@@ -13,7 +15,7 @@ import {
   PaginationLink,
   PaginationPrevious,
   PaginationNext,
-} from "@/components/ui/pagination" 
+} from "@/components/ui/pagination"
 
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
@@ -44,9 +46,30 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
   const [searchTerm, setSearchTerm] = useState("")
   const [records, setRecords] = useState<UtilizationRecord[]>([])
   const [isLoading, setIsLoading] = useState(true)
-
   const [selectedNames, setSelectedNames] = useState<string[]>([])
   const [isActionLoading, setIsActionLoading] = useState(false)
+  const [alertState, setAlertState] = useState<{
+    visible: boolean;
+    title?: string;
+    message?: string;
+    buttons: AlertButton[];
+  }>({
+    visible: false,
+    title: "",
+    message: "",
+    buttons: [],
+  });
+  const showAlert = (title: string, message: string, buttons?: AlertButton[]) => {
+    setAlertState({
+      visible: true,
+      title,
+      message,
+      buttons: buttons || [{ text: "OK", style: "cancel" }],
+    });
+  };
+  const closeAlert = () => {
+    setAlertState((p) => ({ ...p, visible: false }));
+  };
 
   const fetchFrappeData = useCallback(async () => {
     setIsLoading(true)
@@ -55,15 +78,15 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
       const fieldsToFetch = ["name", "date", "shift", "vehicle", "plant", "hmr", "status", "supervisor_name"]
       const fieldsParam = encodeURIComponent(JSON.stringify(fieldsToFetch))
       const url = `${getApiUrl(config.api.resource(DOCTYPE_NAME))}?fields=${fieldsParam}&order_by=modified desc&limit_page_length=None`
-      
+
       const response = await fetch(url, {
-        credentials: "include", 
+        credentials: "include",
       })
 
       if (response.status === 403 || response.status === 401) {
-        alert("Session expired. Please login again.")
+        showAlert("Expired","Session expired. Please login again.")
         localStorage.removeItem("isLoggedIn")
-        window.location.href = "/" 
+        window.location.href = "/"
         return
       }
 
@@ -95,18 +118,18 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
   )
 
   const ITEMS_PER_PAGE = 50
-  const [currentPage, setCurrentPage] = useState(1) 
+  const [currentPage, setCurrentPage] = useState(1)
 
-  const totalPages = Math.ceil(filteredRecords.length / ITEMS_PER_PAGE) 
+  const totalPages = Math.ceil(filteredRecords.length / ITEMS_PER_PAGE)
 
-  const paginatedRecords = filteredRecords.slice( 
+  const paginatedRecords = filteredRecords.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE,
   )
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchTerm]) 
+  }, [searchTerm])
 
 
   const toggleRowSelection = (name: string, checked: boolean) => {
@@ -136,27 +159,51 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
     }
   }
 
+
   const handleBulkAction = async () => {
+    // 1. Validation Alert
     if (selectedNames.length === 0) {
-      alert("Please select at least one record.")
-      return
+      showAlert("Selection Required", "Please select at least one record to proceed.", [
+        { text: "Understood", style: "default" }
+      ]);
+      return;
     }
 
-    const confirmText = `Are you sure you want to DELETE ${selectedNames.length} record(s)?`
+    // 2. Confirmation Alert
+    const confirmText = `Are you sure you want to DELETE ${selectedNames.length} records.`;
 
-    if (!window.confirm(confirmText)) return
-
+    showAlert(
+      "Confirm Deletion",
+      confirmText,
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+          onPress: () => console.log("Deletion cancelled"),
+        },
+        {
+          text: "Delete Records",
+          style: "destructive",
+          onPress: () => executeDelete(), // Trigger the logic here
+        },
+      ]
+    );
+  };
+  const executeDelete = async () => {
     try {
-      setIsActionLoading(true)
+      setIsActionLoading(true);
+
+      // Fetch CSRF Token
       const tokenResp = await fetch(getApiUrl(config.api.getCsrfToken), {
         credentials: "include",
-      })
-      const tokenResult = await tokenResp.json()
-      const csrfToken = tokenResult.message
-      const formData = new FormData()
-      formData.append("names", JSON.stringify(selectedNames))
+      });
+      const tokenResult = await tokenResp.json();
+      const csrfToken = tokenResult.message;
 
-      const methodName = "vms.api.bulk_delete_utilization"
+      const formData = new FormData();
+      formData.append("names", JSON.stringify(selectedNames));
+
+      const methodName = "vms.api.bulk_delete_utilization";
 
       const res = await fetch(getApiUrl(config.api.method(methodName)), {
         method: "POST",
@@ -165,25 +212,35 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
         headers: {
           "X-Frappe-CSRF-Token": csrfToken,
         },
-      })
+      });
 
-      const data = await res.json()
+      const data = await res.json();
 
       if (!res.ok || data.exc || data.status === "error") {
-        console.error("Bulk action error:", data)
-        alert(data?.message || "Failed to perform action.")
-        return
+        showAlert("Action Failed", data?.message || "Failed to perform action.", [
+          { text: "Try Again", style: "default" }
+        ]);
+        return;
       }
 
-      alert("Selected records deleted successfully.")
-      await fetchFrappeData()
+      // Success Alert
+      showAlert("Success", "The selected records have been deleted.", [
+        {
+          text: "Finish",
+          style: "default",
+          onPress: () => fetchFrappeData() // Refresh data after user acknowledges
+        }
+      ]);
+
     } catch (error) {
-      console.error("Bulk action error:", error)
-      alert("Something went wrong while performing the action.")
+      console.error("Bulk action error:", error);
+      showAlert("Error", "Something went wrong while communicating with the server.", [
+        { text: "Close", style: "cancel" }
+      ]);
     } finally {
-      setIsActionLoading(false)
+      setIsActionLoading(false);
     }
-  }
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -242,12 +299,12 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
             {isLoading ? (
               <TableRow>
                 <TableCell colSpan={8} className="text-center py-8">
-                  <Loader2 className="mr-2 h-6 w-6 animate-spin inline text-primary" /> 
+                  <Loader2 className="mr-2 h-6 w-6 animate-spin inline text-primary" />
                   <span className="text-muted-foreground">Loading records...</span>
                 </TableCell>
               </TableRow>
-            ) : paginatedRecords.length > 0 ? ( 
-              paginatedRecords.map((record) => ( 
+            ) : paginatedRecords.length > 0 ? (
+              paginatedRecords.map((record) => (
                 <TableRow
                   key={record.name}
                   className="table-row-hover border-white/5 cursor-pointer hover:bg-white/5 transition-colors"
@@ -286,8 +343,8 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
                         record.status === "Running"
                           ? "bg-green-100 text-green-800"
                           : record.status === "Breakdown"
-                          ? "bg-red-100 text-red-800"
-                          : "bg-gray-100 text-gray-800"
+                            ? "bg-red-100 text-red-800"
+                            : "bg-gray-100 text-gray-800"
                       )}
                     >
                       {record.status}
@@ -322,7 +379,7 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
             {(() => {
               const itemsPerBlock = 3
               const currentBlock = Math.ceil(currentPage / itemsPerBlock)
-              
+
               const startPage = (currentBlock - 1) * itemsPerBlock + 1
               const endPage = Math.min(startPage + itemsPerBlock - 1, totalPages)
 
@@ -340,7 +397,7 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
                       currentPage === page
                         ? "bg-gray-300 text-black hover:bg-gray-300 border-gray-400 hover:text-black"
                         : "hover:bg-gray-100 hover:text-black"
-                       }
+                    }
                     onClick={(e) => {
                       e.preventDefault()
                       setCurrentPage(page)
@@ -364,6 +421,13 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
           </PaginationContent>
         </Pagination>
       )}
+      <CustomAlert
+        visible={alertState.visible}
+        title={alertState.title}
+        message={alertState.message}
+        buttons={alertState.buttons}
+        onClose={closeAlert}
+      />
     </div>
   )
 }

@@ -17,10 +17,12 @@ import {
   CommandEmpty,
 } from "@/components/ui/command"
 import { Check, ChevronsUpDown, Plus } from "lucide-react"
+import { useState } from "react"
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { FuelEntry } from "@/components/refueling/refueling-form-modal"
-
+import CustomAlert from "../alert/alert"
+import { AlertButton } from "../alert/types"
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
@@ -57,7 +59,7 @@ const ReusableCombobox = React.forwardRef<HTMLButtonElement, any>(
       const selected = options.find((o: any) => o.name === val)
       return selected ? selected[displayField] || selected.name : placeholder
     }
-    
+
 
     return (
       <Popover open={open} onOpenChange={setOpen}>
@@ -237,29 +239,51 @@ export function FuelEntryForm({
 }: FuelEntryFormProps) {
   const maxDate = "2099-12-31"
 
-  // Validation Logic: Check if all fields are filled before adding
+  const [alertState, setAlertState] = useState<{
+    visible: boolean;
+    title?: string;
+    message?: string;
+    buttons: AlertButton[];
+  }>({
+    visible: false,
+    title: "",
+    message: "",
+    buttons: [],
+  });
+  const showAlert = (title: string, message: string, buttons?: AlertButton[]) => {
+    setAlertState({
+      visible: true,
+      title,
+      message,
+      buttons: buttons || [{ text: "OK", style: "cancel" }],
+    });
+  };
+  const closeAlert = () => {
+    setAlertState((p) => ({ ...p, visible: false }));
+  };
+  
   const validateAndAdd = () => {
     const { vehicle, date, fuel_qty_in_ltrs, current_hmrkms, fuel_consumption } = newEntry;
 
     if (!vehicle) {
-        alert("Please select a Vehicle (Reg No).");
-        return;
+      showAlert("Error","Please select a Vehicle (Registration Number).");
+      return;
     }
     if (!date) {
-        alert("Please select a Date.");
-        return;
+      showAlert("Error","Please select a Date.");
+      return;
     }
     if (fuel_qty_in_ltrs === undefined || fuel_qty_in_ltrs === 0) {
-        alert("Please enter Fuel Quantity.");
-        return;
+      showAlert("Error","Please enter Fuel Quantity.");
+      return;
     }
     if (current_hmrkms === undefined || current_hmrkms === 0) {
-        alert("Please enter HMR/KMs.");
-        return;
+      showAlert("Error","Please enter HMR/KMs.");
+      return;
     }
     if (fuel_consumption === undefined || fuel_consumption === 0) {
-        alert("Please enter Fuel Consumption.");
-        return;
+      showAlert("Error","Please enter Fuel Consumption.");
+      return;
     }
 
     // Agar sab fields valid hain, tabhi add hoga
@@ -371,6 +395,13 @@ export function FuelEntryForm({
           <Plus className="w-4 h-4 mr-2" /> Add Entry
         </Button>
       </div>
+      <CustomAlert
+        visible={alertState.visible}
+        title={alertState.title}
+        message={alertState.message}
+        buttons={alertState.buttons}
+        onClose={closeAlert}
+      />
     </div>
   )
 }

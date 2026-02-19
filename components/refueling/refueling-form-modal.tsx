@@ -24,6 +24,8 @@ import { getApiUrl, config } from "@/lib/config"
 import { fetchFrappeDoctype, VEHICLE_DOCTYPE } from "../maintenance/MaintenanceShared"
 import { getErrorMessage } from "@/lib/errorMessage"
 import { Pagination } from "./Pagination"
+import CustomAlert from "../alert/alert"
+import { AlertButton } from "../alert/types"
 const DOCTYPE = "Vehicle Refueling"
 
 interface FrappeDoc {
@@ -112,6 +114,29 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
   const [itemLoading, setItemLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+
+  const [alertState, setAlertState] = useState<{
+    visible: boolean;
+    title?: string;
+    message?: string;
+    buttons: AlertButton[];
+  }>({
+    visible: false,
+    title: "",
+    message: "",
+    buttons: [],
+  });
+  const showAlert = (title: string, message: string, buttons?: AlertButton[]) => {
+    setAlertState({
+      visible: true,
+      title,
+      message,
+      buttons: buttons || [{ text: "OK", style: "cancel" }],
+    });
+  };
+  const closeAlert = () => {
+    setAlertState((p) => ({ ...p, visible: false }));
+  };
 
   const itemsPerPage = 5;
   const totalPages = Math.ceil(fuelEntries.length / itemsPerPage);
@@ -328,7 +353,7 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
 
   const checkWarehouseSelection = () => {
     if (!formData.costCenter) {
-      alert("Please select a Source Warehouse first to filter the Issuer Name.");
+      showAlert("Error", "Please select a Source Warehouse first to filter the Issuer Name.");
       return false;
     }
     return true;
@@ -444,7 +469,7 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
 
   const checkWarehouseForVehicle = () => {
     if (!formData.sourceWarehouse) {
-      alert("Please select a Source Warehouse first to filter Registration No.");
+      showAlert("Error", "Please select a Source Warehouse first to filter Registration No.");
       return false;
     }
     return true;
@@ -509,7 +534,15 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
           setCurrentName(docName);
           setDocStatus(status);
           setIsEditMode(true);
-          alert(currentName ? "Updated successfully" : "Saved successfully");
+          showAlert(
+            "Success",
+            currentName ? "Record updated successfully." : "Record saved successfully.",
+            [{
+              text: "Continue",
+              style: "default",
+              onPress: () => { if (onSuccess) onSuccess(); }
+            }]
+          );
           if (onSuccess) onSuccess();
         } else {
           console.error("Doc Name still null after extraction attempt");
@@ -518,7 +551,9 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
 
     } catch (err: any) {
       const errorMsg = getErrorMessage(err);
-      alert(errorMsg);
+      showAlert("Submission Failed", errorMsg, [
+        { text: "Close", style: "cancel" }
+      ]);
     } finally {
       setIsSubmitting(false)
     }
@@ -560,7 +595,11 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
         setCurrentName(docName);
         setDocStatus(1);
         setIsEditMode(false);
-        alert(`Success! Record ${docName} has been submitted.`);
+        showAlert(
+          "Submitted Successfully",
+          `Record ${docName} has been Submitted.`,
+          [{ text: "Finish", style: "default", onPress: () => { onSuccess?.(); onClose?.(); } }]
+        );
         if (onSuccess) onSuccess();
         onClose();
       } else {
@@ -569,7 +608,7 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
     } catch (err: any) {
       const errorMsg = getErrorMessage(err);
       console.error("Submission Error:", err);
-      alert(`Submission Failed: ${errorMsg}`);
+      showAlert("Submission Failed", getErrorMessage(err), [{ text: "Close", style: "cancel" }]);
     } finally {
       setIsSubmitting(false);
     }
@@ -594,7 +633,9 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
         )
 
         setDocStatus(2) // 2 = Cancelled
-        alert("Cancelled successfully.")
+       showAlert("Cancelled", "The record has been successfully cancelled.", [
+      { text: "OK", style: "default", onPress: () => onSuccess?.() }
+    ]);
         if (onSuccess) onSuccess()
         return
       }
@@ -621,12 +662,14 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
         setDocStatus(0)
         setIsEditMode(true)
 
-        alert("Draft created. You are now editing the new Draft.")
+        showAlert("Draft Created", "You are now editing a new draft version of this record.", [
+      { text: "Start Editing", style: "default", onPress: () => onSuccess?.() }
+    ]);
         if (onSuccess) onSuccess()
       }
     } catch (e) {
       console.error("status action error", e)
-      alert("Error performing action.")
+      showAlert("Error", "Failed to create an amendment draft.", [{ text: "Close", style: "cancel" }]);
     } finally {
       setIsSubmitting(false)
     }
@@ -776,6 +819,13 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
           )}
         </DialogFooter>
       </DialogContent>
+      <CustomAlert
+        visible={alertState.visible}
+        title={alertState.title}
+        message={alertState.message}
+        buttons={alertState.buttons}
+        onClose={closeAlert}
+      />
     </Dialog>
   )
 }

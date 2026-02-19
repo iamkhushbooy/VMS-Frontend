@@ -16,7 +16,8 @@ import {
   PaginationPrevious,
   PaginationNext,
 } from "@/components/ui/pagination"
-
+import CustomAlert from "../alert/alert"
+import { AlertButton } from "../alert/types"
 import { getApiUrl, config } from "@/lib/config"
 interface MaintenanceLog {
   name: string
@@ -53,6 +54,29 @@ export function MaintenanceTable({ onNewLog, onSelectLog, refreshTrigger }: Main
 
   const [selectedNames, setSelectedNames] = useState<string[]>([])
   const [isActionLoading, setIsActionLoading] = useState(false)
+
+  const [alertState, setAlertState] = useState<{
+    visible: boolean;
+    title?: string;
+    message?: string;
+    buttons: AlertButton[];
+  }>({
+    visible: false,
+    title: "",
+    message: "",
+    buttons: [],
+  });
+  const showAlert = (title: string, message: string, buttons?: AlertButton[]) => {
+    setAlertState({
+      visible: true,
+      title,
+      message,
+      buttons: buttons || [{ text: "OK", style: "cancel" }],
+    });
+  };
+  const closeAlert = () => {
+    setAlertState((p) => ({ ...p, visible: false }));
+  };
 
   const router = useRouter()
   const fetchMaintenanceLogs = useCallback(async () => {
@@ -114,72 +138,166 @@ export function MaintenanceTable({ onNewLog, onSelectLog, refreshTrigger }: Main
     setSelectedNames(checked ? paginatedLogs.map((r) => r.name) : [])
   }
 
-  const handleBulkAction = async (action: "cancel" | "delete") => {
-    if (selectedNames.length === 0) {
-      alert("Please select at least one record.")
-      return
-    }
-    if (action === "cancel") {
-    const draftSelected = logs.filter(
-      (log) => selectedNames.includes(log.name) && log.docstatus === 0
-    );
+  // const handleBulkAction = async (action: "cancel" | "delete") => {
+  //   if (selectedNames.length === 0) {
+  //     showAlert("Error","Please select at least one record.")
+  //     return
+  //   }
+  //   if (action === "cancel") {
+  //   const draftSelected = logs.filter(
+  //     (log) => selectedNames.includes(log.name) && log.docstatus === 0
+  //   );
 
-    if (draftSelected.length > 0) {
-      alert("Draft records cannot be cancelled. Only submitted records can be cancelled.");
-      return;
-    }
-  }
+  //   if (draftSelected.length > 0) {
+  //     showAlert("Error","Draft records cannot be cancelled. Only submitted records can be cancelled.");
+  //     return;
+  //   }
+  // }
 
-    const confirmText =
-      action === "cancel"
-        ? `Are you sure you want to CANCEL ${selectedNames.length} record(s)?`
-        : `Are you sure you want to DELETE ${selectedNames.length} record(s)?`
+  //   const confirmText =
+  //     action === "cancel"
+  //       ? `Are you sure you want to CANCEL ${selectedNames.length} record(s)?`
+  //       : `Are you sure you want to DELETE ${selectedNames.length} record(s)?`
 
-    if (!window.confirm(confirmText)) return
+  //   if (!window.confirm(confirmText)) return
 
+  //   try {
+  //     setIsActionLoading(true)
+
+  //     const tokenResp = await fetch(getApiUrl(config.api.getCsrfToken), {
+  //       credentials: "include",
+  //     })
+  //     const tokenJson = await tokenResp.json()
+  //     const csrfToken = tokenJson.message
+
+  //     const formData = new FormData()
+  //     formData.append("names", JSON.stringify(selectedNames))
+
+  //     const method =
+  //       action === "cancel"
+  //         ? "vms.api.bulk_cancel_maintenance"
+  //         : "vms.api.bulk_delete_maintenance"
+
+  //     const res = await fetch(getApiUrl(config.api.method(method)), {
+  //       method: "POST",
+  //       credentials: "include",
+  //       headers: { "X-Frappe-CSRF-Token": csrfToken },
+  //       body: formData,
+  //     })
+
+  //     const json = await res.json()
+
+  //     if (!res.ok || json.exc) {
+  //       alert("Action failed.")
+  //       return
+  //     }
+
+  //     alert(action === "cancel" ? "Cancelled successfully." : "Deleted successfully.")
+  //     fetchMaintenanceLogs()
+  //   } catch (error) {
+  //     alert(getErrorMessage(error))
+  //   } finally {
+  //     setIsActionLoading(false)
+  //   }
+  // }
+  const executeBulkAction = async (action: "cancel" | "delete") => {
     try {
-      setIsActionLoading(true)
+      setIsActionLoading(true);
 
+      // 1. Get CSRF Token
       const tokenResp = await fetch(getApiUrl(config.api.getCsrfToken), {
         credentials: "include",
-      })
-      const tokenJson = await tokenResp.json()
-      const csrfToken = tokenJson.message
+      });
+      const tokenJson = await tokenResp.json();
+      const csrfToken = tokenJson.message;
 
-      const formData = new FormData()
-      formData.append("names", JSON.stringify(selectedNames))
+      // 2. Prepare Payload
+      const formData = new FormData();
+      formData.append("names", JSON.stringify(selectedNames));
 
       const method =
         action === "cancel"
           ? "vms.api.bulk_cancel_maintenance"
-          : "vms.api.bulk_delete_maintenance"
+          : "vms.api.bulk_delete_maintenance";
 
+      // 3. API Request
       const res = await fetch(getApiUrl(config.api.method(method)), {
         method: "POST",
         credentials: "include",
         headers: { "X-Frappe-CSRF-Token": csrfToken },
         body: formData,
-      })
+      });
 
-      const json = await res.json()
+      const json = await res.json();
 
+      // 4. Handle Result
       if (!res.ok || json.exc) {
-        alert("Action failed.")
-        return
+        showAlert("Error", "Action failed.");
+        return;
       }
 
-      alert(action === "cancel" ? "Cancelled successfully." : "Deleted successfully.")
-      fetchMaintenanceLogs()
+      // Success Alert
+      const successMsg = action === "cancel" ? "Cancelled successfully." : "Deleted successfully.";
+      showAlert("Success", successMsg, [
+        {
+          text: "OK",
+          style: "default",
+          onPress: () => fetchMaintenanceLogs()
+        }
+      ]);
     } catch (error) {
-      alert(getErrorMessage(error))
+      showAlert("Error", getErrorMessage(error));
     } finally {
-      setIsActionLoading(false)
+      setIsActionLoading(false);
     }
-  }
+  };
+  const handleBulkAction = async (action: "cancel" | "delete") => {
+    // 1. Check if selection is empty
+    if (selectedNames.length === 0) {
+      showAlert("Error", "Please select at least one record.");
+      return;
+    }
+
+    // 2. Validate cancellation rules (No drafts)
+    if (action === "cancel") {
+      const draftSelected = logs.filter(
+        (log) => selectedNames.includes(log.name) && log.docstatus === 0
+      );
+
+      if (draftSelected.length > 0) {
+        showAlert(
+          "Error",
+          "Draft records cannot be cancelled. Only submitted records can be cancelled."
+        );
+        return;
+      }
+    }
+
+    // 3. Setup Confirmation Text
+    const confirmTitle = action === "cancel" ? "Confirm Cancel" : "Confirm Delete";
+    const confirmText =
+      action === "cancel"
+        ? `Are you sure you want to CANCEL ${selectedNames.length} record(s)?`
+        : `Are you sure you want to DELETE ${selectedNames.length} record(s)?`;
+
+    // 4. Trigger Elegant Alert
+    showAlert(
+      confirmTitle,
+      confirmText,
+      [
+        { text: "No, Go Back", style: "cancel" },
+        {
+          text: action === "cancel" ? "Yes, Cancel" : "Yes, Delete",
+          style: "destructive", // Shows the red warning button
+          onPress: () => executeBulkAction(action)
+        }
+      ]
+    );
+  };
   return (
     <div className="flex flex-col gap-6">
 
-       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+      <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
         <div className="relative w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
@@ -213,7 +331,7 @@ export function MaintenanceTable({ onNewLog, onSelectLog, refreshTrigger }: Main
             + New Maintenance Log
           </Button>
         </div>
-        
+
       </div>
 
       <div className="glass-card overflow-x-auto rounded-md border border-white/10">
@@ -321,7 +439,7 @@ export function MaintenanceTable({ onNewLog, onSelectLog, refreshTrigger }: Main
                       currentPage === page
                         ? "bg-gray-300 text-black hover:bg-gray-300 border-gray-400 hover:text-black"
                         : "hover:bg-gray-100 hover:text-black"
-                       }
+                    }
                     onClick={(e) => {
                       e.preventDefault()
                       setCurrentPage(page)
@@ -345,6 +463,13 @@ export function MaintenanceTable({ onNewLog, onSelectLog, refreshTrigger }: Main
           </PaginationContent>
         </Pagination>
       )}
+      <CustomAlert
+        visible={alertState.visible}
+        title={alertState.title}
+        message={alertState.message}
+        buttons={alertState.buttons}
+        onClose={closeAlert}
+      />
     </div>
   )
 }

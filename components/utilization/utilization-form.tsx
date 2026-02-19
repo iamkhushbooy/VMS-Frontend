@@ -9,6 +9,8 @@ import { getApiUrl, config } from "@/lib/config"
 import { UtilizationLogEventForm } from "./utilization-log-event-form"
 import { VEHICLE_DOCTYPE } from "../maintenance/MaintenanceShared"
 import { getErrorMessage } from "@/lib/errorMessage"
+import CustomAlert from "../alert/alert"
+import { AlertButton } from "../alert/types"
 const DOCTYPE_NAME = "Utilization Report"
 interface FrappeDoc {
   name: string
@@ -88,13 +90,37 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
   const [supervisorOptions, setSupervisorOptions] = useState<FrappeDoc[]>([])
   const { user } = useAuthStore()
   const [allWarehouseOptions, setAllWarehouseOptions] = useState<FrappeDoc[]>([])
+
+  const [alertState, setAlertState] = useState<{
+    visible: boolean;
+    title?: string;
+    message?: string;
+    buttons: AlertButton[];
+  }>({
+    visible: false,
+    title: "",
+    message: "",
+    buttons: [],
+  });
+  const showAlert = (title: string, message: string, buttons?: AlertButton[]) => {
+    setAlertState({
+      visible: true,
+      title,
+      message,
+      buttons: buttons || [{ text: "OK", style: "cancel" }],
+    });
+  };
+  const closeAlert = () => {
+    setAlertState((p) => ({ ...p, visible: false }));
+  };
   const shiftOptions = [{ name: "A" }, { name: "B" }, { name: "C" }, { name: "G" }]
   const statusOptions = [{ name: "Running" }, { name: "Breakdown" }, { name: "Idle" }]
+
   const fetchWarehouseMeta = async (warehouseName: string) => {
     if (!warehouseName) return null;
 
     const fieldsParam = encodeURIComponent(
-      JSON.stringify(["name", "cost_center"])   // company removed
+      JSON.stringify(["name", "cost_center"])
     );
 
     try {
@@ -132,7 +158,7 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
         const [branches, costCenters, warehousesAll, companies] = await Promise.all([
           fetchFrappeDoctype("Branch", ["name"]),
           fetchFrappeDoctype("Cost Center", ["name"]),
-          fetchFrappeDoctype("Warehouse", ["name", "company"],[["is_group", "=", 0]]),
+          fetchFrappeDoctype("Warehouse", ["name", "company"], [["is_group", "=", 0]]),
           fetchFrappeDoctype("Company", ["name"])
         ])
         const filteredCompanies = companies.filter((item: { name: string }) =>
@@ -268,7 +294,7 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
 
   const checkWarehouseSelection = () => {
     if (!formData.warehouse) {
-      alert("Please select a Source Warehouse first to filter Registration No.");
+      showAlert("Missing Warehouse", "Please select a Source Warehouse first to filter Registration No.");
       return false;
     }
     return true;
@@ -305,24 +331,33 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
         status: formData.status,
       }))
 
-      const res=await axios.post(
+      const res = await axios.post(
         getApiUrl(config.api.method("vms.api.submit_utilization_report")),
         fd,
         { withCredentials: true, headers: { "X-Frappe-CSRF-Token": token.message } }
       )
       if (res.status === 200) {
-        alert("Vehicle Updated Successfully!");
+        showAlert("Success", "Vehicle Updated Successfully!", [
+          {
+            text: "OK",
+            style: "cancel",
+            onPress: () => window.location.reload(),
+          },
+        ]);
         window.location.reload()
       }
     } catch (err) {
       const errorMsg = getErrorMessage(err);
-      alert(errorMsg);
+      showAlert("Error", errorMsg, [{ text: "OK", style: "destructive" }]);
     } finally {
       setIsSubmitting(false)
     }
   }
   const handleUpdate = async () => {
-    if (!record) return alert("Record missing")
+    if (!record) {
+      showAlert("Error", "Record missing");
+      return;
+    }
 
     setIsSubmitting(true)
 
@@ -331,7 +366,7 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
         await fetch(getApiUrl(config.api.getCsrfToken), { credentials: "include" })
       ).json()
 
-      const res=await axios.put(
+      const res = await axios.put(
         getApiUrl(`${config.api.resource(DOCTYPE_NAME)}/${record.name}`),
         {
           date: formData.date,
@@ -351,12 +386,18 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
       )
 
       if (res.status === 200) {
-        alert("Utilization Updated Successfully!");
-        window.location.reload()
+        showAlert("Success", "Utilization Updated Successfully!", [
+          {
+            text: "OK",
+            style: "cancel",
+            onPress: () => window.location.reload(),
+          },
+        ]);
       }
     } catch (err) {
       const errorMsg = getErrorMessage(err);
-      alert(errorMsg);
+      showAlert("Error", errorMsg, [{ text: "OK", style: "destructive" }]);
+
     } finally {
       setIsSubmitting(false)
     }
@@ -408,6 +449,13 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
           )}
         </DialogFooter>
       </DialogContent>
+      <CustomAlert
+        visible={alertState.visible}
+        title={alertState.title}
+        message={alertState.message}
+        buttons={alertState.buttons}
+        onClose={closeAlert}
+      />
     </Dialog>
   )
 }
