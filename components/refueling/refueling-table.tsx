@@ -190,73 +190,7 @@ export function RefuelingTable({
       setSelectedNames((prev) => prev.filter((n) => !pageNames.includes(n)))
     }
   }
-
-
-  // const handleBulkAction = async (action: "cancel" | "delete") => {
-  //   if (selectedNames.length === 0) {
-  //     showAlert("Error","Please select at least one record.")
-  //     return
-  //   }
-  //   if (action === "cancel") {
-  //     const draftSelected = records.filter(
-  //       (r) => selectedNames.includes(r.name) && r.docstatus === 0
-  //     );
-
-  //     if (draftSelected.length > 0) {
-  //       showAlert("Error","Draft records cannot be cancelled. Only submitted records can be cancelled.");
-  //       return;
-  //     }
-  //   }
-
-  //   const confirmText =
-  //     action === "cancel"
-  //       ? `Are you sure you want to CANCEL ${selectedNames.length} record(s)?`
-  //       : `Are you sure you want to DELETE ${selectedNames.length} record(s)?`
-
-  //   if (!window.confirm(confirmText)) return
-
-  //   try {
-  //     setIsActionLoading(true)
-
-  //     const tokenResp = await fetch(getApiUrl(config.api.getCsrfToken), {
-  //       credentials: "include",
-  //     })
-  //     const tokenJson = await tokenResp.json()
-  //     const csrfToken = tokenJson.message
-
-  //     const formData = new FormData()
-  //     formData.append("names", JSON.stringify(selectedNames))
-
-  //     const method =
-  //       action === "cancel"
-  //         ? "vms.api.bulk_cancel_refueling"
-  //         : "vms.api.bulk_delete_refueling"
-
-  //     const res = await fetch(getApiUrl(config.api.method(method)), {
-  //       method: "POST",
-  //       credentials: "include",
-  //       headers: { "X-Frappe-CSRF-Token": csrfToken },
-  //       body: formData,
-  //     })
-
-  //     const json = await res.json()
-
-  //     if (!res.ok || json.exc) {
-  //       alert("Action failed.")
-  //       return
-  //     }
-
-  //     alert(action === "cancel" ? "Cancelled successfully." : "Deleted successfully.")
-  //     fetchFrappeData()
-  //   } catch (error) {
-  //     console.error(error)
-  //     alert("Error performing action.")
-  //   } finally {
-  //     setIsActionLoading(false)
-  //   }
-  // }
-
-  // This function executes the actual API call after the user confirms
+  
   const executeBulkAction = async (action: "cancel" | "delete") => {
     try {
       setIsActionLoading(true);

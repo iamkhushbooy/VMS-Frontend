@@ -19,6 +19,7 @@ export const getErrorMessage = (err: any) => {
                         m.message.toLowerCase().includes("should") || 
                         m.message.toLowerCase().includes("must") ||
                         m.message.toLowerCase().includes("greater")||
+                        m.message.toLowerCase().includes("warehouse")||
                         m.message.toLowerCase().includes("less")
                     )
                 );

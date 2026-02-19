@@ -191,7 +191,7 @@ export function UtilizationLogEventForm({
 
           {/* Vehicle */}
           <div onMouseDown={onEmployeeFieldClick} className="space-y-1.5">
-            <Label htmlFor="vehicle" className="text-sm font-medium text-gray-700">Registration No</Label>
+            <Label htmlFor="vehicle" className="text-sm font-medium text-gray-700">Registration No*</Label>
             <ReusableCombobox
               options={vehicleOptions}
               value={formData.vehicle}

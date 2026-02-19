@@ -798,41 +798,7 @@ export function MaintenanceFormModal({
 
     return payload
   }
-  // const handleSave = async () => {
-  //   setIsSubmitting(true)
-  //   try {
-  //     const payload = buildPayload()
-  //     const formDataToSend = new FormData()
-  //     formDataToSend.append("data", JSON.stringify(payload))
 
-  //     const csrf = await getCSRF()
-
-  //     const res = await axios.post(
-  //       getApiUrl(config.api.method("vms.api.save_vehicle_log_master")),
-  //       formDataToSend,
-  //       {
-  //         withCredentials: true,
-  //         headers: { "X-Frappe-CSRF-Token": csrf }
-  //       }
-  //     )
-
-  //     const msg = res.data.message || res.data
-  //     const name = msg.name || msg?.message?.name
-  //     const status = msg.docstatus ?? msg?.message?.docstatus ?? 0
-
-  //     if (name) setCurrentName(name)
-  //     setDocStatus(status)
-  //     onSuccess?.()
-  //     alert(currentName ? "Updated successfully." : "Saved successfully.")
-  //   } catch (err: any) {
-  //     const errorMsg = getErrorMessage(err);
-  //     alert(errorMsg);
-  //   } finally {
-  //     setIsSubmitting(false)
-  //   }
-  // }
-
-  
   // 1. API Worker (Does the actual work)
   const executeSave = async () => {
     setIsSubmitting(true);
@@ -883,54 +849,8 @@ export function MaintenanceFormModal({
 
   // 2. The Handle Function (Triggered by Button Click)
   const handleSave = async () => {
-    // We call executeSave directly. 
-    // This keeps the validation logic and the API logic separate.
     executeSave();
   };
-
-  // const handleSubmitFinal = async () => {
-  //   if (!formData.registration_no || formData.working_employees.length === 0) {
-  //     alert("Validation Error: Please select Registration No and at least one Working Employee.");
-  //     return;
-  //   }
-
-  //   setIsSubmitting(true)
-  //   try {
-  //     const payload = buildPayload()
-  //     const formDataToSend = new FormData()
-  //     formDataToSend.append("data", JSON.stringify(payload))
-
-  //     const csrf = await getCSRF()
-
-  //     const res = await axios.post(
-  //       getApiUrl(config.api.method("vms.api.submit_vehicle_log_master")),
-  //       formDataToSend,
-  //       {
-  //         withCredentials: true,
-  //         headers: {
-  //           Accept: "*/*",
-  //           "X-Frappe-CSRF-Token": csrf
-  //         }
-  //       }
-  //     )
-  //     if (res.status >= 200 && res.status < 300 && res.data.message) {
-  //       const docName = res.data.message.name || currentName;
-  //       setCurrentName(docName);
-  //       setDocStatus(1);
-  //       alert(`Success! Record ${docName} has been submitted.`);
-  //       if (onSuccess) onSuccess();
-  //       onClose();
-  //     } else {
-  //       throw new Error("The server acknowledged the request but did not return a valid document.");
-  //     }
-  //   } catch (err) {
-  //     const errorMsg = getErrorMessage(err);
-  //     console.error("Submission Error:", err);
-  //     alert(`Submission Failed: ${errorMsg}`);
-  //   } finally {
-  //     setIsSubmitting(false)
-  //   }
-  // }
 
   const executeSubmitFinal = async () => {
     setIsSubmitting(true);
@@ -1007,38 +927,6 @@ export function MaintenanceFormModal({
       ]
     );
   };
-
-  // const handleCancel = async () => {
-  //   if (!currentName) return;
-
-  //   setIsSubmitting(true);
-  //   try {
-  //     const csrf = await getCSRF();
-
-  //     const fd = new FormData();
-  //     fd.append("name", currentName);
-
-  //     const res = await axios.post(
-  //       getApiUrl(config.api.method("vms.api.cancel_vehicle_log_master")),
-  //       fd,
-  //       {
-  //         withCredentials: true,
-  //         headers: { "X-Frappe-CSRF-Token": csrf }
-  //       }
-  //     );
-
-  //     const msg = res.data.message || res.data;
-  //     const status = msg.docstatus ?? 2;
-  //     setDocStatus(status);
-
-  //     alert("Maintenance Log cancelled.");
-  //   } catch (err) {
-  //     console.error("Cancel error:", err);
-  //     alert("Failed to cancel Maintenance Log.");
-  //   } finally {
-  //     setIsSubmitting(false);
-  //   }
-  // };
   const executeCancel = async () => {
     if (!currentName) return;
 
@@ -1092,45 +980,6 @@ export function MaintenanceFormModal({
     );
   };
 
-  // const handleAmend = async () => {
-  //   if (!currentName) return
-
-  //   setIsSubmitting(true)
-  //   try {
-  //     const fd = new FormData()
-  //     fd.append("name", currentName)
-
-  //     const csrf = await getCSRF()
-
-  //     const res = await axios.post(
-  //       getApiUrl(config.api.method("vms.api.amend_vehicle_log_master")),
-  //       fd,
-  //       {
-  //         withCredentials: true,
-  //         headers: { "X-Frappe-CSRF-Token": csrf }
-  //       }
-  //     )
-
-
-  //     const msg = res.data.message || res.data
-  //     const newName = msg.name || msg?.message?.name
-
-  //     if (newName) {
-  //       setCurrentName(newName)
-  //       onSuccess?.()
-
-  //       setDocStatus(0)
-  //       alert("You can now edit and submit again.")
-  //     } else {
-  //       alert("Amendment created but new document name not returned.")
-  //     }
-  //   } catch (err) {
-  //     console.error("Amend error:", err)
-  //     alert("Failed to create amendment.")
-  //   } finally {
-  //     setIsSubmitting(false)
-  //   }
-  // }
   const executeAmend = async () => {
     if (!currentName) return;
 
@@ -1221,7 +1070,7 @@ export function MaintenanceFormModal({
   const removePendingJobEntry = (id: string) => setPendingJobEntries(prev => prev.filter(i => i.id !== id));
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto bg-white">
+      <DialogContent className="overflow-y-auto bg-white">
         <DialogHeader>
           <DialogTitle className="text-2xl hidden md:inline">
             {log ? "Show" : "Create"} Maintenance Log

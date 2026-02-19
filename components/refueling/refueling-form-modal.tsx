@@ -694,7 +694,7 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
   };
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className=" overflow-y-auto">
+      <DialogContent className="overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl">
             {docStatus === 0 ? "Refueling (Draft)" :

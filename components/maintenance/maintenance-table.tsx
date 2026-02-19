@@ -138,68 +138,6 @@ export function MaintenanceTable({ onNewLog, onSelectLog, refreshTrigger }: Main
     setSelectedNames(checked ? paginatedLogs.map((r) => r.name) : [])
   }
 
-  // const handleBulkAction = async (action: "cancel" | "delete") => {
-  //   if (selectedNames.length === 0) {
-  //     showAlert("Error","Please select at least one record.")
-  //     return
-  //   }
-  //   if (action === "cancel") {
-  //   const draftSelected = logs.filter(
-  //     (log) => selectedNames.includes(log.name) && log.docstatus === 0
-  //   );
-
-  //   if (draftSelected.length > 0) {
-  //     showAlert("Error","Draft records cannot be cancelled. Only submitted records can be cancelled.");
-  //     return;
-  //   }
-  // }
-
-  //   const confirmText =
-  //     action === "cancel"
-  //       ? `Are you sure you want to CANCEL ${selectedNames.length} record(s)?`
-  //       : `Are you sure you want to DELETE ${selectedNames.length} record(s)?`
-
-  //   if (!window.confirm(confirmText)) return
-
-  //   try {
-  //     setIsActionLoading(true)
-
-  //     const tokenResp = await fetch(getApiUrl(config.api.getCsrfToken), {
-  //       credentials: "include",
-  //     })
-  //     const tokenJson = await tokenResp.json()
-  //     const csrfToken = tokenJson.message
-
-  //     const formData = new FormData()
-  //     formData.append("names", JSON.stringify(selectedNames))
-
-  //     const method =
-  //       action === "cancel"
-  //         ? "vms.api.bulk_cancel_maintenance"
-  //         : "vms.api.bulk_delete_maintenance"
-
-  //     const res = await fetch(getApiUrl(config.api.method(method)), {
-  //       method: "POST",
-  //       credentials: "include",
-  //       headers: { "X-Frappe-CSRF-Token": csrfToken },
-  //       body: formData,
-  //     })
-
-  //     const json = await res.json()
-
-  //     if (!res.ok || json.exc) {
-  //       alert("Action failed.")
-  //       return
-  //     }
-
-  //     alert(action === "cancel" ? "Cancelled successfully." : "Deleted successfully.")
-  //     fetchMaintenanceLogs()
-  //   } catch (error) {
-  //     alert(getErrorMessage(error))
-  //   } finally {
-  //     setIsActionLoading(false)
-  //   }
-  // }
   const executeBulkAction = async (action: "cancel" | "delete") => {
     try {
       setIsActionLoading(true);
@@ -251,6 +189,7 @@ export function MaintenanceTable({ onNewLog, onSelectLog, refreshTrigger }: Main
       setIsActionLoading(false);
     }
   };
+  
   const handleBulkAction = async (action: "cancel" | "delete") => {
     // 1. Check if selection is empty
     if (selectedNames.length === 0) {

@@ -18,9 +18,8 @@ const CustomAlert: React.FC<CustomAlertProps> = ({
     <Dialog open={visible} onOpenChange={onClose}>
       <DialogContent
         className="
-          w-full
-          max-w-[400px] 
-          sm:max-w-[440px]
+          w-[80%]
+          md:w-[22%] 
           p-0
           overflow-hidden
           rounded-2xl
@@ -28,6 +27,10 @@ const CustomAlert: React.FC<CustomAlertProps> = ({
           shadow-2xl
           bg-white
           outline-none
+          top-[50%]
+          left-[50%]
+          translate-x-[-50%]
+          translate-y-[-50%]
         "
       >
         {/* Decorative Top Accent Line (Optional - adds a touch of class) */}

@@ -113,6 +113,7 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
   const closeAlert = () => {
     setAlertState((p) => ({ ...p, visible: false }));
   };
+
   const shiftOptions = [{ name: "A" }, { name: "B" }, { name: "C" }, { name: "G" }]
   const statusOptions = [{ name: "Running" }, { name: "Breakdown" }, { name: "Idle" }]
 
@@ -337,7 +338,7 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
         { withCredentials: true, headers: { "X-Frappe-CSRF-Token": token.message } }
       )
       if (res.status === 200) {
-        showAlert("Success", "Vehicle Updated Successfully!", [
+        showAlert("Success", "Updated Successfully!", [
           {
             text: "OK",
             style: "cancel",
