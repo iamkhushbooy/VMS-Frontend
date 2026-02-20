@@ -9,17 +9,19 @@ export const getErrorMessage = (err: any) => {
             if (Array.isArray(messages)) {
                 const parsedMessages = messages.map(m => {
                     try { return typeof m === 'string' ? JSON.parse(m) : m; }
-                    catch(e) { return { message: m }; }
+                    catch (e) { return { message: m }; }
                 });
-                let errorMsgObj = parsedMessages.find(m => 
+                let errorMsgObj = parsedMessages.find(m =>
                     m.message && (
-                        m.message.toLowerCase().includes("mandatory") || 
+                        m.message.toLowerCase().includes("mandatory") ||
                         m.message.toLowerCase().includes("missing") ||
-                        m.message.toLowerCase().includes("failed")||
-                        m.message.toLowerCase().includes("should") || 
+                        m.message.toLowerCase().includes("failed") ||
+                        m.message.toLowerCase().includes("should") ||
                         m.message.toLowerCase().includes("must") ||
-                        m.message.toLowerCase().includes("greater")||
-                        m.message.toLowerCase().includes("warehouse")||
+                        m.message.toLowerCase().includes("greater") ||
+                        m.message.toLowerCase().includes("warehouse") ||
+                        m.message.toLowerCase().includes("cancle") ||
+                        m.message.toLowerCase().includes("delete") ||
                         m.message.toLowerCase().includes("less")
                     )
                 );
@@ -35,7 +37,7 @@ export const getErrorMessage = (err: any) => {
         } catch (e) {
             console.error("Failed to parse server messages", e);
         }
-    } 
+    }
     else if (err?.response?.data?.exception) {
         msg = err.response.data.exception;
     }

@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import axios from "axios";
 import {
   Dialog,
   DialogContent,
@@ -32,7 +33,9 @@ import {
 } from "@/components/ui/pagination"
 
 import { getApiUrl, config } from "@/lib/config"
-
+import { getErrorMessage } from "@/lib/errorMessage"
+import CustomAlert from "../alert/alert"
+import { AlertButton } from "../alert/types"
 export interface VehicleRecord {
   name: string
   license_plate: string
@@ -56,11 +59,32 @@ export default function VehicleMasterTable({ onAddVehicle, onSelectVehicle }: Ve
   const [searchTerm, setSearchTerm] = useState("")
   const [records, setRecords] = useState<VehicleRecord[]>([])
   const [isLoading, setIsLoading] = useState(true)
-
   const [selectedNames, setSelectedNames] = useState<string[]>([])
   const [isActionLoading, setIsActionLoading] = useState(false)
-
   const [previewImage, setPreviewImage] = useState<string | null>(null)
+
+  const [alertState, setAlertState] = useState<{
+    visible: boolean;
+    title?: string;
+    message?: string;
+    buttons: AlertButton[];
+  }>({
+    visible: false,
+    title: "",
+    message: "",
+    buttons: [],
+  });
+  const showAlert = (title: string, message: string, buttons?: AlertButton[]) => {
+    setAlertState({
+      visible: true,
+      title,
+      message,
+      buttons: buttons || [{ text: "OK", style: "cancel" }],
+    });
+  };
+  const closeAlert = () => {
+    setAlertState((p) => ({ ...p, visible: false }));
+  };
 
   const fetchFrappeData = useCallback(async () => {
     setIsLoading(true)
@@ -132,57 +156,69 @@ export default function VehicleMasterTable({ onAddVehicle, onSelectVehicle }: Ve
     setSelectedNames(checked ? paginatedRecords.map((r) => r.name) : [])
   }
 
-  const handleBulkDelete = async () => {
-    if (selectedNames.length === 0) {
-      alert("Please select at least one record.")
-      return
-    }
+const executeBulkDelete = async () => {
+  try {
+    setIsActionLoading(true);
+    const tokenResp = await axios.get(getApiUrl(config.api.getCsrfToken), {
+      withCredentials: true,
+    });
+    const csrfToken = tokenResp.data.message;
 
-    if (!window.confirm(`Are you sure you want to DELETE ${selectedNames.length} vehicle(s)?`))
-      return
-
-    try {
-      setIsActionLoading(true)
-
-      const tokenResp = await fetch(getApiUrl(config.api.getCsrfToken), {
-        credentials: "include",
-      })
-      const tokenResult = await tokenResp.json()
-      const csrfToken = tokenResult.message
-
-      const formData = new FormData()
-      formData.append("names", JSON.stringify(selectedNames))
-
-      const res = await fetch(
-        getApiUrl(config.api.method("vms.api.bulk_delete_vehicle_master")),
-        {
-          method: "POST",
-          body: formData,
-          credentials: "include",
-          headers: {
-            "X-Frappe-CSRF-Token": csrfToken
-          }
-        }
-      )
-
-      const data = await res.json()
-
-      if (!res.ok || data.exc) {
-        alert("Failed to delete.")
-        return
+    // Step 2: Prepare Payload
+    const formData = new FormData();
+    formData.append("names", JSON.stringify(selectedNames));
+    const res = await axios.post(
+      getApiUrl(config.api.method("vms.api.bulk_delete_vehicle_master")),
+      formData,
+      {
+        withCredentials: true,
+        headers: {
+          "X-Frappe-CSRF-Token": csrfToken,
+          "Accept": "application/json",
+        },
       }
+    );
 
-      alert("Selected vehicles deleted successfully.")
-      setSelectedNames([])
-      await fetchFrappeData()
+    // Success logic (Sirf tab chalega jab status 2xx hoga)
+    showAlert("Success", "Selected vehicles deleted successfully.", [
+      {
+        text: "OK",
+        onPress: async () => {
+          setSelectedNames([]);
+          await fetchFrappeData();
+        }
+      }
+    ]);
 
-    } catch (error) {
-      console.error(error)
-      alert("Something went wrong.")
-    } finally {
-      setIsActionLoading(false)
-    }
+  } catch (err) {
+    const errorMsg = getErrorMessage(err); 
+    
+    showAlert("Action Failed", errorMsg, [{ text: "OK", style: "destructive" }]);
+  } finally {
+    setIsActionLoading(false);
   }
+};
+  const handleBulkDelete = async () => {
+    // 1. Check selection
+    if (selectedNames.length === 0) {
+      showAlert("Selection Required", "Please select at least one record to delete.");
+      return;
+    }
+
+    // 2. Elegant Confirmation
+    showAlert(
+      "Confirm Delete",
+      `Are you sure you want to PERMANENTLY DELETE ${selectedNames.length} vehicle(s)?`,
+      [
+        { text: "No, Cancel", style: "cancel" },
+        {
+          text: "Yes, Delete All",
+          style: "destructive", // Red button logic
+          onPress: () => executeBulkDelete()
+        }
+      ]
+    );
+  };
 
   const getImageUrl = (path: string | null) => {
     if (!path) return null
@@ -354,7 +390,7 @@ export default function VehicleMasterTable({ onAddVehicle, onSelectVehicle }: Ve
                       currentPage === page
                         ? "bg-gray-300 text-black hover:bg-gray-300 border-gray-400 hover:text-black"
                         : "hover:bg-gray-100 hover:text-black"
-                       }
+                    }
                     onClick={(e) => {
                       e.preventDefault()
                       setCurrentPage(page)
@@ -397,9 +433,16 @@ export default function VehicleMasterTable({ onAddVehicle, onSelectVehicle }: Ve
               >
                 Close Preview
               </Button>
-             </div>
+            </div>
           )}
         </DialogContent>
+        <CustomAlert
+          visible={alertState.visible}
+          title={alertState.title}
+          message={alertState.message}
+          buttons={alertState.buttons}
+          onClose={closeAlert}
+        />
       </Dialog>
     </div>
   )

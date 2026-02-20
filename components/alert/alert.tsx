@@ -57,7 +57,7 @@ const CustomAlert: React.FC<CustomAlertProps> = ({
             const isCancel = button.style === "cancel";
             let buttonStyles = "px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 active:scale-95 ";           
             if (isDestructive) {
-              buttonStyles += "bg-red-50 text-red-600 hover:bg-red-100 hover:text-white";
+              buttonStyles += "bg-red-50 text-red-600 hover:bg-red-300 hover:text-white";
             } else if (isCancel) {
               buttonStyles += "bg-slate-100 text-slate-600 hover:bg-slate-500 hover:text-white";
             } else {

@@ -86,28 +86,28 @@ export function VehicleMasterModal({ isOpen, onClose, record }: VehicleModalProp
   const [warehouseOptions, setWarehouseOptions] = useState<FrappeDoc[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-    const [alertState, setAlertState] = useState<{
-      visible: boolean;
-      title?: string;
-      message?: string;
-      buttons: AlertButton[];
-    }>({
-      visible: false,
-      title: "",
-      message: "",
-      buttons: [],
+  const [alertState, setAlertState] = useState<{
+    visible: boolean;
+    title?: string;
+    message?: string;
+    buttons: AlertButton[];
+  }>({
+    visible: false,
+    title: "",
+    message: "",
+    buttons: [],
+  });
+  const showAlert = (title: string, message: string, buttons?: AlertButton[]) => {
+    setAlertState({
+      visible: true,
+      title,
+      message,
+      buttons: buttons || [{ text: "OK", style: "cancel" }],
     });
-    const showAlert = (title: string, message: string, buttons?: AlertButton[]) => {
-      setAlertState({
-        visible: true,
-        title,
-        message,
-        buttons: buttons || [{ text: "OK", style: "cancel" }],
-      });
-    };
-    const closeAlert = () => {
-      setAlertState((p) => ({ ...p, visible: false }));
-    };
+  };
+  const closeAlert = () => {
+    setAlertState((p) => ({ ...p, visible: false }));
+  };
 
   const fuelTypeOptions = [
     { name: "Petrol" },
@@ -197,13 +197,13 @@ export function VehicleMasterModal({ isOpen, onClose, record }: VehicleModalProp
 
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      showAlert("Error","Only image files (JPG, PNG, Jpeg) are allowed.");
+      showAlert("Error", "Only image files (JPG, PNG, Jpeg) are allowed.");
       e.target.value = "";
       return;
     }
     const maxSize = 2 * 1024 * 1024;
     if (file.size > maxSize) {
-      showAlert("Error"," Image size should be less than 2MB.");
+      showAlert("Error", " Image size should be less than 2MB.");
       e.target.value = "";
       return;
     }
@@ -236,7 +236,7 @@ export function VehicleMasterModal({ isOpen, onClose, record }: VehicleModalProp
 
   const handleSubmit = async () => {
     if (!formData.licensePlate)
-      return showAlert("Error","License Plate is required")
+      return showAlert("Error", "License Plate is required")
 
     setIsSubmitting(true)
     const existingVehicles = await fetchFrappeDoctype(
@@ -246,7 +246,7 @@ export function VehicleMasterModal({ isOpen, onClose, record }: VehicleModalProp
     );
 
     if (existingVehicles.length > 0) {
-      showAlert("Error","Already registered with this license plate");
+      showAlert("Error", "Already registered with this license plate");
       setIsSubmitting(false);
       return;
     }
@@ -378,7 +378,7 @@ export function VehicleMasterModal({ isOpen, onClose, record }: VehicleModalProp
       }
     } catch (err) {
       const errorMsg = getErrorMessage(err);
-       showAlert("Error", errorMsg, [{ text: "OK", style: "destructive" }]);
+      showAlert("Error", errorMsg, [{ text: "OK", style: "destructive" }]);
     }
     setIsSubmitting(false)
   }
@@ -466,7 +466,7 @@ export function VehicleMasterModal({ isOpen, onClose, record }: VehicleModalProp
           )}
         </div>
       </DialogContent>
-            <CustomAlert
+      <CustomAlert
         visible={alertState.visible}
         title={alertState.title}
         message={alertState.message}
