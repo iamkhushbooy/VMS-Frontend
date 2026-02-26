@@ -21,7 +21,7 @@ import { Check, ChevronsUpDown } from "lucide-react"
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { ItemNameCombobox } from "../maintenance/MaintenanceShared"
-
+import { CustomDatePicker } from "@/components/ui/CustomDatePicker"
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
@@ -83,7 +83,7 @@ const ReusableCombobox = React.forwardRef<HTMLButtonElement, any>(
             variant="outline"
             role="combobox"
             disabled={disabled}
-            className="w-full justify-between bg-input"
+            className="w-full justify-between bg-white"
           >
             {getDisplayValue(value)}
             <ChevronsUpDown className="opacity-50 h-4 w-4" />
@@ -149,16 +149,14 @@ export function RefuelingTopForm({
   onEmployeeFieldClick,
 }: RefuelingTopFormProps) {
   return (
-    <div className="grid grid-cols-2 gap-4 p-4 border rounded-lg">
+    <div className="grid grid-cols-2 gap-4 p-4 border rounded-lg bg-white/80">
       <div>
         <Label>Date*</Label>
-        <Input
-          type="date"
+        <CustomDatePicker
           value={formData.date}
-          disabled={!isEditMode}
-          onChange={(e) =>
-            setFormData((p) => ({ ...p, date: e.target.value }))
-          }
+          onChange={(newDateString) => {
+            setFormData((prev) => ({ ...prev, date: newDateString }))
+          }}
         />
       </div>
 

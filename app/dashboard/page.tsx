@@ -118,22 +118,22 @@ const kpis = useMemo(() => {
           </div>
 
           {/* Charts Section - Row 1 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+          <div className="grid grid-cols-1 gap-6 mt-6">
             <FleetUtilizationChart data={utilizations} isLoading={isLoading} />
             <FuelTrendChart data={refuelings} isLoading={isLoading} />
           </div>
 
           {/* Charts Section - Row 2 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+          <div className="grid grid-cols-1 gap-6 mt-6">
             <BreakdownChart data={logs} isLoading={isLoading} />
             <CostCenterPieChart data={utilizations} isLoading={isLoading} />
           </div>
 
           {/* Charts Section - Row 3 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+          <div className="grid grid-cols-1 gap-6 mt-6">
             <MaintenanceCostTrendChart data={logs} isLoading={isLoading} />
             <VehicleStatusChart data={utilizations} isLoading={isLoading} />
-            <HMRTrendChart data={utilizations} isLoading={isLoading} />
+            {/* <HMRTrendChart data={utilizations} isLoading={isLoading} /> */}
           </div>
 
         </div>

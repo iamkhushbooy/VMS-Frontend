@@ -4,6 +4,7 @@ import React from "react"
 import { Input } from "@/components/ui/input"
 import { FormSection, InputGroup } from "./FormLayout"
 import { ShieldCheck, CreditCard, Calendar } from "lucide-react"
+import { CustomDatePicker } from "../ui/CustomDatePicker"
 
 interface VehicleInsuranceSectionProps {
   formData: any
@@ -14,7 +15,6 @@ const VehicleInsuranceSection: React.FC<VehicleInsuranceSectionProps> = ({
   formData,
   handleInputChange,
 }) => {
-   const maxDate = "2099-12-31"
   return (
     <FormSection title="Insurance Details" icon={ShieldCheck}>
       <InputGroup label="Insurance Company">
@@ -30,6 +30,7 @@ const VehicleInsuranceSection: React.FC<VehicleInsuranceSectionProps> = ({
         <div className="relative">
           <Input
             name="policyNo"
+            placeholder="Enter policy no."
             value={formData.policyNo}
             onChange={handleInputChange}
 
@@ -40,32 +41,25 @@ const VehicleInsuranceSection: React.FC<VehicleInsuranceSectionProps> = ({
       </InputGroup>
 
       <InputGroup label="Start Date">
-        <div className="relative">
-          <Input
-            name="startDate"
-            type="date"
+          <CustomDatePicker
             value={formData.startDate}
-            onChange={handleInputChange}
-            max={maxDate}
-            className="pl-9"
+            onChange={(newDateString) => {
+              handleInputChange({
+                target: { name: 'startDate', value: newDateString }
+              } as unknown as React.ChangeEvent<HTMLInputElement>)
+            }}
           />
-          <Calendar className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
-        </div>
       </InputGroup>
 
       <InputGroup label="End Date">
-        <div className="relative">
-          <Input
-            name="endDate"
-            type="date"
+          <CustomDatePicker
             value={formData.endDate}
-            onChange={handleInputChange}
-            min={formData.startDate}
-            max={maxDate}
-            className="pl-9"
+            onChange={(newDateString) => {
+              handleInputChange({
+                target: { name: 'endDate', value: newDateString }
+              } as unknown as React.ChangeEvent<HTMLInputElement>)
+            }}
           />
-          <Calendar className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
-        </div>
       </InputGroup>
     </FormSection>
   )

@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label"
 import { Loader2 } from "lucide-react"
 import { ReusableCombobox } from "./ReusableCombobox"
 import { on } from "events"
-
+import { CustomDatePicker } from "@/components/ui/CustomDatePicker"
 interface FrappeDoc {
   name: string
   [key: string]: any
@@ -21,7 +21,7 @@ interface UtilizationLogEventFormProps {
   warehouseOptions: FrappeDoc[]
   vehicleOptions: FrappeDoc[]
   supervisorOptions: FrappeDoc[]
-  companyOptions:FrappeDoc[]
+  companyOptions: FrappeDoc[]
   shiftOptions: { name: string }[]
   statusOptions: { name: string }[]
 
@@ -62,14 +62,11 @@ export function UtilizationLogEventForm({
           {/* Date */}
           <div className="space-y-1.5">
             <Label htmlFor="date" className="text-sm font-medium text-gray-700">Posting Date*</Label>
-            <Input
-              id="date"
-              name="date"
-              type="date"
+            <CustomDatePicker
               value={formData.date}
-              onChange={onInputChange}
-              disabled={isBusy}
-              className="bg-white border-gray-200 focus:ring-1 focus:ring-blue-500"
+              onChange={(newDateString) => {
+                onInputChange({ target: { name: 'date', value: newDateString } })
+              }}
             />
           </div>
 
@@ -92,27 +89,21 @@ export function UtilizationLogEventForm({
             <>
               <div className="space-y-1.5">
                 <Label htmlFor="fromDate" className="text-sm font-medium text-gray-700">From Date & Time</Label>
-                <Input
-                  id="fromDate"
-                  name="fromDate"
-                  type="datetime-local"
+                <CustomDatePicker
                   value={formData.fromDate}
-                  onChange={onInputChange}
-                  disabled={isBusy}
-                  className="bg-white border-gray-200 focus:ring-1 focus:ring-blue-500"
+                  onChange={(newDateString) => {
+                    onInputChange({ target: { name: 'fromDate', value: newDateString } })
+                  }}
                 />
               </div>
 
               <div className="space-y-1.5">
                 <Label htmlFor="toDate" className="text-sm font-medium text-gray-700">To Date & Time</Label>
-                <Input
-                  id="toDate"
-                  name="toDate"
-                  type="datetime-local"
+                <CustomDatePicker
                   value={formData.toDate}
-                  onChange={onInputChange}
-                  disabled={isBusy}
-                  className="bg-white border-gray-200 focus:ring-1 focus:ring-blue-500"
+                  onChange={(newDateString) => {
+                    onInputChange({ target: { name: 'toDate', value: newDateString } })
+                  }}
                 />
               </div>
             </>
@@ -224,9 +215,9 @@ export function UtilizationLogEventForm({
               type="number"
               min={0}
               onKeyDown={(e) => {
-              if (e.key === '-' || e.key === 'e' || e.key === 'E') {
-                e.preventDefault();
-               }
+                if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                  e.preventDefault();
+                }
               }}
               value={formData.hmr}
               onChange={onInputChange}

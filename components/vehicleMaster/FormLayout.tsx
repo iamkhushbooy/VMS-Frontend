@@ -1,10 +1,8 @@
 "use client"
-
 import React from "react"
 import { Label } from "@/components/ui/label"
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
-
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
@@ -20,8 +18,8 @@ export const FormSection = ({
   children: React.ReactNode
   className?: string
 }) => (
-  <div className={cn("rounded-xl border bg-card/50 p-6 shadow-sm space-y-4", className)}>
-    <div className="flex items-center gap-2.5 border-b pb-3 mb-2">
+  <div className={cn("rounded-xl border bg-white/80 p-6 shadow-sm space-y-4", className)}>
+    <div className="flex items-center gap-2.5 pb-3 mb-2">
       <div className="p-2 bg-primary/10 rounded-lg">
         <Icon className="w-5 h-5 text-primary" />
       </div>

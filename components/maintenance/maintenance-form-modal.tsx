@@ -602,6 +602,12 @@ export function MaintenanceFormModal({
       const currentRate = Number(prev.rate);
 
       if (name === "qty") {
+        if (value !== "" && currentQty <= 0) {
+          showAlert("Invalid Quantity", "Please enter a value greater than 0.");
+          updated.qty = "";
+          updated.expense = "";
+          return updated;
+        }
         const stockNum = Number(prev.stock_qty);
 
         if (currentQty > stockNum) {
@@ -663,23 +669,66 @@ export function MaintenanceFormModal({
     }
   }
 
+  // const handleNewLubeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   const { name, value } = e.target
+
+  //   setNewLube((prev) => {
+  //     let updated: any = { ...prev, [name]: value }
+  //     const qtyNum = name === "qty" ? Number(value) : Number(prev.qty);
+  //     const rateNum = Number(prev.rate);
+
+  //     if (name === "qty") {
+  //       if (value !== "" && qtyNum <= 0) {
+  //         showAlert("Invalid Quantity", "Please enter a value greater than 0.");
+  //         updated.qty = "";
+  //         updated.expense = "";
+  //         return updated;
+  //       }
+  //       const stockNum = Number(prev.stock_qty)
+
+  //       if (qtyNum > stockNum) {
+  //         showAlert("Error", "Quantity cannot be more than available stock!")
+  //         updated.qty = ""
+  //         updated.expense = ""
+  //         return updated
+  //       }
+  //       if (qtyNum > 0 && rateNum > 0) {
+  //         let totalExpense = qtyNum * rateNum;
+  //         updated.expense = Math.floor(totalExpense);
+  //       } else {
+  //         updated.expense = 0;
+  //       }
+  //     }
+  //     return updated
+  //   })
+  // }
   const handleNewLubeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
+    const { name, value } = e.target;
 
     setNewLube((prev) => {
-      let updated: any = { ...prev, [name]: value }
+      let updated: any = { ...prev, [name]: value };
       const qtyNum = name === "qty" ? Number(value) : Number(prev.qty);
       const rateNum = Number(prev.rate);
 
       if (name === "qty") {
-        const stockNum = Number(prev.stock_qty)
-
-        if (qtyNum > stockNum) {
-          showAlert("Error", "Quantity cannot be more than available stock!")
-          updated.qty = ""
-          updated.expense = ""
-          return updated
+        // 1. VALIDATION: 0 ya negative value ke liye check
+        if (value !== "" && qtyNum <= 0) {
+          showAlert("Invalid Quantity", "Please enter a value greater than 0.");
+          updated.qty = "";
+          updated.expense = "";
+          return updated;
         }
+
+        // 2. VALIDATION: Stock check
+        const stockNum = Number(prev.stock_qty);
+        if (qtyNum > stockNum) {
+          showAlert("Error", "Quantity cannot be more than available stock!");
+          updated.qty = "";
+          updated.expense = "";
+          return updated;
+        }
+
+        // 3. EXPENSE CALCULATION
         if (qtyNum > 0 && rateNum > 0) {
           let totalExpense = qtyNum * rateNum;
           updated.expense = Math.floor(totalExpense);
@@ -687,9 +736,9 @@ export function MaintenanceFormModal({
           updated.expense = 0;
         }
       }
-      return updated
-    })
-  }
+      return updated;
+    });
+  };
 
   const handleLubeItemSelect = async (itemId: string) => {
     if (!formData.warehouse) {
@@ -916,7 +965,7 @@ export function MaintenanceFormModal({
     // 2. Confirmation Alert (Final Warning)
     showAlert(
       "Final Submission",
-      "Are you sure you want to submit? This action will finalize the record and prevent further editing.",
+      "Are you sure you want to submit?",
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -1069,163 +1118,176 @@ export function MaintenanceFormModal({
   const removeWorkDoneEntry = (id: string) => setWorkDoneEntries(prev => prev.filter(i => i.id !== id));
   const removePendingJobEntry = (id: string) => setPendingJobEntries(prev => prev.filter(i => i.id !== id));
   return (
+
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="overflow-y-auto bg-white">
-        <DialogHeader>
-          <DialogTitle className="text-2xl hidden md:inline">
-            {log ? "Show" : "Create"} Maintenance Log
-          </DialogTitle>
-          <DialogDescription className="hidden">Form to create or view vehicle maintenance details</DialogDescription>
-        </DialogHeader>
+      <DialogContent className="max-w-4xl p-0 bg-white max-h-[95vh] flex flex-col overflow-hidden">
 
-        {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-10">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        {/* Fixed Header */}
+        <div className="p-6 border-b bg-muted/20">
+          <DialogHeader>
+            <DialogTitle className="text-2xl hidden md:inline">
+              {log ? "Show" : "Create"} Maintenance Log
+            </DialogTitle>
+            <DialogDescription className="hidden">Form to create or view vehicle maintenance details</DialogDescription>
+          </DialogHeader>
+        </div>
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-50">
+              <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            </div>
+          )}
+
+          <div className={`space-y-6 ${isLoading ? "opacity-50" : ""}`}>
+            {/* --- GENERAL DETAILS --- */}
+            <GeneralDetailsSection
+              formData={formData}
+              handleSelectChange={handleSelectChange}
+              handleInputChange={handleInputChange}
+              handleVehicleSelect={handleVehicleSelect}
+              handleMultiSelectChange={handleMultiSelectChange}
+              seriesOptions={seriesOptions}
+              employeeOptions={employeeOptions}
+              jobCardTypeOptions={jobCardTypeOptions}
+              vehicleOptions={vehicleOptions}
+              priorityOptions={priorityOptions}
+              warehouseOptions={warehouseOptions}
+              statusOptions={statusOptions}
+              jsaOptions={jsaOptions}
+              housekeepingOptions={housekeepingOptions}
+              companyOptions={companyOptions}
+              isBusy={isBusy}
+              showTimeField={showTimeField}
+              onEmployeeFieldClick={checkWarehouseSelection}
+            />
+
+            {/* Problem/Job Details Section */}
+            <ProblemJobDetailSection
+              problemEntries={problemEntries}
+              newProblem={newProblem}
+              setNewProblem={setNewProblem}
+              addProblemEntry={addProblemEntry}
+              removeProblemEntry={removeProblemEntry}
+              workDoneEntries={workDoneEntries}
+              newWorkDone={newWorkDone}
+              setNewWorkDone={setNewWorkDone}
+              addWorkDoneEntry={addWorkDoneEntry}
+              removeWorkDoneEntry={removeWorkDoneEntry}
+              pendingJobEntries={pendingJobEntries}
+              newPendingJob={newPendingJob}
+              setNewPendingJob={setNewPendingJob}
+              addPendingJobEntry={addPendingJobEntry}
+              removePendingJobEntry={removePendingJobEntry}
+              isBusy={isBusy}
+            />
+
+            {/* Parts Details Section */}
+            <PartsDetailSection
+              partEntries={paginatedPartEntries}
+              newPart={newPart}
+              itemOptions={itemOptions}
+              handleNewPartChange={handleNewPartChange}
+              handlePartItemSelect={handlePartItemSelect}
+              addPartEntry={handleAddPartEntry}
+              removePartEntry={removePartEntry}
+              isBusy={isBusy}
+              onItemSearch={setItemSearchTerm}
+              itemLoading={itemLoading}
+            />
+            <Pagination
+              currentPage={partsPage}
+              totalPages={totalPartPages}
+              onPageChange={setPartsPage}
+              disabled={isBusy}
+            />
+
+            {/* Lube Details Section */}
+            <LubeDetailSection
+              lubeEntries={paginatedLubeEntries}
+              newLube={newLube}
+              itemOptions={itemOptions}
+              handleNewLubeChange={handleNewLubeChange}
+              handleLubeItemSelect={handleLubeItemSelect}
+              addLubeEntry={handleAddLubeEntry}
+              removeLubeEntry={removeLubeEntry}
+              isBusy={isBusy}
+              onItemSearch={setItemSearchTerm}
+              itemLoading={itemLoading}
+            />
+            <Pagination
+              currentPage={lubePage}
+              totalPages={totalLubePages}
+              onPageChange={setLubePage}
+              disabled={isBusy}
+            />
           </div>
-        )}
-
-        <div className={`space-y-6 ${isLoading ? "opacity-50" : ""}`}>
-
-          {/* --- GENERAL DETAILS --- */}
-          <GeneralDetailsSection
-            formData={formData}
-            handleSelectChange={handleSelectChange}
-            handleInputChange={handleInputChange}
-            handleVehicleSelect={handleVehicleSelect}
-            handleMultiSelectChange={handleMultiSelectChange}
-            seriesOptions={seriesOptions}
-            employeeOptions={employeeOptions}
-            jobCardTypeOptions={jobCardTypeOptions}
-            vehicleOptions={vehicleOptions}
-            priorityOptions={priorityOptions}
-            warehouseOptions={warehouseOptions}
-            statusOptions={statusOptions}
-            jsaOptions={jsaOptions}
-            housekeepingOptions={housekeepingOptions}
-            companyOptions={companyOptions}
-            isBusy={isBusy}
-            showTimeField={showTimeField}
-            onEmployeeFieldClick={checkWarehouseSelection}
-          />
-
-          {/* Problem/Job Details Section */}
-          <ProblemJobDetailSection
-            problemEntries={problemEntries}
-            newProblem={newProblem}
-            setNewProblem={setNewProblem}
-            addProblemEntry={addProblemEntry}
-            removeProblemEntry={removeProblemEntry}
-
-            workDoneEntries={workDoneEntries}
-            newWorkDone={newWorkDone}
-            setNewWorkDone={setNewWorkDone}
-            addWorkDoneEntry={addWorkDoneEntry}
-            removeWorkDoneEntry={removeWorkDoneEntry}
-
-            pendingJobEntries={pendingJobEntries}
-            newPendingJob={newPendingJob}
-            setNewPendingJob={setNewPendingJob}
-            addPendingJobEntry={addPendingJobEntry}
-            removePendingJobEntry={removePendingJobEntry}
-            isBusy={isBusy}
-          />
-
-          {/* Parts Details Section */}
-          <PartsDetailSection
-            partEntries={paginatedPartEntries}
-            newPart={newPart}
-            itemOptions={itemOptions}
-            handleNewPartChange={handleNewPartChange}
-            handlePartItemSelect={handlePartItemSelect}
-            addPartEntry={handleAddPartEntry}
-            removePartEntry={removePartEntry}
-            isBusy={isBusy}
-            onItemSearch={setItemSearchTerm}
-            itemLoading={itemLoading}
-          />
-          <Pagination
-            currentPage={partsPage}
-            totalPages={totalPartPages}
-            onPageChange={setPartsPage}
-            disabled={isBusy}
-          />
-
-          {/* Lube Details Section */}
-          <LubeDetailSection
-            lubeEntries={paginatedLubeEntries}
-            newLube={newLube}
-            itemOptions={itemOptions}
-            handleNewLubeChange={handleNewLubeChange}
-            handleLubeItemSelect={handleLubeItemSelect}
-            addLubeEntry={handleAddLubeEntry}
-            removeLubeEntry={removeLubeEntry}
-            isBusy={isBusy}
-            onItemSearch={setItemSearchTerm}
-            itemLoading={itemLoading}
-          />
-          <Pagination
-            currentPage={lubePage}
-            totalPages={totalLubePages}
-            onPageChange={setLubePage}
-            disabled={isBusy}
-          />
         </div>
 
-        <DialogFooter className="gap-2 flex justify-end pt-6">
-          {/* Close */}
-          <Button variant="outline" onClick={onClose} disabled={isBusy}>
-            Close
-          </Button>
-
-          {/* NEW DOCUMENT → SAVE DRAFT */}
-          {!currentName && docStatus === 0 && (
-            <Button onClick={handleSave} disabled={isBusy}>
-              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Save
+        {/* Fixed Footer - Hamesha visible rahega */}
+        <div className="p-4 border-t bg-slate-50 flex-none">
+          <DialogFooter className="gap-2 flex justify-end">
+            <Button variant="outline" onClick={onClose} disabled={isBusy}>
+              Close
             </Button>
-          )}
 
-          {/*EXISTING DRAFT (docstatus=0) → UPDATE + SUBMIT */}
-          {currentName && docStatus === 0 && (
-            <>
-              <Button onClick={handleSave} disabled={isBusy}>
-                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                Update
-              </Button>
-
+            {!currentName && docStatus === 0 && (
               <Button
-                onClick={handleSubmitFinal}
+                onClick={handleSave}
                 disabled={isBusy}
-                className="bg-green-600 hover:bg-green-700 text-white"
+                className="bg-[rgb(37,114,181)] text-white hover:opacity-90"
               >
                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                Submit
+                Save
               </Button>
-            </>
-          )}
-          {currentName && docStatus === 1 && (
-            <Button
-              onClick={handleCancel}
-              disabled={isBusy}
-              className="bg-red-600 text-white"
-            >
-              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Cancel
-            </Button>
-          )}
-          {currentName && docStatus === 2 && (
-            <Button
-              onClick={handleAmend}
-              disabled={isBusy}
-              className="bg-yellow-600 text-white"
-            >
-              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Draft
-            </Button>
-          )}
-        </DialogFooter>
+            )}
 
+            {currentName && docStatus === 0 && (
+              <>
+                <Button
+                  onClick={handleSave}
+                  disabled={isBusy}
+                  className="bg-[rgb(37,114,181)] text-white hover:opacity-90"
+                >
+                  {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  Update
+                </Button>
+
+                <Button
+                  onClick={handleSubmitFinal}
+                  disabled={isBusy}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  Submit
+                </Button>
+              </>
+            )}
+
+            {currentName && docStatus === 1 && (
+              <Button
+                onClick={handleCancel}
+                disabled={isBusy}
+                className="bg-red-600 text-white hover:bg-red-700"
+              >
+                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Cancel
+              </Button>
+            )}
+
+            {currentName && docStatus === 2 && (
+              <Button
+                onClick={handleAmend}
+                disabled={isBusy}
+                className="bg-yellow-600 text-white hover:bg-yellow-700"
+              >
+                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Draft
+              </Button>
+            )}
+          </DialogFooter>
+        </div>
       </DialogContent>
+
       <CustomAlert
         visible={alertState.visible}
         title={alertState.title}

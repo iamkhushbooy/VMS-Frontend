@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input"
 import { FormSection, InputGroup } from "./FormLayout"
 import ReusableCombobox from "./ReusableCombobox"
 import { Fuel } from "lucide-react"
+import { CustomDatePicker } from "../ui/CustomDatePicker"
 
 interface VehicleAdditionalSectionProps {
   formData: any
@@ -44,11 +45,13 @@ const VehicleAdditionalSection: React.FC<VehicleAdditionalSectionProps> = ({
       </InputGroup>
 
       <InputGroup label="Last Carbon Check">
-        <Input
-          name="carbonCheckDate"
-          type="date"
+        <CustomDatePicker
           value={formData.carbonCheckDate}
-          onChange={handleInputChange}
+          onChange={(newDateString) => {
+            handleInputChange({
+              target: { name: 'carbonCheckDate', value: newDateString }
+            } as unknown as React.ChangeEvent<HTMLInputElement>)
+          }}
         />
       </InputGroup>
 
@@ -65,11 +68,12 @@ const VehicleAdditionalSection: React.FC<VehicleAdditionalSectionProps> = ({
         <Input
           name="wheels"
           type="number"
+          placeholder="Enter wheels"
           min={0}
           onKeyDown={(e) => {
-              if (e.key === '-' || e.key === 'e' || e.key === 'E') {
-                e.preventDefault();
-               }
+            if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+              e.preventDefault();
+            }
           }}
           value={formData.wheels}
           onChange={handleInputChange}
@@ -80,11 +84,12 @@ const VehicleAdditionalSection: React.FC<VehicleAdditionalSectionProps> = ({
         <Input
           name="doors"
           type="number"
+          placeholder="Enter doors"
           min={0}
           onKeyDown={(e) => {
-              if (e.key === '-' || e.key === 'e' || e.key === 'E') {
-                e.preventDefault();
-               }
+            if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+              e.preventDefault();
+            }
           }}
           value={formData.doors}
           onChange={handleInputChange}

@@ -98,7 +98,7 @@ export function PartsDetailSection({
           <Input
             name="qty"
             type="number"
-            min={0}
+            min={1}
             onKeyDown={(e) => {
             if (e.key === '-' || e.key === 'e' || e.key === 'E') {
               e.preventDefault();

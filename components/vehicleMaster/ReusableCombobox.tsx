@@ -58,7 +58,7 @@ const ReusableCombobox = React.forwardRef<HTMLButtonElement, ReusableComboboxPro
             role="combobox"
             aria-expanded={open}
             className={cn(
-              "w-full justify-between bg-background text-left font-normal transition-colors h-10",
+              "w-full justify-between bg-white text-left font-normal transition-colors h-10",
               !value && "text-muted-foreground"
             )}
             disabled={isLoading}

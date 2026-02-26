@@ -34,18 +34,20 @@ export function VehicleStatusChart({ data, isLoading }: VehicleStatusChartProps)
     )
   }
 
-  return (
+return (
     <div className="bg-white rounded-xl shadow-md border border-gray-200 p-6">
       <h3 className="text-lg font-semibold text-gray-800 mb-3">Vehicle Status Distribution</h3>
       <div className="w-full h-[300px]">
         <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
+          {/* Margin add ki gayi hai taaki lamba label na kute */}
+          <PieChart margin={{ top: 20, right: 60, left: 60, bottom: 20 }}>
             <Pie
               data={chartData}
               cx="50%"
               cy="50%"
-              labelLine={false}
-              label={({ name, percent }) => `${name}: ${percent ? (percent * 100).toFixed(0) : 0}%`}
+              labelLine={true} // Label line ko true rakhein taaki text door rahe
+              label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+              innerRadius={60} // Donut shape ke liye
               outerRadius={90}
               fill="#8884d8"
               dataKey="value"
@@ -57,7 +59,12 @@ export function VehicleStatusChart({ data, isLoading }: VehicleStatusChartProps)
               ))}
             </Pie>
             <Tooltip />
-            <Legend wrapperStyle={{ color: "#333" }} iconType="circle" />
+            <Legend 
+              verticalAlign="bottom" 
+              height={36} 
+              iconType="circle" 
+              wrapperStyle={{ paddingTop: '20px' }} 
+            />
           </PieChart>
         </ResponsiveContainer>
       </div>

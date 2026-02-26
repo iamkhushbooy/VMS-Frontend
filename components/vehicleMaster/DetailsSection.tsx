@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input"
 import { FormSection, InputGroup } from "./FormLayout"
 import ReusableCombobox from "./ReusableCombobox"
 import { Gauge, MapPin, User } from "lucide-react"
+import { CustomDatePicker } from "../ui/CustomDatePicker"
 
 interface VehicleDetailsSectionProps {
   formData: any
@@ -22,7 +23,6 @@ const VehicleDetailsSection: React.FC<VehicleDetailsSectionProps> = ({
   warehouseOptions,
   isViewMode
 }) => {
-  const maxDate = "2099-12-31"
   return (
     <FormSection title="Details" icon={Gauge}>
       <InputGroup label="Odometer Value (Last)" required>
@@ -40,19 +40,18 @@ const VehicleDetailsSection: React.FC<VehicleDetailsSectionProps> = ({
             value={formData.lastOdometer}
             onChange={handleInputChange}
             disabled={isViewMode}
-            className="mt-1 bg-input border-none ring-0 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            className="mt-1 bg-white border ring-0 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           />
         </div>
       </InputGroup>
-
       <InputGroup label="Acquisition Date">
-        <Input
-          name="acquisitionDate"
-
-          type="date"
-          value={formData.acquisitionDate}
-          onChange={handleInputChange}
-          max={maxDate}
+        <CustomDatePicker
+            value={formData.acquisitionDate}
+          onChange={(newDateString) => {
+            handleInputChange({
+              target: { name: 'acquisitionDate', value: newDateString }
+            } as unknown as React.ChangeEvent<HTMLInputElement>)
+          }}
         />
       </InputGroup>
 
@@ -82,6 +81,7 @@ const VehicleDetailsSection: React.FC<VehicleDetailsSectionProps> = ({
           <Input
             name="vehicleValue"
             type="number"
+            placeholder="Enter vehicle value"
             value={formData.vehicleValue}
             onChange={handleInputChange}
             min="0"

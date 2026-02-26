@@ -113,7 +113,6 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
       r.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       r.vehicle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       r.plant?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.supervisor_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       r.status?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
@@ -248,7 +247,7 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Search by vehicle, plant, supervisor..."
+            placeholder="Search by vehicle, plant"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10 glass-card text-foreground placeholder:text-muted-foreground focus:bg-white/10"

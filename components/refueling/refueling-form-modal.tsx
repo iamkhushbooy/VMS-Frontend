@@ -633,9 +633,9 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
         )
 
         setDocStatus(2) // 2 = Cancelled
-       showAlert("Cancelled", "The record has been successfully cancelled.", [
-      { text: "OK", style: "default", onPress: () => onSuccess?.() }
-    ]);
+        showAlert("Cancelled", "The record has been successfully cancelled.", [
+          { text: "OK", style: "default", onPress: () => onSuccess?.() }
+        ]);
         if (onSuccess) onSuccess()
         return
       }
@@ -663,8 +663,8 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
         setIsEditMode(true)
 
         showAlert("Draft Created", "You are now editing a new draft version of this record.", [
-      { text: "Start Editing", style: "default", onPress: () => onSuccess?.() }
-    ]);
+          { text: "Start Editing", style: "default", onPress: () => onSuccess?.() }
+        ]);
         if (onSuccess) onSuccess()
       }
     } catch (e) {
@@ -694,131 +694,139 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
   };
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-xl">
-            {docStatus === 0 ? "Refueling (Draft)" :
-              docStatus === 1 ? "Refueling (Submitted)" :
-                "Refueling (Cancelled)"}
-          </DialogTitle>
-        </DialogHeader>
+      <DialogContent className="max-w-4xl p-0 bg-white max-h-[95vh] flex flex-col overflow-hidden">
 
-        {isLoading && (
-          <div className="absolute inset-0 bg-black/30 flex items-center justify-center z-50">
-            <Loader2 className="h-10 w-10 animate-spin text-white" />
-          </div>
-        )}
-
-        <div className={isBusy ? "opacity-50 pointer-events-none" : ""}>
-          <RefuelingTopForm
-            formData={formData}
-            setFormData={setFormData}
-            issuerOptions={issuerOptions}
-            companyOptions={companyOptions}
-            warehouseOptions={warehouseOptions}
-            itemOptions={itemOptions}
-            costCenterOptions={costCenterOptions}
-            isEditMode={isEditMode}
-            onEmployeeFieldClick={checkWarehouseSelection}
-            onItemSearch={setSearchTerm}
-            onFuelItemSelect={handleFuelItemSelect}
-            itemLoading={itemLoading}
-          />
-
-          <h3 className="font-semibold text-lg mt-4">Fuel Entry</h3>
-
-          {isEditMode && (
-            <FuelEntryForm
-              newEntry={newEntry}
-              setNewEntry={setNewEntry}
-              vehicleOptions={vehicleOptions}
-              addFuelEntry={handleAddEntry}
-              onVehicleFieldClick={checkWarehouseForVehicle}
-            />
-          )}
-
-          <Table className="mt-3">
-            <TableHeader>
-              <TableRow>
-                <TableHead>Reg No</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Qty</TableHead>
-                <TableHead>HMR</TableHead>
-                <TableHead>Consumption</TableHead>
-                <TableHead>Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {paginatedEntries.map((f) => (
-                <TableRow key={f.id}>
-                  <TableCell>{f.registrationName}</TableCell>
-                  <TableCell>{f.date}</TableCell>
-                  <TableCell>{f.fuel_qty_in_ltrs}</TableCell>
-                  <TableCell>{f.current_hmrkms}</TableCell>
-                  <TableCell>{f.fuel_consumption}</TableCell>
-                  <TableCell>
-                    {isEditMode && (
-                      <Button variant="ghost" size="sm" onClick={() => removeFuelEntry(f.id)}>
-                        <Trash2 className="text-red-500 h-4 w-4" />
-                      </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-            disabled={isBusy}
-          />
+        {/* Fixed Header */}
+        <div className="p-6 border-b bg-muted/20">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">
+              {docStatus === 0 ? "Refueling (Draft)" :
+                docStatus === 1 ? "Refueling (Submitted)" :
+                  "Refueling (Cancelled)"}
+            </DialogTitle>
+          </DialogHeader>
         </div>
 
-        <DialogFooter className="gap-2 flex justify-end">
-          <Button variant="outline" onClick={onClose} disabled={isBusy}>
-            Close
-          </Button>
-
-          {docStatus === 0 && (
-            <Button onClick={handleSave} disabled={isBusy}>
-              {currentName ? "Update" : "Save"}
-            </Button>
+        {/* Scrollable Content Area */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+          {isLoading && (
+            <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-50">
+              <Loader2 className="h-10 w-10 animate-spin text-orange-500" />
+            </div>
           )}
 
-          {currentName && docStatus === 0 && (
-            <Button
-              onClick={handleSubmit}
-              disabled={isBusy}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              Submit
-            </Button>
-          )}
+          <div className={isBusy ? "opacity-50 pointer-events-none" : ""}>
+            <RefuelingTopForm
+              formData={formData}
+              setFormData={setFormData}
+              issuerOptions={issuerOptions}
+              companyOptions={companyOptions}
+              warehouseOptions={warehouseOptions}
+              itemOptions={itemOptions}
+              costCenterOptions={costCenterOptions}
+              isEditMode={isEditMode}
+              onEmployeeFieldClick={checkWarehouseSelection}
+              onItemSearch={setSearchTerm}
+              onFuelItemSelect={handleFuelItemSelect}
+              itemLoading={itemLoading}
+            />
 
+            <h3 className="font-semibold text-lg mt-6 mb-2">Fuel Entry</h3>
 
-          {docStatus === 1 && (
-            <Button
-              onClick={handleStatusAction}
-              disabled={isBusy}
-              className="bg-red-600 text-white"
-            >
-              Cancel
-            </Button>
-          )}
+            {isEditMode && (
+              <div className="bg-slate-50 p-4 rounded-lg border mb-4">
+                <FuelEntryForm
+                  newEntry={newEntry}
+                  setNewEntry={setNewEntry}
+                  vehicleOptions={vehicleOptions}
+                  addFuelEntry={handleAddEntry}
+                  onVehicleFieldClick={checkWarehouseForVehicle}
+                />
+              </div>
+            )}
 
-          {docStatus === 2 && (
-            <Button
-              onClick={handleStatusAction}
-              disabled={isBusy}
-              className="bg-yellow-600 text-white"
-            >
-              Draft
+            <div className="rounded-md border overflow-hidden">
+              <Table>
+                <TableHeader className="bg-slate-100">
+                  <TableRow>
+                    <TableHead>Reg No</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Qty</TableHead>
+                    <TableHead>HMR</TableHead>
+                    <TableHead>Consumption</TableHead>
+                    <TableHead className="w-16">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedEntries.map((f) => (
+                    <TableRow key={f.id}>
+                      <TableCell>{f.registrationName}</TableCell>
+                      <TableCell>{f.date}</TableCell>
+                      <TableCell>{f.fuel_qty_in_ltrs}</TableCell>
+                      <TableCell>{f.current_hmrkms}</TableCell>
+                      <TableCell>{f.fuel_consumption}</TableCell>
+                      <TableCell>
+                        {isEditMode && (
+                          <Button variant="ghost" size="sm" onClick={() => removeFuelEntry(f.id)}>
+                            <Trash2 className="text-red-500 h-4 w-4" />
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            <div className="mt-4">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                disabled={isBusy}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Fixed Footer - Ab buttons hamesha dikhenge */}
+        <div className="p-4 border-t bg-slate-50 flex-none">
+          <DialogFooter className="gap-2 flex justify-end">
+            <Button variant="outline" onClick={onClose} disabled={isBusy}>
+              Close
             </Button>
-          )}
-        </DialogFooter>
+
+            {docStatus === 0 && (
+              <Button onClick={handleSave} disabled={isBusy} className="bg-[rgb(37,114,181)]">
+                {currentName ? "Update" : "Save"}
+              </Button>
+            )}
+
+            {currentName && docStatus === 0 && (
+              <Button
+                onClick={handleSubmit}
+                disabled={isBusy}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                Submit
+              </Button>
+            )}
+
+            {docStatus === 1 && (
+              <Button onClick={handleStatusAction} disabled={isBusy} className="bg-red-600 text-white">
+                Cancel
+              </Button>
+            )}
+
+            {docStatus === 2 && (
+              <Button onClick={handleStatusAction} disabled={isBusy} className="bg-yellow-600 text-white">
+                Draft
+              </Button>
+            )}
+          </DialogFooter>
+        </div>
       </DialogContent>
+
       <CustomAlert
         visible={alertState.visible}
         title={alertState.title}

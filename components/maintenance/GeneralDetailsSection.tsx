@@ -8,6 +8,7 @@ import {
   type FrappeDoc,
   type VehicleDoc,
 } from "./MaintenanceShared"
+import { CustomDatePicker } from "../ui/CustomDatePicker"
 
 interface GeneralDetailsProps {
   formData: any
@@ -179,19 +180,33 @@ export function GeneralDetailsSection({
 
         <div>
           <Label htmlFor="date_and_time_of_job_initiation" className="text-foreground">Date and Time of Job Initiation <span className="text-red-800">*</span></Label>
-          <Input id="date_and_time_of_job_initiation" name="date_and_time_of_job_initiation" type="datetime-local" value={formData.date_and_time_of_job_initiation} onChange={handleInputChange} className="mt-1 bg-input" disabled={isBusy} />
+          <CustomDatePicker
+            value={formData.date_and_time_of_job_initiation}
+            onChange={(newDateString) => {
+              handleInputChange({
+                target: { name: 'date_and_time_of_job_initiation', value: newDateString }
+              } as unknown as React.ChangeEvent<HTMLInputElement>)
+            }}
+          />
         </div>
 
         {showTimeField &&
           <div>
             <Label htmlFor="date_and_time_of_job_completion" className="text-foreground">Date and Time of Job Completion</Label>
-            <Input id="date_and_time_of_job_completion" name="date_and_time_of_job_completion" type="datetime-local" value={formData.date_and_time_of_job_completion} onChange={handleInputChange} className="mt-1 bg-input" disabled={isBusy} />
+            <CustomDatePicker
+               value={formData.date_and_time_of_job_completion} 
+              onChange={(newDateString) => {
+                handleInputChange({
+                  target: { name: 'date_and_time_of_job_completion', value: newDateString }
+                } as unknown as React.ChangeEvent<HTMLInputElement>)
+              }}
+            />
           </div>
         }
 
         <div>
           <Label htmlFor="ptw_no" className="text-foreground">PTW No</Label>
-          <Input id="ptw_no" name="ptw_no" value={formData.ptw_no} onChange={handleInputChange} className="mt-1 bg-input" disabled={isBusy} />
+          <Input id="ptw_no" name="ptw_no" placeholder="Enter PTW no." value={formData.ptw_no} onChange={handleInputChange} className="mt-1 bg-input" disabled={isBusy} />
         </div>
 
         <div>

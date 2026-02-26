@@ -408,8 +408,8 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl p-0 bg-white">
-        <div className="p-6 pb-2">
+     <DialogContent className="max-w-4xl p-0 bg-white max-h-[90vh] flex flex-col overflow-hidden">
+        <div className="p-6 pb-2 flex-none">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold">
               {record ? "Edit Utilization Event" : "Log Utilization Event"}

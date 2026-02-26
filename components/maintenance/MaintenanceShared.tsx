@@ -370,7 +370,7 @@ export const ItemNameCombobox = React.forwardRef<HTMLButtonElement, any>(
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            className="w-full justify-between bg-input border-slate-200"
+            className="w-full justify-between bg-white border-slate-200"
             disabled={isLoading || disabled}
             ref={ref}
           >

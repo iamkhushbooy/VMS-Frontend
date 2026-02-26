@@ -385,7 +385,7 @@ export function VehicleMasterModal({ isOpen, onClose, record }: VehicleModalProp
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="p-0 overflow-hidden flex flex-col">
+      <DialogContent className="p-0 overflow-hidden flex flex-col bg-white">
 
         <div className="p-6 border-b bg-muted/20">
           <DialogHeader>
