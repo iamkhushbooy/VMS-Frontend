@@ -172,6 +172,45 @@ export function UtilizationLogEventForm({
               isLoading={isBusy}
             />
           </div>
+          <div className="space-y-1.5">
+            <Label className="text-sm font-medium text-gray-700">Utilization Run Time (HH:MM)</Label>
+            <div className="flex items-center gap-2">
+              {/* Hours Box */}
+              <div className="flex-1 relative">
+                <Input
+                  name="timeHours"
+                  type="number"
+                  min="0"
+                  placeholder="hr"
+                  value={formData.timeHours}
+                  onChange={onInputChange}
+                  onKeyDown={(e) => ["e", "E", "+", "-", "."].includes(e.key) && e.preventDefault()}
+                  className="bg-white pr-7"
+                />
+              </div>
+
+              <span className="font-bold text-gray-500">:</span>
+
+              {/* Minutes Box */}
+              <div className="flex-1 relative">
+                <Input
+                  name="timeMinutes"
+                  type="number"
+                  min="0"
+                  max="59"
+                  placeholder="min"
+                  value={formData.timeMinutes}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value);
+                    if (val > 59) return;
+                    onInputChange(e);
+                  }}
+                  onKeyDown={(e) => ["e", "E", "+", "-", "."].includes(e.key) && e.preventDefault()}
+                  className="bg-white pr-8"
+                />
+              </div>
+            </div>
+          </div>
 
         </div>
       </div>

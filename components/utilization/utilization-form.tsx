@@ -63,7 +63,9 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
     supervisorName: "",
     hmr: "",
     status: "Running",
-    company: ""
+    company: "",
+    timeHours: "",
+    timeMinutes: "",
   })
   const emptyForm = {
     date: new Date().toISOString().split("T")[0],
@@ -77,7 +79,9 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
     supervisorName: loggedUser?.email || "",
     hmr: "",
     status: "Running",
-    company: ""
+    company: "",
+    timeHours: "",
+    timeMinutes: "",
   }
 
   const [isLoading, setIsLoading] = useState(false)
@@ -192,6 +196,10 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
           )
           const result = await resp.json()
           const doc = result.data
+          // 2. REVERSE CALCULATION: Seconds ko Hours:Minutes mein todna
+          const totalSecs = parseInt(doc.time) || 0;
+          const h = Math.floor(totalSecs / 3600);
+          const m = Math.floor((totalSecs % 3600) / 60);
 
           setFormData({
             date: doc.date?.split(" ")[0],
@@ -205,7 +213,9 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
             supervisorName: doc.supervisor_name || loggedUser?.email || "",
             hmr: doc.hmr || "",
             status: doc.status || "Running",
-            company: doc.company || ""
+            company: doc.company || "",
+            timeHours: h.toString(),
+            timeMinutes: m.toString()
           })
         } else {
           setFormData({
@@ -223,6 +233,37 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
 
     load()
   }, [isOpen, record, loggedUser])
+
+  const getProcessedData = () => {
+    const h = parseInt(formData.timeHours) || 0;
+    const m = parseInt(formData.timeMinutes) || 0;
+
+    // Validation: Minutes 59 se zyada nahi hone chahiye
+    if (m > 59) {
+      showAlert("Validation Error", "Minutes 59 se zyada nahi ho sakte.");
+      return null;
+    }
+
+    // Total Seconds Calculation: (Hours * 3600) + (Minutes * 60)
+    const totalSeconds = (h * 3600) + (m * 60);
+
+    // Backend friendly object return karna
+    return {
+      date: formData.date,
+      from_date: formData.fromDate,
+      to_date: formData.toDate,
+      shift: formData.shift,
+      plant: formData.plant,
+      cost_center: formData.costCenter,
+      company: formData.company,
+      warehouse: formData.warehouse,
+      vehicle: formData.vehicle,
+      supervisor_name: formData.supervisorName,
+      hmr: formData.hmr,
+      status: formData.status,
+      time: totalSeconds.toString(), // Database mein seconds jayenge
+    };
+  };
 
   useEffect(() => {
 
@@ -309,88 +350,171 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
   const handleInputChange = (e: any) =>
     setFormData((p) => ({ ...p, [e.target.name]: e.target.value }))
 
-  const handleSubmit = async () => {
-    setIsSubmitting(true)
-    try {
-      const token = await (
-        await fetch(getApiUrl(config.api.getCsrfToken), { credentials: "include" })
-      ).json()
+  // const handleSubmit = async () => {
+  //   setIsSubmitting(true)
+  //   try {
+  //     const token = await (
+  //       await fetch(getApiUrl(config.api.getCsrfToken), { credentials: "include" })
+  //     ).json()
 
-      const fd = new FormData()
-      fd.append("data", JSON.stringify({
-        date: formData.date,
-        from_date: formData.fromDate,
-        to_date: formData.toDate,
-        shift: formData.shift,
-        plant: formData.plant,
-        cost_center: formData.costCenter,
-        company: formData.company,
-        warehouse: formData.warehouse,
-        vehicle: formData.vehicle,
-        supervisor_name: formData.supervisorName,
-        hmr: formData.hmr,
-        status: formData.status,
-      }))
+  //     const fd = new FormData()
+  //     fd.append("data", JSON.stringify({
+  //       date: formData.date,
+  //       from_date: formData.fromDate,
+  //       to_date: formData.toDate,
+  //       shift: formData.shift,
+  //       plant: formData.plant,
+  //       cost_center: formData.costCenter,
+  //       company: formData.company,
+  //       warehouse: formData.warehouse,
+  //       vehicle: formData.vehicle,
+  //       supervisor_name: formData.supervisorName,
+  //       hmr: formData.hmr,
+  //       status: formData.status,
+  //       time: formData.time && formData.time.trim() !== "" ? formData.time : "0",
+  //     }))
+
+  //     const res = await axios.post(
+  //       getApiUrl(config.api.method("vms.api.submit_utilization_report")),
+  //       fd,
+  //       { withCredentials: true, headers: { "X-Frappe-CSRF-Token": token.message } }
+  //     )
+  //     if (res.status === 200) {
+  //       showAlert("Success", "Updated Successfully!", [
+  //         {
+  //           text: "OK",
+  //           style: "cancel",
+  //           onPress: () => window.location.reload(),
+  //         },
+  //       ]);
+  //       window.location.reload()
+  //     }
+  //   } catch (err) {
+  //     const errorMsg = getErrorMessage(err);
+  //     showAlert("Error", errorMsg, [{ text: "OK", style: "destructive" }]);
+  //   } finally {
+  //     setIsSubmitting(false)
+  //   }
+  // }
+  // const handleUpdate = async () => {
+  //   if (!record) {
+  //     showAlert("Error", "Record missing");
+  //     return;
+  //   }
+
+  //   setIsSubmitting(true)
+
+  //   try {
+  //     const token = await (
+  //       await fetch(getApiUrl(config.api.getCsrfToken), { credentials: "include" })
+  //     ).json()
+
+  //     const res = await axios.put(
+  //       getApiUrl(`${config.api.resource(DOCTYPE_NAME)}/${record.name}`),
+  //       {
+  //         date: formData.date,
+  //         from_date: formData.fromDate,
+  //         to_date: formData.toDate,
+  //         shift: formData.shift,
+  //         plant: formData.plant,
+  //         cost_center: formData.costCenter,
+  //         company: formData.company,
+  //         warehouse: formData.warehouse,
+  //         vehicle: formData.vehicle,
+  //         supervisor_name: formData.supervisorName,
+  //         hmr: formData.hmr,
+  //         status: formData.status,
+  //         time: formData.time && formData.time.trim() !== "" ? formData.time : "0",
+  //       },
+  //       { withCredentials: true, headers: { "X-Frappe-CSRF-Token": token.message } }
+  //     )
+
+  //     if (res.status === 200) {
+  //       showAlert("Success", "Utilization Updated Successfully!", [
+  //         {
+  //           text: "OK",
+  //           style: "cancel",
+  //           onPress: () => window.location.reload(),
+  //         },
+  //       ]);
+  //     }
+  //   } catch (err) {
+  //     const errorMsg = getErrorMessage(err);
+  //     showAlert("Error", errorMsg, [{ text: "OK", style: "destructive" }]);
+
+  //   } finally {
+  //     setIsSubmitting(false)
+  //   }
+  // }
+
+  const handleSubmit = async () => {
+    const dataToSubmit = getProcessedData();
+    if (!dataToSubmit) return; // Agar validation fail hui toh ruk jao
+
+    setIsSubmitting(true);
+    try {
+      const tokenResp = await fetch(getApiUrl(config.api.getCsrfToken), { credentials: "include" });
+      const tokenResult = await tokenResp.json();
+      const csrfToken = tokenResult.message;
+
+      const fd = new FormData();
+      // dataToSubmit mein 'time' field ab calculated seconds hai
+      fd.append("data", JSON.stringify(dataToSubmit));
 
       const res = await axios.post(
         getApiUrl(config.api.method("vms.api.submit_utilization_report")),
         fd,
-        { withCredentials: true, headers: { "X-Frappe-CSRF-Token": token.message } }
-      )
+        {
+          withCredentials: true,
+          headers: { "X-Frappe-CSRF-Token": csrfToken }
+        }
+      );
+
       if (res.status === 200) {
-        showAlert("Success", "Updated Successfully!", [
+        showAlert("Success", "Utilization Log Saved Successfully!", [
           {
             text: "OK",
-            style: "cancel",
+            style: "default",
             onPress: () => window.location.reload(),
           },
         ]);
-        window.location.reload()
       }
     } catch (err) {
       const errorMsg = getErrorMessage(err);
       showAlert("Error", errorMsg, [{ text: "OK", style: "destructive" }]);
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
   const handleUpdate = async () => {
+    const dataToSubmit = getProcessedData();
+    if (!dataToSubmit) return; // Validation failed
+
     if (!record) {
       showAlert("Error", "Record missing");
       return;
     }
 
-    setIsSubmitting(true)
-
+    setIsSubmitting(true);
     try {
-      const token = await (
-        await fetch(getApiUrl(config.api.getCsrfToken), { credentials: "include" })
-      ).json()
+      const tokenResp = await fetch(getApiUrl(config.api.getCsrfToken), { credentials: "include" });
+      const tokenResult = await tokenResp.json();
+      const csrfToken = tokenResult.message;
 
       const res = await axios.put(
         getApiUrl(`${config.api.resource(DOCTYPE_NAME)}/${record.name}`),
+        dataToSubmit, // Seedha cleaned object bhej rahe hain
         {
-          date: formData.date,
-          from_date: formData.fromDate,
-          to_date: formData.toDate,
-          shift: formData.shift,
-          plant: formData.plant,
-          cost_center: formData.costCenter,
-          company: formData.company,
-          warehouse: formData.warehouse,
-          vehicle: formData.vehicle,
-          supervisor_name: formData.supervisorName,
-          hmr: formData.hmr,
-          status: formData.status,
-        },
-        { withCredentials: true, headers: { "X-Frappe-CSRF-Token": token.message } }
-      )
+          withCredentials: true,
+          headers: { "X-Frappe-CSRF-Token": csrfToken }
+        }
+      );
 
       if (res.status === 200) {
         showAlert("Success", "Utilization Updated Successfully!", [
           {
             text: "OK",
-            style: "cancel",
+            style: "default",
             onPress: () => window.location.reload(),
           },
         ]);
@@ -398,17 +522,16 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
     } catch (err) {
       const errorMsg = getErrorMessage(err);
       showAlert("Error", errorMsg, [{ text: "OK", style: "destructive" }]);
-
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   const isBusy = isLoading || isSubmitting
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-     <DialogContent className="max-w-4xl p-0 bg-white max-h-[90vh] flex flex-col overflow-hidden">
+      <DialogContent className="max-w-4xl p-0 bg-white max-h-[90vh] flex flex-col overflow-hidden">
         <div className="p-6 pb-2 flex-none">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold">

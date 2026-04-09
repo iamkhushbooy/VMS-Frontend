@@ -32,6 +32,7 @@ export interface UtilizationRecord {
   hmr: number
   status: string
   supervisor_name: string
+  time: number;
 }
 
 interface UtilizationTableProps {
@@ -41,6 +42,16 @@ interface UtilizationTableProps {
 
 import { getApiUrl, config } from "@/lib/config"
 const DOCTYPE_NAME = "Utilization Report"
+
+const formatDuration = (totalSeconds: number | string) => {
+  const seconds = Number(totalSeconds);
+  if (!seconds || isNaN(seconds)) return "0h 0m";
+
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+
+  return `${h}h ${m}m`;
+};
 
 export default function UtilizationTable({ onLogUtilization, onSelectRecord }: UtilizationTableProps) {
   const [searchTerm, setSearchTerm] = useState("")
@@ -75,7 +86,7 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
     setIsLoading(true)
 
     try {
-      const fieldsToFetch = ["name", "date", "shift", "vehicle", "plant", "hmr", "status", "supervisor_name"]
+      const fieldsToFetch = ["name", "date", "shift", "vehicle","time", "plant", "hmr", "status", "supervisor_name"]
       const fieldsParam = encodeURIComponent(JSON.stringify(fieldsToFetch))
       const url = `${getApiUrl(config.api.resource(DOCTYPE_NAME))}?fields=${fieldsParam}&order_by=modified desc&limit_page_length=None`
 
@@ -84,7 +95,7 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
       })
 
       if (response.status === 403 || response.status === 401) {
-        showAlert("Expired","Session expired. Please login again.")
+        showAlert("Expired", "Session expired. Please login again.")
         localStorage.removeItem("isLoggedIn")
         window.location.href = "/"
         return
@@ -291,6 +302,7 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
               <TableHead className="text-primary font-semibold">Vehicle</TableHead>
               <TableHead className="text-primary font-semibold">HMR</TableHead>
               <TableHead className="text-primary font-semibold">Plant</TableHead>
+              <TableHead className="text-primary font-semibold">Run Time</TableHead>
               <TableHead className="text-primary font-semibold">Status</TableHead>
             </TableRow>
           </TableHeader>
@@ -336,6 +348,11 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
                   <TableCell>{record.hmr}</TableCell>
                   <TableCell>{record.plant}</TableCell>
                   <TableCell>
+                    <span className="inline-flex items-center font-medium">
+                    {formatDuration(record.time)}
+                    </span>
+                  </TableCell>
+                  <TableCell>
                     <span
                       className={cn(
                         "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
@@ -353,7 +370,7 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                   No utilization reports found.
                 </TableCell>
               </TableRow>
