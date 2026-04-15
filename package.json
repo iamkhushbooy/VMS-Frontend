@@ -45,6 +45,7 @@
     "cmdk": "latest",
     "date-fns": "^4.1.0",
     "embla-carousel-react": "latest",
+    "file-saver": "^2.0.5",
     "input-otp": "latest",
     "lucide-react": "^0.454.0",
     "next": "^16.1.5",
@@ -59,11 +60,13 @@
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "latest",
+    "xlsx": "^0.18.5",
     "zod": "3.25.76",
     "zustand": "^5.0.9"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.9",
+    "@types/file-saver": "^2.0.7",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",

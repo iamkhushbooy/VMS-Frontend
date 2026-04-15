@@ -19,7 +19,7 @@ import {
 import {
   Search,
   Loader2,
-  Car,
+  Car, Download
 } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 
@@ -36,6 +36,9 @@ import { getApiUrl, config } from "@/lib/config"
 import { getErrorMessage } from "@/lib/errorMessage"
 import CustomAlert from "../alert/alert"
 import { AlertButton } from "../alert/types"
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
+
 export interface VehicleRecord {
   name: string
   license_plate: string
@@ -156,48 +159,48 @@ export default function VehicleMasterTable({ onAddVehicle, onSelectVehicle }: Ve
     setSelectedNames(checked ? paginatedRecords.map((r) => r.name) : [])
   }
 
-const executeBulkDelete = async () => {
-  try {
-    setIsActionLoading(true);
-    const tokenResp = await axios.get(getApiUrl(config.api.getCsrfToken), {
-      withCredentials: true,
-    });
-    const csrfToken = tokenResp.data.message;
-
-    // Step 2: Prepare Payload
-    const formData = new FormData();
-    formData.append("names", JSON.stringify(selectedNames));
-    const res = await axios.post(
-      getApiUrl(config.api.method("vms.api.bulk_delete_vehicle_master")),
-      formData,
-      {
+  const executeBulkDelete = async () => {
+    try {
+      setIsActionLoading(true);
+      const tokenResp = await axios.get(getApiUrl(config.api.getCsrfToken), {
         withCredentials: true,
-        headers: {
-          "X-Frappe-CSRF-Token": csrfToken,
-          "Accept": "application/json",
-        },
-      }
-    );
+      });
+      const csrfToken = tokenResp.data.message;
 
-    // Success logic (Sirf tab chalega jab status 2xx hoga)
-    showAlert("Success", "Selected vehicles deleted successfully.", [
-      {
-        text: "OK",
-        onPress: async () => {
-          setSelectedNames([]);
-          await fetchFrappeData();
+      // Step 2: Prepare Payload
+      const formData = new FormData();
+      formData.append("names", JSON.stringify(selectedNames));
+      const res = await axios.post(
+        getApiUrl(config.api.method("vms.api.bulk_delete_vehicle_master")),
+        formData,
+        {
+          withCredentials: true,
+          headers: {
+            "X-Frappe-CSRF-Token": csrfToken,
+            "Accept": "application/json",
+          },
         }
-      }
-    ]);
+      );
 
-  } catch (err) {
-    const errorMsg = getErrorMessage(err); 
-    
-    showAlert("Action Failed", errorMsg, [{ text: "OK", style: "destructive" }]);
-  } finally {
-    setIsActionLoading(false);
-  }
-};
+      // Success logic (Sirf tab chalega jab status 2xx hoga)
+      showAlert("Success", "Selected vehicles deleted successfully.", [
+        {
+          text: "OK",
+          onPress: async () => {
+            setSelectedNames([]);
+            await fetchFrappeData();
+          }
+        }
+      ]);
+
+    } catch (err) {
+      const errorMsg = getErrorMessage(err);
+
+      showAlert("Action Failed", errorMsg, [{ text: "OK", style: "destructive" }]);
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
   const handleBulkDelete = async () => {
     // 1. Check selection
     if (selectedNames.length === 0) {
@@ -226,6 +229,57 @@ const executeBulkDelete = async () => {
     return getApiUrl(path)
   }
 
+  const handleExportExcel = () => {
+    try {
+      // 1. तय करें कि कौन सा डेटा एक्सपोर्ट करना है
+      let dataToExport = [];
+
+      if (selectedNames.length > 0) {
+        // अगर चेकबॉक्स सेलेक्ट किए गए हैं, तो सिर्फ सिलेक्टेड डेटा लें
+        dataToExport = records.filter((r) => selectedNames.includes(r.name));
+      } else {
+        // अगर कोई चेकबॉक्स सेलेक्ट नहीं है, तो पूरा (सर्च किया हुआ) डेटा लें
+        dataToExport = filteredRecords;
+      }
+
+      if (dataToExport.length === 0) {
+        showAlert("No Data", "Don't have data for export.");
+        return;
+      }
+
+      // 2. Data prepare करें (Vehicle Master टेबल के हिसाब से कॉलम)
+      const exportData = dataToExport.map((record) => ({
+        "License Plate": record.license_plate,
+        "Make": record.make,
+        "Model": record.model,
+        "Warehouse": record.warehouse,
+        "Employee": record.employee,
+        "Fuel Type": record.fuel_type,
+        "Odometer": record.last_odometer,
+      }));
+
+      // 3. Excel Workbook बनाएं
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Vehicle Master");
+
+      // 4. Buffer जनरेट करें
+      const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+
+      // 5. Blob बनाकर saveAs से डाउनलोड करें
+      const data = new Blob([excelBuffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8",
+      });
+
+      // फाइल का नाम
+      const fileName = `Vehicle_Master_${new Date().toISOString().split("T")[0]}.xlsx`;
+      saveAs(data, fileName);
+    } catch (error) {
+      console.error("Export Error:", error);
+      showAlert("Export Failed", "There is an issue generating excel file.");
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
@@ -240,7 +294,7 @@ const executeBulkDelete = async () => {
           />
         </div>
 
-        <div className="flex gap-2 flex-wrap items-center">
+        <div className="flex gap-6 flex-wrap items-center">
           {selectedNames.length > 0 && (
             <span className="text-sm text-muted-foreground mr-2">
               {selectedNames.length} selected
@@ -258,6 +312,13 @@ const executeBulkDelete = async () => {
 
           <Button onClick={onAddVehicle} className="cursor-pointer glow-button-pink text-white">
             + Add Vehicle
+          </Button>
+          <Button
+            onClick={handleExportExcel}
+            className="glow-button-pink text-white font-semibold"
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Export Excel
           </Button>
         </div>
 

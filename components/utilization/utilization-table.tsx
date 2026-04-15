@@ -1,12 +1,14 @@
 "use client"
-import { useState, useEffect, useCallback ,useMemo} from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, Loader2 } from "lucide-react"
+import { Search, Loader2, Download } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import CustomAlert from "../alert/alert"
 import { AlertButton } from "../alert/types"
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
 
 import {
   Pagination,
@@ -86,7 +88,7 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
     setIsLoading(true)
 
     try {
-      const fieldsToFetch = ["name", "date", "shift", "vehicle","time", "plant", "hmr", "status", "supervisor_name"]
+      const fieldsToFetch = ["name", "date", "shift", "vehicle", "time", "plant", "hmr", "status", "supervisor_name"]
       const fieldsParam = encodeURIComponent(JSON.stringify(fieldsToFetch))
       const url = `${getApiUrl(config.api.resource(DOCTYPE_NAME))}?fields=${fieldsParam}&order_by=modified desc&limit_page_length=None`
 
@@ -129,24 +131,24 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
   // )
 
   const filteredRecords = useMemo(() => {
-  const filtered = records.filter(
-    (r) =>
-      r.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.vehicle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.plant?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.status?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.date?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-  return filtered.sort((a, b) => {
-    const dateA = new Date(a.date).getTime();
-    const dateB = new Date(b.date).getTime();
+    const filtered = records.filter(
+      (r) =>
+        r.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        r.vehicle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        r.plant?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        r.status?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        r.date?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    return filtered.sort((a, b) => {
+      const dateA = new Date(a.date).getTime();
+      const dateB = new Date(b.date).getTime();
 
-    if (dateB !== dateA) {
-      return dateB - dateA;
-    }
-    return b.name.localeCompare(a.name);
-  });
-}, [records, searchTerm]);
+      if (dateB !== dateA) {
+        return dateB - dateA;
+      }
+      return b.name.localeCompare(a.name);
+    });
+  }, [records, searchTerm]);
 
   const ITEMS_PER_PAGE = 50
   const [currentPage, setCurrentPage] = useState(1)
@@ -273,6 +275,52 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
     }
   };
 
+  const handleExportExcel = () => {
+    try {
+      let dataToExport = [];
+
+      if (selectedNames.length > 0) {
+        dataToExport = records.filter(record => selectedNames.includes(record.name));
+      } else {
+        dataToExport = filteredRecords;
+      }
+
+      if (dataToExport.length === 0) {
+        showAlert("No Data", "Don't have data for export.");
+        return;
+      }
+
+      const exportData = dataToExport.map(record => ({
+        "Name": record.name,
+        "Date": record.date?.split(" ")[0],
+        "Shift": record.shift,
+        "Vehicle": record.vehicle,
+        "HMR": record.hmr,
+        "Plant": record.plant,
+        "Run Time": formatDuration(record.time),
+        "Status": record.status,
+        "Supervisor": record.supervisor_name
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Utilization Report");
+
+      const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+
+      const data = new Blob([excelBuffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8"
+      });
+
+      const fileName = `Utilization_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
+      saveAs(data, fileName);
+
+    } catch (error) {
+      console.error("Export Error:", error);
+      showAlert("Export Failed", "There is an issue generating excel file.");
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
@@ -286,7 +334,7 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
           />
         </div>
 
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-6 flex-wrap">
           <Button
             variant="destructive"
             disabled={selectedNames.length === 0 || isActionLoading}
@@ -300,6 +348,13 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
 
           <Button onClick={onLogUtilization} className="glow-button-pink text-white font-semibold">
             + New Report
+          </Button>
+          <Button
+            onClick={handleExportExcel}
+            className="glow-button-pink text-white font-semibold"
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Export Excel
           </Button>
         </div>
       </div>
@@ -370,7 +425,7 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
                   <TableCell>{record.plant}</TableCell>
                   <TableCell>
                     <span className="inline-flex items-center font-medium">
-                    {formatDuration(record.time)}
+                      {formatDuration(record.time)}
                     </span>
                   </TableCell>
                   <TableCell>

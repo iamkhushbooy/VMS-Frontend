@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, Loader2 } from "lucide-react"
+import { Search, Loader2, Download } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useRouter } from "next/navigation"
 
@@ -27,6 +27,9 @@ import {
 import { getApiUrl, config } from "@/lib/config"
 import CustomAlert from "../alert/alert"
 import { AlertButton } from "../alert/types"
+import * as XLSX from 'xlsx'; 
+import { saveAs } from 'file-saver';
+
 interface RefuelingRecord {
   name: string
   date: string
@@ -287,6 +290,45 @@ export function RefuelingTable({
 
 
 
+  const handleExportExcel = () => {
+    try {
+      let dataToExport = [];
+
+      if (selectedNames.length > 0) {
+        dataToExport = records.filter((record) => selectedNames.includes(record.name));
+      } else {
+        dataToExport = filteredRecords;
+      }
+
+      if (dataToExport.length === 0) {
+        showAlert("No Data", "Don't have data for export.");
+        return;
+      }
+      const exportData = dataToExport.map((record) => ({
+        "Name": record.name,
+        "Date": record.date,
+        "Company": record.company,
+        "Fuel Item": record.fuel_item,
+        "Issuer Name": record.issuer_name,
+        "Status": getStatusLabel(record.docstatus),
+      }));
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Refueling Report");
+      const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+      const data = new Blob([excelBuffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8",
+      });
+
+      const fileName = `Refueling_Report_${new Date().toISOString().split("T")[0]}.xlsx`;
+      saveAs(data, fileName);
+    } catch (error) {
+      console.error("Export Error:", error);
+      showAlert("Export Failed", "There is an issue generating excel file.");
+    }
+  };
+
+
   return (
     <div className="flex flex-col gap-6">
       {/* Header */}
@@ -301,10 +343,10 @@ export function RefuelingTable({
           />
         </div>
 
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-6 flex-wrap">
           {/* Cancel Selected */}
           <Button
-            variant="outline"
+             variant="destructive"
             disabled={selectedNames.length === 0 || isActionLoading}
             onClick={() => handleBulkAction("cancel")}
           >
@@ -324,6 +366,14 @@ export function RefuelingTable({
 
           <Button onClick={onLogRefueling} className="glow-button-pink text-white font-semibold">
             + Log Refueling
+          </Button>
+
+          <Button 
+            onClick={handleExportExcel}
+            className="glow-button-pink text-white font-semibold"
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Export Excel
           </Button>
         </div>
 

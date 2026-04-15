@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, Loader2 } from "lucide-react"
+import { Search, Loader2, Download } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useRouter } from "next/navigation"
 import { getErrorMessage } from "@/lib/errorMessage"
@@ -19,6 +19,8 @@ import {
 import CustomAlert from "../alert/alert"
 import { AlertButton } from "../alert/types"
 import { getApiUrl, config } from "@/lib/config"
+import * as XLSX from 'xlsx'; 
+import { saveAs } from 'file-saver'; 
 interface MaintenanceLog {
   name: string
   issuer_name: string
@@ -233,6 +235,47 @@ export function MaintenanceTable({ onNewLog, onSelectLog, refreshTrigger }: Main
       ]
     );
   };
+
+
+  const handleExportExcel = () => {
+    try {
+      let dataToExport = [];
+
+      if (selectedNames.length > 0) {
+        dataToExport = logs.filter((log) => selectedNames.includes(log.name));
+      } else {
+        dataToExport = filtered;
+      }
+
+      if (dataToExport.length === 0) {
+        showAlert("No Data", "Don't have data for export.");
+        return;
+      }
+      const exportData = dataToExport.map((log) => ({
+        "ID / Name": log.name,
+        "Issuer Name": log.issuer_name,
+        "Registration No": log.license_plate,
+        "Status": log.status,
+        "Priority": log.priority_level,
+        "Employees": log.working_employee ? log.working_employee.join(", ") : "",
+        "Doc Status": getDocStatusLabel(log.docstatus),
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Vechicle Log Master");
+
+      const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+      const data = new Blob([excelBuffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8",
+      });
+      const fileName = `Maintenance_Logs_${new Date().toISOString().split("T")[0]}.xlsx`;
+      saveAs(data, fileName);
+    } catch (error) {
+      console.error("Export Error:", error);
+      showAlert("Export Failed", "There is an issue generating excel file.");
+    }
+  };
   return (
     <div className="flex flex-col gap-6">
 
@@ -247,9 +290,9 @@ export function MaintenanceTable({ onNewLog, onSelectLog, refreshTrigger }: Main
           />
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-6">
           <Button
-            variant="outline"
+             variant="destructive"
             disabled={selectedNames.length === 0 || isActionLoading}
             onClick={() => handleBulkAction("cancel")}
           >
@@ -269,6 +312,16 @@ export function MaintenanceTable({ onNewLog, onSelectLog, refreshTrigger }: Main
           <Button onClick={onNewLog} className="glow-button-pink text-white font-semibold">
             + New Maintenance Log
           </Button>
+
+          <Button 
+            onClick={handleExportExcel}
+            className="glow-button-pink text-white font-semibold"
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Export Excel
+          </Button>
+
+          
         </div>
 
       </div>
