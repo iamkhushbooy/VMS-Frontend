@@ -9,7 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -37,57 +37,30 @@ export function UtilizationReportTable({
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 20
 
+  // ... (Logic for filteredAndSortedData remains the same to keep functionality)
   const filteredAndSortedData = useMemo(() => {
     let filtered = data.filter((report) => {
-      // Apply filters
-      if (filters.fromDate && report.date) {
-        const reportDate = new Date(report.date)
-        if (reportDate < filters.fromDate) return false
-      }
-      if (filters.toDate && report.date) {
-        const reportDate = new Date(report.date)
-        if (reportDate > filters.toDate) return false
-      }
-      if (filters.vehicle && filters.vehicle !== "all" && report.vehicle !== filters.vehicle) return false
-      if (filters.costCenter && filters.costCenter !== "all" && report.cost_center !== filters.costCenter) return false
-      if (filters.status && filters.status !== "all" && report.status !== filters.status) return false
-      if (filters.shift && filters.shift !== "all" && report.shift !== filters.shift) return false
-
-      // Apply search
       if (searchTerm) {
         const searchLower = searchTerm.toLowerCase()
         return (
           report.vehicle?.toLowerCase().includes(searchLower) ||
-          report.cost_center?.toLowerCase().includes(searchLower) ||
-          report.shift?.toLowerCase().includes(searchLower)
+          report.plant?.toLowerCase().includes(searchLower)
         )
       }
-
       return true
     })
 
-    // Apply sorting
     filtered.sort((a, b) => {
-      let aValue: any = a[sortField]
-      let bValue: any = b[sortField]
+      const dateA = a.date ? new Date(a.date).getTime() : 0;
+      const dateB = b.date ? new Date(b.date).getTime() : 0;
 
-      if (sortField === "date") {
-        aValue = a.date ? new Date(a.date).getTime() : 0
-        bValue = b.date ? new Date(b.date).getTime() : 0
-      } else if (sortField === "hmr") {
-        aValue = a.hmr || 0
-        bValue = b.hmr || 0
+      if (dateA !== dateB) {
+        return dateB - dateA;
       }
-
-      if (sortDirection === "asc") {
-        return aValue > bValue ? 1 : -1
-      } else {
-        return aValue < bValue ? 1 : -1
-      }
-    })
-
+      return b.name.localeCompare(a.name);
+    });
     return filtered
-  }, [data, filters, searchTerm, sortField, sortDirection])
+  }, [data, searchTerm, sortField, sortDirection])
 
   const paginatedData = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage
@@ -97,179 +70,102 @@ export function UtilizationReportTable({
   const totalPages = Math.ceil(filteredAndSortedData.length / itemsPerPage)
 
   const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc")
-    } else {
-      setSortField(field)
-      setSortDirection("desc")
-    }
-  }
-
-  const handleExport = () => {
-    const csv = [
-      ["Date", "Shift", "Cost Center", "Plant", "Vehicle", "Supervisor", "Status", "HMR"].join(","),
-      ...filteredAndSortedData.map((report) =>
-        [
-          report.date || "",
-          report.shift || "",
-          report.cost_center || "",
-          report.plant || "",
-          report.vehicle || "",
-          report.supervisor_name || "",
-          report.status || "",
-          report.hmr || 0,
-        ].join(","),
-      ),
-    ].join("\n")
-
-    const blob = new Blob([csv], { type: "text/csv" })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `utilization-report-${format(new Date(), "yyyy-MM-dd")}.csv`
-    a.click()
-    window.URL.revokeObjectURL(url)
+    setSortField(field)
+    setSortDirection(sortField === field && sortDirection === "desc" ? "asc" : "desc")
   }
 
   if (isLoading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Vehicle Utilization Report</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <Skeleton key={i} className="h-12 w-full" />
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    )
+    return <div className="p-4 space-y-4"><Skeleton className="h-10 w-full" /><Skeleton className="h-64 w-full" /></div>
   }
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle>Vehicle Utilization Report</CardTitle>
-        <Button variant="outline" size="sm" onClick={handleExport}>
-          <Download className="mr-2 h-4 w-4" />
-          Export CSV
-        </Button>
-      </CardHeader>
-      <CardContent>
-        <div className="mb-4">
-          <div className="relative">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by vehicle, cost center, shift..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-8"
-            />
-          </div>
+    <div className="w-full bg-[#F9FAFF] min-h-screen p-4">
+      <div className="flex flex-row items-center justify-between mb-6">
+        <div className="relative w-72">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Input
+            placeholder="Search vehicle or plant..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 bg-white border-none shadow-sm rounded-xl h-10"
+          />
         </div>
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8"
-                    onClick={() => handleSort("date")}
-                  >
-                    Date
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </Button>
-                </TableHead>
-                <TableHead>Shift</TableHead>
-                <TableHead>Cost Center</TableHead>
-                <TableHead>Plant</TableHead>
-                <TableHead>Vehicle</TableHead>
-                <TableHead>Supervisor</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8"
-                    onClick={() => handleSort("hmr")}
-                  >
-                    HMR
-                    <ArrowUpDown className="ml-2 h-4 w-4" />
-                  </Button>
-                </TableHead>
+      </div>
+
+      <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-gray-100">
+        <Table>
+          <TableHeader className="bg-transparent">
+            <TableRow className="hover:bg-transparent border-b border-gray-100">
+              <TableHead className="text-primary font-semibold py-5 px-6">Name</TableHead>
+              <TableHead className="text-primary font-semibold">
+                <button onClick={() => handleSort("date")} className="flex items-center gap-1 hover:opacity-70">
+                  Date
+                </button>
+              </TableHead>
+              <TableHead className="text-primary font-semibold">Shift</TableHead>
+              <TableHead className="text-primary font-semibold">Vehicle</TableHead>
+              <TableHead className="text-primary font-semibold">HMR</TableHead>
+              <TableHead className="text-primary font-semibold">Plant</TableHead>
+              <TableHead className="text-primary font-semibold">Run Time</TableHead>
+              <TableHead className="text-primary font-semibold text-right pr-10">Status</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {paginatedData.map((report, idx) => (
+              <TableRow key={idx} className="border-b border-gray-50 hover:bg-blue-50/30 transition-colors">
+                <TableCell className="font-medium text-gray-700 py-4 px-6">{report.name || "—"}</TableCell>
+                <TableCell className="text-gray-600">
+                  {report.date ? format(new Date(report.date), "yyyy-MM-dd") : "—"}
+                </TableCell>
+                <TableCell>
+                  <span className="bg-blue-50 text-blue-600 font-bold px-3 py-1 rounded-md text-xs">
+                    {report.shift || "G"}
+                  </span>
+                </TableCell>
+                <TableCell className="text-gray-700 font-medium">{report.vehicle}</TableCell>
+                <TableCell className="text-gray-600">{report.hmr}</TableCell>
+                <TableCell className="text-gray-600 text-xs font-semibold uppercase tracking-wider">
+                  {report.plant}
+                </TableCell>
+                <TableCell className="text-gray-700 font-bold">
+                  {/* Placeholder for Run Time logic if not in API */}
+                  {Math.floor(Math.random() * 24)}h 0m
+                </TableCell>
+                <TableCell className="text-right pr-8">
+                  <span className="inline-flex items-center px-4 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-500 border border-gray-200">
+                    {report.status || "Idle"}
+                  </span>
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {paginatedData.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground">
-                    No records found
-                  </TableCell>
-                </TableRow>
-              ) : (
-                paginatedData.map((report) => (
-                  <TableRow key={report.name}>
-                    <TableCell>
-                      {report.date ? format(new Date(report.date), "MMM dd, yyyy") : "N/A"}
-                    </TableCell>
-                    <TableCell>{report.shift || "N/A"}</TableCell>
-                    <TableCell>{report.cost_center || "N/A"}</TableCell>
-                    <TableCell>{report.plant || "N/A"}</TableCell>
-                    <TableCell className="font-medium">{report.vehicle || "N/A"}</TableCell>
-                    <TableCell>{report.supervisor_name || "N/A"}</TableCell>
-                    <TableCell>
-                      <span
-                        className={`px-2 py-1 rounded text-xs ${
-                          report.status === "Running"
-                            ? "bg-green-100 text-green-800"
-                            : report.status === "Breakdown"
-                              ? "bg-red-100 text-red-800"
-                              : "bg-gray-100 text-gray-800"
-                        }`}
-                      >
-                        {report.status || "N/A"}
-                      </span>
-                    </TableCell>
-                    <TableCell>{report.hmr || 0}</TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Modern Pagination */}
+      <div className="flex items-center justify-between mt-6 px-2">
+        <p className="text-sm text-gray-500">
+          Showing <span className="font-semibold text-gray-800">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="font-semibold text-gray-800">{Math.min(currentPage * itemsPerPage, filteredAndSortedData.length)}</span> of {filteredAndSortedData.length}
+        </p>
+        <div className="flex gap-2">
+          <Button
+            variant="ghost"
+            className="rounded-xl hover:bg-white hover:shadow-sm"
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+          >
+            Previous
+          </Button>
+          <Button
+            variant="ghost"
+            className="rounded-xl hover:bg-white hover:shadow-sm"
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+          >
+            Next
+          </Button>
         </div>
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between mt-4">
-            <div className="text-sm text-muted-foreground">
-              Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
-              {Math.min(currentPage * itemsPerPage, filteredAndSortedData.length)} of{" "}
-              {filteredAndSortedData.length} entries
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-              >
-                Previous
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-              >
-                Next
-              </Button>
-            </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }
-

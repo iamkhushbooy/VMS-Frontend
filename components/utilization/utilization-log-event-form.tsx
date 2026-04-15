@@ -45,8 +45,7 @@ export function UtilizationLogEventForm({
   isLoading,
   onEmployeeFieldClick
 }: UtilizationLogEventFormProps) {
-  const showTimeField = ["Breakdown", "Idle"].includes(formData.status)
-
+  
   return (
     <div className="p-6 pt-2 space-y-6 overflow-y-auto max-h-[80vh]">
       {isLoading && (
@@ -83,10 +82,6 @@ export function UtilizationLogEventForm({
               isLoading={isBusy}
             />
           </div>
-
-          {/* From / To Date & Time (only for Breakdown / Idle) */}
-          {showTimeField && (
-            <>
               <div className="space-y-1.5">
                 <Label htmlFor="fromDate" className="text-sm font-medium text-gray-700">From Date & Time</Label>
                 <CustomDatePicker
@@ -106,8 +101,6 @@ export function UtilizationLogEventForm({
                   }}
                 />
               </div>
-            </>
-          )}
 
           <div className="space-y-1.5">
             <Label htmlFor="warehouse" className="text-sm font-medium text-gray-700">Company</Label>
@@ -252,7 +245,7 @@ export function UtilizationLogEventForm({
               id="hmr"
               name="hmr"
               type="number"
-              min={0}
+              min={1}
               onKeyDown={(e) => {
                 if (e.key === '-' || e.key === 'e' || e.key === 'E') {
                   e.preventDefault();

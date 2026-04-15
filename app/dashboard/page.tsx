@@ -54,50 +54,41 @@ export default function DashboardPage() {
     fetchData()
   }, [router])
 
-const kpis = useMemo(() => {
-  const totalVehicles = vehicles.length
+  const kpis = useMemo(() => {
+    const totalVehicles = vehicles.length
+    const breakdownVehicles = utilizations.filter((u) =>
+      (u?.status ?? "").toLowerCase() === "breakdown"
+    ).length
 
-  const runningVehicles = utilizations.filter((u) =>
-    (u?.status ?? "").toLowerCase() === "running"
-  ).length
+    const idleVehicles = utilizations.filter((u) =>
+      (u?.status ?? "").toLowerCase() === "idle"
+    ).length
+    const runningVehicles = Math.max(0, totalVehicles - (breakdownVehicles + idleVehicles))
+    let totalEfficiency = 0
+    let efficiencyCount = 0
 
-  const idleVehicles = utilizations.filter((u) =>
-    (u?.status ?? "").toLowerCase() === "idle"
-  ).length
-
-  const breakdownVehicles = utilizations.filter((u) =>
-    (u?.status ?? "").toLowerCase() === "breakdown"
-  ).length
-
-  // Fuel efficiency
-  let totalEfficiency = 0
-  let efficiencyCount = 0
-
-  refuelings.forEach((refuel) => {
-    (refuel?.vehicle_refueling_details ?? []).forEach((detail:any) => {
-      const fc = Number(detail?.fuel_consumption)
-      if (!isNaN(fc)) {
-        totalEfficiency += fc
-        efficiencyCount++
-      }
+    refuelings.forEach((refuel) => {
+      (refuel?.vehicle_refueling_details ?? []).forEach((detail: any) => {
+        const fc = Number(detail?.fuel_consumption)
+        if (!isNaN(fc) && fc > 0) {
+          totalEfficiency += fc
+          efficiencyCount++
+        }
+      })
     })
-  })
 
-  const avgFuelEfficiency =
-    efficiencyCount > 0 ? (totalEfficiency / efficiencyCount).toFixed(2) : "0.00"
+    const avgFuelEfficiency =
+      efficiencyCount > 0 ? (totalEfficiency / efficiencyCount).toFixed(2) : "0.00"
 
-  return {
-    totalVehicles,
-    runningVehicles,
-    idleVehicles,
-    breakdownVehicles,
-    avgFuelEfficiency,
-  }
-}, [vehicles, utilizations, logs, refuelings])
+    return {
+      totalVehicles,
+      runningVehicles,
+      idleVehicles,
+      breakdownVehicles,
+      avgFuelEfficiency,
+    }
+  }, [vehicles, utilizations, refuelings])
 
-
-
-  // ---------------- UI -----------------
   return (
     <div className="min-h-screen bg-[#F7F8FA] text-gray-900">
       <AppLayout>
@@ -118,10 +109,11 @@ const kpis = useMemo(() => {
           </div>
 
           {/* Charts Section - Row 1 */}
-          <div className="grid grid-cols-1 gap-6 mt-6">
-            <FleetUtilizationChart data={utilizations} isLoading={isLoading} />
-            <FuelTrendChart data={refuelings} isLoading={isLoading} />
-          </div>
+          <FleetUtilizationChart
+            data={utilizations}
+            totalVehicles={kpis.totalVehicles}
+            isLoading={isLoading}
+          />
 
           {/* Charts Section - Row 2 */}
           <div className="grid grid-cols-1 gap-6 mt-6">

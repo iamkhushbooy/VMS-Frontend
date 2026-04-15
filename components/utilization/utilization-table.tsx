@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback ,useMemo} from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -119,13 +119,34 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
     fetchFrappeData()
   }, [fetchFrappeData])
 
-  const filteredRecords = records.filter(
+  // const filteredRecords = records.filter(
+  //   (r) =>
+  //     r.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  //     r.vehicle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  //     r.plant?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  //     r.status?.toLowerCase().includes(searchTerm.toLowerCase())||
+  //     r.date?.toLowerCase().includes(searchTerm.toLowerCase())
+  // )
+
+  const filteredRecords = useMemo(() => {
+  const filtered = records.filter(
     (r) =>
       r.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       r.vehicle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       r.plant?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.status?.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+      r.status?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      r.date?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+  return filtered.sort((a, b) => {
+    const dateA = new Date(a.date).getTime();
+    const dateB = new Date(b.date).getTime();
+
+    if (dateB !== dateA) {
+      return dateB - dateA;
+    }
+    return b.name.localeCompare(a.name);
+  });
+}, [records, searchTerm]);
 
   const ITEMS_PER_PAGE = 50
   const [currentPage, setCurrentPage] = useState(1)
@@ -258,7 +279,7 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Search by vehicle, plant"
+            placeholder="Search by name, vehicle, plant, status , date"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10 glass-card text-foreground placeholder:text-muted-foreground focus:bg-white/10"

@@ -34,7 +34,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           "X-Frappe-CSRF-Token": csrf
         },
       });
-      
+
       if (response.ok) {
         onClose(); // Close sidebar before navigating
         router.push("/Login");
@@ -46,8 +46,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   if (!isMounted) return null
 
-  const activeButtonStyle = "bg-cyan-500 text-gray-900 shadow-lg hover:bg-cyan-400" 
-  const inactiveButtonStyle = "text-gray-300 hover:bg-gray-800 hover:text-white" 
+  const activeButtonStyle = "bg-cyan-500 text-gray-900 shadow-lg hover:bg-cyan-400"
+  const inactiveButtonStyle = "text-gray-300 hover:bg-gray-800 hover:text-white"
 
   return (
     <>
@@ -96,7 +96,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           {/* Maintenance */}
           <Link href="/maintenance" onClick={onClose}>
             <Button
-              variant="ghost" 
+              variant="ghost"
               className={cn(
                 "w-full justify-start font-medium text-base h-11 rounded-lg transition-colors duration-200",
                 pathname === "/maintenance" ? activeButtonStyle : inactiveButtonStyle,
@@ -106,7 +106,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               Vehicle Maintenance
             </Button>
           </Link>
-          
+
           {/* Refueling */}
           <Link href="/refueling" onClick={onClose}>
             <Button
@@ -134,6 +134,18 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               Utilization Report
             </Button>
           </Link>
+          <Link href="/reports" onClick={onClose}>
+            <Button
+              variant="ghost"
+              className={cn(
+                "w-full justify-start font-medium text-base h-11 rounded-lg transition-colors duration-200",
+                pathname === "/reports" ? activeButtonStyle : inactiveButtonStyle,
+              )}
+            >
+              <BarChart className="w-5 h-5 mr-3" />
+              Reports
+            </Button>
+          </Link>
 
           {/* Logout Button - Mobile/Tablet Only */}
           <div className="md:hidden pt-4 mt-2 border-t border-gray-800">
@@ -150,7 +162,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
         {/* Footer */}
         <div className="mt-auto p-4 border-t border-gray-700">
-            <p className="text-sm text-gray-500">VMS &copy; 2025</p>
+          <p className="text-sm text-gray-500">VMS &copy; 2025</p>
         </div>
       </aside>
     </>

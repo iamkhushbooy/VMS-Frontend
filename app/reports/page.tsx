@@ -1,5 +1,4 @@
 "use client"
-
 import { useEffect, useState } from "react"
 import { AppLayout } from "@/components/app-layout"
 import { FilterBar } from "@/components/vms/reports/FilterBar"
@@ -67,15 +66,29 @@ export default function ReportsPage() {
           </div>
 
           {/* Filters */}
-          <FilterBar />
+          {/* <FilterBar /> */}
 
           {/* Reports Tabs */}
           <Tabs defaultValue="utilization" className="space-y-4 mt-6">
-            <TabsList>
-              <TabsTrigger value="utilization">Utilization Report</TabsTrigger>
-              <TabsTrigger value="fuel">Fuel Report</TabsTrigger>
-              <TabsTrigger value="maintenance">Maintenance Report</TabsTrigger>
-              <TabsTrigger value="vehicles">Vehicle Master</TabsTrigger>
+            <TabsList className="bg-[#E2E8F0]/50 p-1 rounded-xl h-14 inline-flex border border-[#CBD5E1]/50 backdrop-blur-sm">
+              <TabsTrigger 
+                value="utilization" 
+                className="rounded-lg px-8 py-2.5 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all font-bold text-[#64748B]"
+              >
+                Utilization Report
+              </TabsTrigger>
+              <TabsTrigger 
+                value="fuel" 
+                className="rounded-lg px-8 py-2.5 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm font-bold text-[#64748B]"
+              >
+                Fuel Report
+              </TabsTrigger>
+              <TabsTrigger 
+                value="maintenance" 
+                className="rounded-lg px-8 py-2.5 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm font-bold text-[#64748B]"
+              >
+                Maintenance Report
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="utilization" className="space-y-4">
@@ -95,13 +108,13 @@ export default function ReportsPage() {
             </TabsContent>
           </Tabs>
 
-                  {/* Tables */}
-          <div className="mt-10">
+          {/* Tables */}
+          {/* <div className="mt-10">
             <RecentLogsTable data={logs} isLoading={isLoading} />
           </div>
           <div className="mt-10">
             <RefuelingTable data={refuelings} isLoading={isLoading} />
-          </div>
+          </div> */}
         </div>
       </AppLayout>
     </div>

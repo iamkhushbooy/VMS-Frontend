@@ -62,7 +62,7 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
     vehicle: "",
     supervisorName: "",
     hmr: "",
-    status: "Running",
+    status: "Breakdown",
     company: "",
     timeHours: "",
     timeMinutes: "",
@@ -78,7 +78,7 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
     vehicle: "",
     supervisorName: loggedUser?.email || "",
     hmr: "",
-    status: "Running",
+    status: "Breakdown",
     company: "",
     timeHours: "",
     timeMinutes: "",
@@ -119,7 +119,7 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
   };
 
   const shiftOptions = [{ name: "A" }, { name: "B" }, { name: "C" }, { name: "G" }]
-  const statusOptions = [{ name: "Running" }, { name: "Breakdown" }, { name: "Idle" }]
+  const statusOptions = [{ name: "Breakdown" }, { name: "Idle" }]
 
   const fetchWarehouseMeta = async (warehouseName: string) => {
     if (!warehouseName) return null;
@@ -212,7 +212,7 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
             vehicle: doc.vehicle || "",
             supervisorName: doc.supervisor_name || loggedUser?.email || "",
             hmr: doc.hmr || "",
-            status: doc.status || "Running",
+            status: doc.status || "Breakdown",
             company: doc.company || "",
             timeHours: h.toString(),
             timeMinutes: m.toString()
@@ -235,6 +235,11 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
   }, [isOpen, record, loggedUser])
 
   const getProcessedData = () => {
+    const hmrValue = parseFloat(formData.hmr);
+  if (!formData.hmr || hmrValue <= 0) {
+    showAlert("Validation Error", "Current HMR/Kms must be greater than 0.");
+    return null;
+  }
     const h = parseInt(formData.timeHours) || 0;
     const m = parseInt(formData.timeMinutes) || 0;
 
@@ -349,103 +354,6 @@ export function UtilizationReportModal({ isOpen, onClose, record }: UtilizationF
 
   const handleInputChange = (e: any) =>
     setFormData((p) => ({ ...p, [e.target.name]: e.target.value }))
-
-  // const handleSubmit = async () => {
-  //   setIsSubmitting(true)
-  //   try {
-  //     const token = await (
-  //       await fetch(getApiUrl(config.api.getCsrfToken), { credentials: "include" })
-  //     ).json()
-
-  //     const fd = new FormData()
-  //     fd.append("data", JSON.stringify({
-  //       date: formData.date,
-  //       from_date: formData.fromDate,
-  //       to_date: formData.toDate,
-  //       shift: formData.shift,
-  //       plant: formData.plant,
-  //       cost_center: formData.costCenter,
-  //       company: formData.company,
-  //       warehouse: formData.warehouse,
-  //       vehicle: formData.vehicle,
-  //       supervisor_name: formData.supervisorName,
-  //       hmr: formData.hmr,
-  //       status: formData.status,
-  //       time: formData.time && formData.time.trim() !== "" ? formData.time : "0",
-  //     }))
-
-  //     const res = await axios.post(
-  //       getApiUrl(config.api.method("vms.api.submit_utilization_report")),
-  //       fd,
-  //       { withCredentials: true, headers: { "X-Frappe-CSRF-Token": token.message } }
-  //     )
-  //     if (res.status === 200) {
-  //       showAlert("Success", "Updated Successfully!", [
-  //         {
-  //           text: "OK",
-  //           style: "cancel",
-  //           onPress: () => window.location.reload(),
-  //         },
-  //       ]);
-  //       window.location.reload()
-  //     }
-  //   } catch (err) {
-  //     const errorMsg = getErrorMessage(err);
-  //     showAlert("Error", errorMsg, [{ text: "OK", style: "destructive" }]);
-  //   } finally {
-  //     setIsSubmitting(false)
-  //   }
-  // }
-  // const handleUpdate = async () => {
-  //   if (!record) {
-  //     showAlert("Error", "Record missing");
-  //     return;
-  //   }
-
-  //   setIsSubmitting(true)
-
-  //   try {
-  //     const token = await (
-  //       await fetch(getApiUrl(config.api.getCsrfToken), { credentials: "include" })
-  //     ).json()
-
-  //     const res = await axios.put(
-  //       getApiUrl(`${config.api.resource(DOCTYPE_NAME)}/${record.name}`),
-  //       {
-  //         date: formData.date,
-  //         from_date: formData.fromDate,
-  //         to_date: formData.toDate,
-  //         shift: formData.shift,
-  //         plant: formData.plant,
-  //         cost_center: formData.costCenter,
-  //         company: formData.company,
-  //         warehouse: formData.warehouse,
-  //         vehicle: formData.vehicle,
-  //         supervisor_name: formData.supervisorName,
-  //         hmr: formData.hmr,
-  //         status: formData.status,
-  //         time: formData.time && formData.time.trim() !== "" ? formData.time : "0",
-  //       },
-  //       { withCredentials: true, headers: { "X-Frappe-CSRF-Token": token.message } }
-  //     )
-
-  //     if (res.status === 200) {
-  //       showAlert("Success", "Utilization Updated Successfully!", [
-  //         {
-  //           text: "OK",
-  //           style: "cancel",
-  //           onPress: () => window.location.reload(),
-  //         },
-  //       ]);
-  //     }
-  //   } catch (err) {
-  //     const errorMsg = getErrorMessage(err);
-  //     showAlert("Error", errorMsg, [{ text: "OK", style: "destructive" }]);
-
-  //   } finally {
-  //     setIsSubmitting(false)
-  //   }
-  // }
 
   const handleSubmit = async () => {
     const dataToSubmit = getProcessedData();
