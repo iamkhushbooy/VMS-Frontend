@@ -28,13 +28,18 @@ function cn(...inputs: ClassValue[]) {
 export interface UtilizationRecord {
   name: string
   date: string
-  shift: string
-  vehicle: string
-  plant: string
-  hmr: number
-  status: string
   supervisor_name: string
-  time: number;
+  from_date: number
+  to_date: number
+  company: string
+  warehouse: string
+  cost_center: string
+  plant: string
+  shift: string
+  time: number
+  vehicle: string
+  status: string
+  hmr: number
 }
 
 interface UtilizationTableProps {
@@ -88,7 +93,11 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
     setIsLoading(true)
 
     try {
-      const fieldsToFetch = ["name", "date", "shift", "vehicle", "time", "plant", "hmr", "status", "supervisor_name"]
+      const fieldsToFetch = [
+        "name", "date", "supervisor_name", "from_date", "to_date", 
+        "company", "warehouse", "cost_center", "plant", "shift", 
+        "time", "vehicle", "status", "hmr"
+      ]
       const fieldsParam = encodeURIComponent(JSON.stringify(fieldsToFetch))
       const url = `${getApiUrl(config.api.resource(DOCTYPE_NAME))}?fields=${fieldsParam}&order_by=modified desc&limit_page_length=None`
 
@@ -293,13 +302,18 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
       const exportData = dataToExport.map(record => ({
         "Name": record.name,
         "Date": record.date?.split(" ")[0],
-        "Shift": record.shift,
-        "Vehicle": record.vehicle,
-        "HMR": record.hmr,
+        "Supervisor": record.supervisor_name,
+        "From Date": record.from_date,
+        "To Date": record.to_date,
+        "Company": record.company,
+        "Warehouse": record.warehouse,
+        "Cost Center": record.cost_center,
         "Plant": record.plant,
+        "Shift": record.shift,
         "Run Time": formatDuration(record.time),
+        "Vehicle": record.vehicle,
         "Status": record.status,
-        "Supervisor": record.supervisor_name
+        "HMR": record.hmr,
       }));
 
       const worksheet = XLSX.utils.json_to_sheet(exportData);

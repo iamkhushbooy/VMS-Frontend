@@ -182,118 +182,120 @@ export function FuelEntryForm({
   };
 
   return (
-    <div className="grid grid-cols-3 gap-4 p-4 border mt-2 rounded-lg bg-white/80">
-      {/* Registration Number Field */}
-      <div onMouseDown={onVehicleFieldClick}>
-        <Label>Reg No</Label>
-        <ReusableCombobox
-          options={vehicleOptions}
-          value={newEntry.vehicle || ""}
-          onValueChange={(v: string) =>
-            setNewEntry((p) => ({
-              ...p,
-              vehicle: v,
-              registrationName: v,
-            }))
-          }
-          placeholder="Select vehicle"
-          searchPlaceholder="Search vehicle..."
-        />
-      </div>
-
-      {/* Date Field */}
-      <div>
-        <Label>Date</Label>
-        <CustomDatePicker
-          value={newEntry.date || ""}
-          onChange={(dateStr) =>
-            setNewEntry((p) => ({ ...p, date: dateStr }))
-          }
-        />
-      </div>
-
-      {/* Fuel Quantity Field */}
-      <div>
-        <Label>Fuel Qty (Ltrs)</Label>
-        <Input
-          type="number"
-          placeholder="Enter fuel qty"
-          min="0"
-          onKeyDown={(e) => {
-            if (e.key === '-' || e.key === 'e' || e.key === 'E') {
-              e.preventDefault();
+    <div className="bg-slate-100/50 p-5 rounded-lg border border-slate-100 border-red">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+        {/* Registration Number Field */}
+        <div onMouseDown={onVehicleFieldClick}>
+          <Label>Reg No</Label>
+          <ReusableCombobox
+            options={vehicleOptions}
+            value={newEntry.vehicle || ""}
+            onValueChange={(v: string) =>
+              setNewEntry((p) => ({
+                ...p,
+                vehicle: v,
+                registrationName: v,
+              }))
             }
-          }}
-          value={newEntry.fuel_qty_in_ltrs === undefined || newEntry.fuel_qty_in_ltrs === 0 ? "" : newEntry.fuel_qty_in_ltrs}
-          onChange={(e) => {
-            const val = e.target.value;
-            setNewEntry((p) => ({
-              ...p,
-              fuel_qty_in_ltrs: val === "" ? undefined : Number(val),
-            }))
-          }}
-        />
-      </div>
+            placeholder="Select vehicle"
+            searchPlaceholder="Search vehicle..."
+          />
+        </div>
 
-      {/* HMR/KMs Field */}
-      <div>
-        <Label>HMR</Label>
-        <Input
-          type="number"
-          placeholder="Enter HMR"
-          min="0"
-          onKeyDown={(e) => {
-            if (e.key === '-' || e.key === 'e' || e.key === 'E') {
-              e.preventDefault();
+        {/* Date Field */}
+        <div>
+          <Label>Date</Label>
+          <CustomDatePicker
+            value={newEntry.date || ""}
+            onChange={(dateStr) =>
+              setNewEntry((p) => ({ ...p, date: dateStr }))
             }
-          }}
-          value={newEntry.current_hmrkms === undefined || newEntry.current_hmrkms === 0 ? "" : newEntry.current_hmrkms}
-          onChange={(e) => {
-            const val = e.target.value;
-            setNewEntry((p) => ({
-              ...p,
-              current_hmrkms: val === "" ? undefined : Number(val),
-            }))
-          }}
+          />
+        </div>
+
+        {/* Fuel Quantity Field */}
+        <div>
+          <Label>Fuel Qty (Ltrs)</Label>
+          <Input
+            type="number"
+            placeholder="Enter fuel qty"
+            min="0"
+            onKeyDown={(e) => {
+              if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                e.preventDefault();
+              }
+            }}
+            value={newEntry.fuel_qty_in_ltrs === undefined || newEntry.fuel_qty_in_ltrs === 0 ? "" : newEntry.fuel_qty_in_ltrs}
+            onChange={(e) => {
+              const val = e.target.value;
+              setNewEntry((p) => ({
+                ...p,
+                fuel_qty_in_ltrs: val === "" ? undefined : Number(val),
+              }))
+            }}
+          />
+        </div>
+
+        {/* HMR/KMs Field */}
+        <div>
+          <Label>HMR</Label>
+          <Input
+            type="number"
+            placeholder="Enter HMR"
+            min="0"
+            onKeyDown={(e) => {
+              if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                e.preventDefault();
+              }
+            }}
+            value={newEntry.current_hmrkms === undefined || newEntry.current_hmrkms === 0 ? "" : newEntry.current_hmrkms}
+            onChange={(e) => {
+              const val = e.target.value;
+              setNewEntry((p) => ({
+                ...p,
+                current_hmrkms: val === "" ? undefined : Number(val),
+              }))
+            }}
+          />
+        </div>
+
+        {/* Fuel Consumption Field */}
+        <div>
+          <Label>Fuel Consumption</Label>
+          <Input
+            type="number"
+            placeholder="Enter fuel consumption"
+            min="0"
+            onKeyDown={(e) => {
+              if (e.key === '-' || e.key === 'e' || e.key === 'E') {
+                e.preventDefault();
+              }
+            }}
+            value={newEntry.fuel_consumption === undefined || newEntry.fuel_consumption === 0 ? "" : newEntry.fuel_consumption}
+            onChange={(e) => {
+              const val = e.target.value;
+              setNewEntry((p) => ({
+                ...p,
+                fuel_consumption: val === "" ? undefined : Number(val),
+              }))
+            }}
+          />
+        </div>
+
+        {/* Add Button */}
+        <div className="flex items-end">
+          <Button onClick={validateAndAdd} className="w-full">
+            <Plus className="w-4 h-4 mr-2" /> Add Entry
+          </Button>
+        </div>
+        <CustomAlert
+          visible={alertState.visible}
+          title={alertState.title}
+          message={alertState.message}
+          buttons={alertState.buttons}
+          onClose={closeAlert}
         />
       </div>
-
-      {/* Fuel Consumption Field */}
-      <div>
-        <Label>Fuel Consumption</Label>
-        <Input
-          type="number"
-          placeholder="Enter fuel consumption"
-          min="0"
-          onKeyDown={(e) => {
-            if (e.key === '-' || e.key === 'e' || e.key === 'E') {
-              e.preventDefault();
-            }
-          }}
-          value={newEntry.fuel_consumption === undefined || newEntry.fuel_consumption === 0 ? "" : newEntry.fuel_consumption}
-          onChange={(e) => {
-            const val = e.target.value;
-            setNewEntry((p) => ({
-              ...p,
-              fuel_consumption: val === "" ? undefined : Number(val),
-            }))
-          }}
-        />
       </div>
-
-      {/* Add Button */}
-      <div className="flex items-end">
-        <Button onClick={validateAndAdd} className="w-full">
-          <Plus className="w-4 h-4 mr-2" /> Add Entry
-        </Button>
-      </div>
-      <CustomAlert
-        visible={alertState.visible}
-        title={alertState.title}
-        message={alertState.message}
-        buttons={alertState.buttons}
-        onClose={closeAlert}
-      />
-    </div>
-  )
+      )
 }

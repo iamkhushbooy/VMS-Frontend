@@ -1,5 +1,4 @@
 "use client"
-
 import { useState, useEffect, useCallback } from "react"
 import {
   Table,
@@ -14,7 +13,7 @@ import { Input } from "@/components/ui/input"
 import { Search, Loader2, Download } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useRouter } from "next/navigation"
-
+import axios from "axios"
 import {
   Pagination,
   PaginationContent,
@@ -30,12 +29,19 @@ import { AlertButton } from "../alert/types"
 import * as XLSX from 'xlsx'; 
 import { saveAs } from 'file-saver';
 
-interface RefuelingRecord {
+export interface RefuelingRecord {
   name: string
   date: string
+  company: string
+  source_warehouse: string
+  cost_center: string
   issuer_name: string
   fuel_item: string
-  company: string
+  registration_no: string
+  current_hmrkms: string
+  fuel_qty_in_ltrs: string
+  fuel_consumption: string
+  remarks: string
   docstatus: 0 | 1 | 2
 }
 
@@ -93,55 +99,99 @@ export function RefuelingTable({
   };
 
   const router = useRouter()
+  // const fetchFrappeData = useCallback(async () => {
+  //   setIsLoading(true)
+  //   try {
+  //     const fieldsToFetch = [
+  //       "name",
+  //       "issuer_name",
+  //       "fuel_item",
+  //       "company",
+  //       "date",
+  //       "docstatus",
+  //     ]
+  //     const fieldsParam = encodeURIComponent(JSON.stringify(fieldsToFetch))
+  //     const url = `${getApiUrl(
+  //       config.api.resource(DOCTYPE_NAME),
+  //     )}?fields=${fieldsParam}&order_by=modified desc&limit_page_length=2000`
+
+  //     const response = await fetch(url, { credentials: "include" })
+
+  //     if (response.status === 401) {
+  //       showAlert(
+  //         "Session Expired",
+  //         "Your session has timed out. Please log in again to continue.",
+  //         [{ text: "Log In", style: "default", onPress: () => router.push('/login') }]
+  //       );
+  //       return;
+  //     }
+
+  //     if (response.status === 403) {
+  //       showAlert(
+  //         "Permission Denied",
+  //         "You do not have the required permissions to view these records. Please contact your administrator.",
+  //         [{ text: "Close", style: "cancel" }]
+  //       );
+  //       setRecords([]);
+  //       return;
+  //     }
+
+  //     if (!response.ok) throw new Error(`Frappe API Error: ${response.status}`)
+
+  //     const result = await response.json()
+  //     setRecords(result.data || [])
+  //     setSelectedNames([])
+  //   } catch (error) {
+  //     console.error("Error fetching data from Frappe:", error)
+  //     setRecords([])
+  //   } finally {
+  //     setIsLoading(false)
+  //   }
+  // }, [router])
   const fetchFrappeData = useCallback(async () => {
-    setIsLoading(true)
+    setIsLoading(true);
     try {
-      const fieldsToFetch = [
-        "name",
-        "issuer_name",
-        "fuel_item",
-        "company",
-        "date",
-        "docstatus",
-      ]
-      const fieldsParam = encodeURIComponent(JSON.stringify(fieldsToFetch))
-      const url = `${getApiUrl(
-        config.api.resource(DOCTYPE_NAME),
-      )}?fields=${fieldsParam}&order_by=modified desc&limit_page_length=2000`
+      const methodName = "vms.api.get_flat_refueling_data";
+      const url = `${getApiUrl(config.api.method(methodName))}`;
 
-      const response = await fetch(url, { credentials: "include" })
+      const response = await axios.get(url, { 
+        withCredentials: true,
+        headers: {
+          "Accept": "application/json"
+        }
+      });
 
-      if (response.status === 401) {
-        showAlert(
-          "Session Expired",
-          "Your session has timed out. Please log in again to continue.",
-          [{ text: "Log In", style: "default", onPress: () => router.push('/login') }]
-        );
-        return;
+      // Axios automatically parses JSON to response.data
+      const result = response.data;
+      setRecords(result.message || []);
+      setSelectedNames([]);
+
+    } catch (error: any) {
+      console.error("Error fetching data from Frappe:", error);
+      
+      // Axios error handling
+      if (error.response) {
+        const status = error.response.status;
+        
+        if (status === 401) {
+          showAlert(
+            "Session Expired",
+            "Your session has timed out. Please log in again to continue.",
+            [{ text: "Log In", style: "default", onPress: () => router.push('/login') }]
+          );
+        } else if (status === 403) {
+          showAlert("Permission Denied", "You do not have the required permissions.", [{ text: "Close", style: "cancel" }]);
+        } else if (status === 417) {
+          showAlert("Backend Error (417)", "Python error in get_flat_refueling_data. Check Frappe Error Logs.", [{ text: "Close", style: "destructive" }]);
+        } else {
+          showAlert("Error", `Frappe API Error: ${status}`);
+        }
       }
-
-      if (response.status === 403) {
-        showAlert(
-          "Permission Denied",
-          "You do not have the required permissions to view these records. Please contact your administrator.",
-          [{ text: "Close", style: "cancel" }]
-        );
-        setRecords([]);
-        return;
-      }
-
-      if (!response.ok) throw new Error(`Frappe API Error: ${response.status}`)
-
-      const result = await response.json()
-      setRecords(result.data || [])
-      setSelectedNames([])
-    } catch (error) {
-      console.error("Error fetching data from Frappe:", error)
-      setRecords([])
+      setRecords([]);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }, [router])
+  }, [router]);
 
 
   useEffect(() => {
@@ -287,9 +337,6 @@ export function RefuelingTable({
       ]
     );
   };
-
-
-
   const handleExportExcel = () => {
     try {
       let dataToExport = [];
@@ -308,8 +355,15 @@ export function RefuelingTable({
         "Name": record.name,
         "Date": record.date,
         "Company": record.company,
-        "Fuel Item": record.fuel_item,
+        "Source Warehouse": record.source_warehouse,
+        "Cost Center": record.cost_center,
         "Issuer Name": record.issuer_name,
+        "Fuel Item": record.fuel_item,
+        "Registration No": record.registration_no,
+        "Current HMR/KMS": record.current_hmrkms,
+        "Fuel Qty (Ltrs)": record.fuel_qty_in_ltrs,
+        "Fuel Consumption": record.fuel_consumption,
+        "Remarks": record.remarks,
         "Status": getStatusLabel(record.docstatus),
       }));
       const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -524,3 +578,5 @@ export function RefuelingTable({
     </div>
   )
 }
+
+

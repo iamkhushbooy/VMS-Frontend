@@ -313,13 +313,13 @@ export function MaintenanceTable({ onNewLog, onSelectLog, refreshTrigger }: Main
             + New Maintenance Log
           </Button>
 
-          <Button 
+          {/* <Button 
             onClick={handleExportExcel}
             className="glow-button-pink text-white font-semibold"
           >
             <Download className="mr-2 h-4 w-4" />
             Export Excel
-          </Button>
+          </Button> */}
 
           
         </div>

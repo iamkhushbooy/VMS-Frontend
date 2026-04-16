@@ -734,7 +734,7 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
             <h3 className="font-semibold text-lg mt-6 mb-2">Fuel Entry</h3>
 
             {isEditMode && (
-              <div className="bg-slate-50 p-4 rounded-lg border mb-4">
+              <div className="bg-slate-50 p-4 rounded-lg mb-4">
                 <FuelEntryForm
                   newEntry={newEntry}
                   setNewEntry={setNewEntry}
@@ -747,7 +747,7 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
 
             <div className="rounded-md border overflow-hidden">
               <Table>
-                <TableHeader className="bg-slate-100">
+                <TableHeader>
                   <TableRow>
                     <TableHead>Reg No</TableHead>
                     <TableHead>Date</TableHead>

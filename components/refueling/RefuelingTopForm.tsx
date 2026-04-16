@@ -149,85 +149,88 @@ export function RefuelingTopForm({
   onEmployeeFieldClick,
 }: RefuelingTopFormProps) {
   return (
-    <div className="grid grid-cols-2 gap-4 p-4 border rounded-lg bg-white/80">
-      <div>
-        <Label>Date*</Label>
-        <CustomDatePicker
-          value={formData.date}
-          onChange={(newDateString) => {
-            setFormData((prev) => ({ ...prev, date: newDateString }))
-          }}
-        />
-      </div>
+    <div className="bg-slate-100/50 p-5 rounded-lg border border-slate-100">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+        <div>
+          <Label>Date*</Label>
+          <CustomDatePicker
+            value={formData.date}
+            onChange={(newDateString) => {
+              setFormData((prev) => ({ ...prev, date: newDateString }))
+            }}
+          />
+        </div>
 
-      <div>
-        <Label>Company*</Label>
-        <ReusableCombobox
-          options={companyOptions}
-          value={formData.company}
-          onValueChange={(v: string) =>
-            setFormData((p) => ({ ...p, company: v }))
-          }
-          placeholder="Select company"
-          searchPlaceholder="Search company..."
-          disabled={!isEditMode}
-        />
-      </div>
-      <div>
-        <Label>Source Warehouse*</Label>
-        <ReusableCombobox
-          options={warehouseOptions}
-          value={formData.sourceWarehouse}
-          onValueChange={(v: string) =>
-            setFormData((p) => ({ ...p, sourceWarehouse: v }))
-          }
-          placeholder="Select warehouse"
-          searchPlaceholder="Search warehouse..."
-          disabled={!isEditMode}
-        />
-      </div>
-      <div>
-        <Label>Cost Center*</Label>
-        <ReusableCombobox
-          options={costCenterOptions}
-          value={formData.costCenter}
-          onValueChange={(v: string) =>
-            setFormData((p) => ({ ...p, costCenter: v }))
-          }
-          placeholder="Select cost center"
-          searchPlaceholder="Search cost center..."
-          disabled={!isEditMode}
-        />
-      </div>
-      <div onMouseDown={onEmployeeFieldClick}>
-        <Label>Issuer Name*</Label>
+        <div>
+          <Label>Company*</Label>
+          <ReusableCombobox
+            options={companyOptions}
+            value={formData.company}
+            onValueChange={(v: string) =>
+              setFormData((p) => ({ ...p, company: v }))
+            }
+            placeholder="Select company"
+            searchPlaceholder="Search company..."
+            disabled={!isEditMode}
+          />
+        </div>
+        <div>
+          <Label>Source Warehouse*</Label>
+          <ReusableCombobox
+            options={warehouseOptions}
+            value={formData.sourceWarehouse}
+            onValueChange={(v: string) =>
+              setFormData((p) => ({ ...p, sourceWarehouse: v }))
+            }
+            placeholder="Select warehouse"
+            searchPlaceholder="Search warehouse..."
+            disabled={!isEditMode}
+          />
+        </div>
+        <div>
+          <Label>Cost Center*</Label>
+          <ReusableCombobox
+            options={costCenterOptions}
+            value={formData.costCenter}
+            onValueChange={(v: string) =>
+              setFormData((p) => ({ ...p, costCenter: v }))
+            }
+            placeholder="Select cost center"
+            searchPlaceholder="Search cost center..."
+            disabled={!isEditMode}
+          />
+        </div>
+        <div onMouseDown={onEmployeeFieldClick}>
+          <Label>Issuer Name*</Label>
 
-        <ReusableCombobox
-          options={issuerOptions}
-          value={formData.issuerName}
-          onValueChange={(v: string) => setFormData({ ...formData, issuerName: v })}
-          placeholder="Select Issuer"
-          searchPlaceholder="Search by ID or Name..."
-          displayField="combined_label"
-          isLoading={isEditMode ? false : true}
-          disabled={!isEditMode}
-        />
-      </div>
+          <ReusableCombobox
+            options={issuerOptions}
+            value={formData.issuerName}
+            onValueChange={(v: string) => setFormData({ ...formData, issuerName: v })}
+            placeholder="Select Issuer"
+            searchPlaceholder="Search by ID or Name..."
+            displayField="combined_label"
+            isLoading={isEditMode ? false : true}
+            disabled={!isEditMode}
+          />
+        </div>
 
-      <div>
-        <Label>Fuel Item Code*</Label>
-        <ItemNameCombobox
-          options={itemOptions}
-          value={formData.fuelItem}
-          onValueChange={onFuelItemSelect}
-          onSearchChange={onItemSearch}
-          isLoading={itemLoading}
-          placeholder="Select Item Code"
-          searchPlaceholder="Search by Item Code..."
-          displayField="name"
-          disabled={!isEditMode}
-        />
+        <div>
+          <Label>Fuel Item Code*</Label>
+          <ItemNameCombobox
+            options={itemOptions}
+            value={formData.fuelItem}
+            onValueChange={onFuelItemSelect}
+            onSearchChange={onItemSearch}
+            isLoading={itemLoading}
+            placeholder="Select Item Code"
+            searchPlaceholder="Search by Item Code..."
+            displayField="name"
+            disabled={!isEditMode}
+          />
+        </div>
       </div>
-    </div>
-  )
+      </div>
+      )
+     
 }
