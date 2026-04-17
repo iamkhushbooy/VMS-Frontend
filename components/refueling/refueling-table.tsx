@@ -363,7 +363,7 @@ export function RefuelingTable({
         "Current HMR/KMS": record.current_hmrkms,
         "Fuel Qty (Ltrs)": record.fuel_qty_in_ltrs,
         "Fuel Consumption": record.fuel_consumption,
-        "Remarks": record.remarks,
+        // "Remarks": record.remarks,
         "Status": getStatusLabel(record.docstatus),
       }));
       const worksheet = XLSX.utils.json_to_sheet(exportData);

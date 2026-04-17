@@ -21,13 +21,49 @@ import { AlertButton } from "../alert/types"
 import { getApiUrl, config } from "@/lib/config"
 import * as XLSX from 'xlsx'; 
 import { saveAs } from 'file-saver'; 
-interface MaintenanceLog {
+export interface MaintenanceLog {
   name: string
+  company?: string
+  warehouse?: string
   issuer_name: string
-  license_plate: string
-  status: string
+  job_cards_type?: string
   priority_level: string
-  working_employee: string[]
+  registration_no?: string
+  license_plate: string // UI backwards compatibility
+  current_odometer_value?: string
+  status: string
+  date_and_time_of_job_initiation?: string
+  date_and_time_of_job_completion?: string
+  ptw_no?: string
+  jsajratool_box_task?: string
+  house_keeping_after_shift_work?: string
+  working_employee: string[] // UI Array expect kar raha hai
+  
+  // Child 1, 2, 3
+  problem_details?: string
+  work_done_details?: string
+  pending_jobsbacklog_details?: string
+  
+  // Child 4: Vehicle Service
+  item_name?: string
+  item_group?: string
+  stock_qty?: number | string
+  qty?: number | string
+  uom?: string
+  rate?: number | string
+  expense?: number | string
+  remark?: string
+
+  // Child 5: Lube Details
+  lube_item_name?: string
+  lube_item_group?: string
+  lube_stock_qty?: number | string
+  lube_qty?: number | string
+  lube_uom?: string
+  lube_rate?: number | string
+  lube_expense?: number | string
+  lube_remark?: string
+
   docstatus: 0 | 1 | 2
 }
 
@@ -81,27 +117,99 @@ export function MaintenanceTable({ onNewLog, onSelectLog, refreshTrigger }: Main
   };
 
   const router = useRouter()
-  const fetchMaintenanceLogs = useCallback(async () => {
+  // const fetchMaintenanceLogs = useCallback(async () => {
+  //   setIsLoading(true)
+  //   try {
+  //     const url = getApiUrl(config.api.method("vms.api.get_maintenance_logs_with_details"))
+  //     const resp = await fetch(url, { credentials: "include" })
+  //     const json = await resp.json()
+
+  //     const fixed = (json.message || []).map((log: any) => ({
+  //       ...log,
+  //       docstatus: log.docstatus ?? 0,
+  //     }))
+  //     fixed.sort((a: any, b: any) => new Date(b.modified).getTime() - new Date(a.modified).getTime())
+  //     setLogs(fixed)
+  //     setSelectedNames([])
+  //   } catch (e) {
+  //     console.error(e)
+  //     setLogs([])
+  //   } finally {
+  //     setIsLoading(false)
+  //   }
+  // }, [])
+const fetchMaintenanceLogs = useCallback(async () => {
     setIsLoading(true)
     try {
-      const url = getApiUrl(config.api.method("vms.api.get_maintenance_logs_with_details"))
+      const url = getApiUrl(config.api.method("vms.api.get_vehicle_log_master_data"))
       const resp = await fetch(url, { credentials: "include" })
-      const json = await resp.json()
+      
+      if (resp.status === 401) {
+        showAlert(
+          "Session Expired",
+          "Your session has timed out. Please log in again to continue.",
+          [{ text: "Log In", style: "default", onPress: () => router.push('/login') }]
+        );
+        return;
+      }
 
-      const fixed = (json.message || []).map((log: any) => ({
-        ...log,
-        docstatus: log.docstatus ?? 0,
-      }))
-      fixed.sort((a: any, b: any) => new Date(b.modified).getTime() - new Date(a.modified).getTime())
+      if (resp.status === 403) {
+        showAlert("Permission Denied", "You do not have the required permissions.", [{ text: "Close", style: "cancel" }]);
+        setLogs([]);
+        return;
+      }
+      if (!resp.ok) throw new Error(`Frappe API Error: ${resp.status}`)
+      
+      const json = await resp.json()
+      console.log("Backend Response:", json);
+      
+      let rawData = [];
+      if (json.message && json.message.status === "error") {
+        showAlert("Backend Error", json.message.message);
+        setLogs([]);
+        return;
+      }
+      
+      if (Array.isArray(json.message)) {
+        rawData = json.message;
+      } 
+      else if (json.message && json.message.message && Array.isArray(json.message.message)) {
+        rawData = json.message.message;
+      } else {
+        console.warn("No valid array found in response");
+      }
+
+      const fixed = rawData.map((log: any) => {
+        let employeesArray: string[] = [];
+        
+        // FIX 1: Backend ab 'employee' bhej raha hai 'working_employee' nahi
+        const empData = log.employee; 
+
+        if (Array.isArray(empData)) {
+          employeesArray = empData;
+        } else if (typeof empData === "string" && empData.trim() !== "") {
+          employeesArray = empData.split(",").map((s: string) => s.trim()).filter(Boolean);
+        }
+
+        return {
+          ...log,
+          // FIX 2: docstatus ab properly map hoga kyunki SQL se aayega
+          docstatus: log.docstatus ?? 0,
+          // FIX 3: Backend directly 'license_plate' bhej raha hai
+          license_plate: log.license_plate || "",
+          working_employee: employeesArray,
+        };
+      })
+      
       setLogs(fixed)
       setSelectedNames([])
     } catch (e) {
-      console.error(e)
+      console.error("Error fetching logs:", e)
       setLogs([])
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [router])
 
   useEffect(() => {
     fetchMaintenanceLogs()
@@ -237,43 +345,90 @@ export function MaintenanceTable({ onNewLog, onSelectLog, refreshTrigger }: Main
   };
 
 
-  const handleExportExcel = () => {
+const handleExportExcel = () => {
     try {
       let dataToExport = [];
 
+      // Determine which data to export (selected or all filtered)
       if (selectedNames.length > 0) {
         dataToExport = logs.filter((log) => selectedNames.includes(log.name));
       } else {
-        dataToExport = filtered;
+        dataToExport = filtered; // Assumes 'filtered' is defined in your component
       }
 
       if (dataToExport.length === 0) {
         showAlert("No Data", "Don't have data for export.");
         return;
       }
+
+      // Map the data to include all new fields
       const exportData = dataToExport.map((log) => ({
-        "ID / Name": log.name,
-        "Issuer Name": log.issuer_name,
-        "Registration No": log.license_plate,
-        "Status": log.status,
-        "Priority": log.priority_level,
-        "Employees": log.working_employee ? log.working_employee.join(", ") : "",
-        "Doc Status": getDocStatusLabel(log.docstatus),
+        // --- Parent DocType Fields ---
+        "Log ID / Name": log.name || "",
+        "Company": log.company || "",
+        "Warehouse": log.warehouse || "",
+        "Issuer Name": log.issuer_name || "",
+        "Job Cards Type": log.job_cards_type || "",
+        "Priority Level": log.priority_level || "",
+        "Registration No (License Plate)": log.license_plate || "",
+        "Current Odometer Value": log.current_odometer_value || "",
+        "Status": log.status || "",
+        "Job Initiation Time": log.date_and_time_of_job_initiation || "",
+        "Job Completion Time": log.date_and_time_of_job_completion || "",
+        "PTW No": log.ptw_no || "",
+        "JSA/JRA/Tool Box Task": log.jsajratool_box_task || "",
+        "House Keeping After Shift": log.house_keeping_after_shift_work || "",
+        "Working Employees": Array.isArray(log.working_employee) ? log.working_employee.join(", ") : "",
+        "Doc Status": getDocStatusLabel(log.docstatus || 0),
+
+        // --- Child 1: Problem Details ---
+        "Problem Details": log.problem_details || "",
+
+        // --- Child 2: Work Done Details ---
+        "Work Done Details": log.work_done_details || "",
+
+        // --- Child 3: Pending Jobs / Backlog ---
+        "Pending Jobs/Backlog": log.pending_jobsbacklog_details || "",
+
+        // --- Child 4: Vehicle Service (Parts) ---
+        "Parts Item Name": log.item_name || "",
+        "Parts Item Group": log.item_group || "",
+        "Parts Stock Qty": log.stock_qty || "",
+        "Parts Qty": log.qty || "",
+        "Parts UOM": log.uom || "",
+        "Parts Rate": log.rate || "",
+        "Parts Expense": log.expense || "",
+        "Parts Remark": log.remark || "",
+
+        // --- Child 5: Lube Details ---
+        "Lube Item Name": log.lube_item_name || "",
+        "Lube Item Group": log.lube_item_group || "",
+        "Lube Stock Qty": log.lube_stock_qty || "",
+        "Lube Qty": log.lube_qty || "",
+        "Lube UOM": log.lube_uom || "",
+        "Lube Rate": log.lube_rate || "",
+        "Lube Expense": log.lube_expense || "",
+        "Lube Remark": log.lube_remark || "",
       }));
 
+      // Create Worksheet and Workbook
       const worksheet = XLSX.utils.json_to_sheet(exportData);
       const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Vechicle Log Master");
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Vehicle Log Master");
 
+      // Generate File Buffer
       const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
       const data = new Blob([excelBuffer], {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8",
       });
+
+      // Save File
       const fileName = `Maintenance_Logs_${new Date().toISOString().split("T")[0]}.xlsx`;
       saveAs(data, fileName);
+      
     } catch (error) {
       console.error("Export Error:", error);
-      showAlert("Export Failed", "There is an issue generating excel file.");
+      showAlert("Export Failed", "There is an issue generating the excel file.");
     }
   };
   return (
@@ -313,13 +468,13 @@ export function MaintenanceTable({ onNewLog, onSelectLog, refreshTrigger }: Main
             + New Maintenance Log
           </Button>
 
-          {/* <Button 
+          <Button 
             onClick={handleExportExcel}
             className="glow-button-pink text-white font-semibold"
           >
             <Download className="mr-2 h-4 w-4" />
             Export Excel
-          </Button> */}
+          </Button>
 
           
         </div>
