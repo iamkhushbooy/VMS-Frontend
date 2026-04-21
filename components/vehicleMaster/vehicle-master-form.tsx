@@ -203,14 +203,11 @@ export function VehicleMasterModal({ isOpen, onClose, record }: VehicleModalProp
     }
     const maxSize = 2 * 1024 * 1024;
     if (file.size > maxSize) {
-      showAlert("Error", " Image size should be less than 2MB.");
+      showAlert("Error", "Image size should be less than 2MB.");
       e.target.value = "";
       return;
     }
-
-    // Agar validation pass ho jaye, toh aage ka logic (e.g., state update)
-    console.log("File accepted:", file.name);
-    // setVehicleImage(file); // Aapka state update logic yahan aayega
+    setVehicleImage(file);
   };
   const uploadImageToFrappe = async (file: File) => {
     const csrfRes = await fetch(getApiUrl(config.api.getCsrfToken), {

@@ -40,6 +40,7 @@ export interface UtilizationRecord {
   vehicle: string
   status: string
   hmr: number
+  creation: string;
 }
 
 interface UtilizationTableProps {
@@ -94,9 +95,9 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
 
     try {
       const fieldsToFetch = [
-        "name", "date", "supervisor_name", "from_date", "to_date", 
-        "company", "warehouse", "cost_center", "plant", "shift", 
-        "time", "vehicle", "status", "hmr"
+        "name", "date", "supervisor_name", "from_date", "to_date",
+        "company", "warehouse", "cost_center", "plant", "shift",
+        "time", "vehicle", "status", "hmr", "creation"
       ]
       const fieldsParam = encodeURIComponent(JSON.stringify(fieldsToFetch))
       const url = `${getApiUrl(config.api.resource(DOCTYPE_NAME))}?fields=${fieldsParam}&order_by=modified desc&limit_page_length=None`
@@ -115,6 +116,7 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
       if (!response.ok) throw new Error(`Frappe API Error: ${response.status}`)
 
       const result = await response.json()
+      console.log("Fetched data from Frappe:", result)
       const data = result.data || []
       setRecords(data)
       setSelectedNames([])
@@ -385,11 +387,11 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
                   }
                 />
               </TableHead>
-
               <TableHead className="text-primary font-semibold">Name</TableHead>
               <TableHead className="text-primary font-semibold">Date</TableHead>
               <TableHead className="text-primary font-semibold">Shift</TableHead>
               <TableHead className="text-primary font-semibold">Vehicle</TableHead>
+              <TableHead className="text-primary font-semibold">Created On</TableHead>
               <TableHead className="text-primary font-semibold">HMR</TableHead>
               <TableHead className="text-primary font-semibold">Plant</TableHead>
               <TableHead className="text-primary font-semibold">Run Time</TableHead>
@@ -399,7 +401,7 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8">
+                <TableCell colSpan={9} className="text-center py-8">
                   <Loader2 className="mr-2 h-6 w-6 animate-spin inline text-primary" />
                   <span className="text-muted-foreground">Loading records...</span>
                 </TableCell>
@@ -435,6 +437,15 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
                     </span>
                   </TableCell>
                   <TableCell className="font-mono">{record.vehicle}</TableCell>
+                  <TableCell className="font-mono">
+                    {record.creation ? new Date(record.creation).toLocaleString('en-GB', {
+                      day: '2-digit',
+                      month: 'short',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    }) : "-"}
+                  </TableCell>
                   <TableCell>{record.hmr}</TableCell>
                   <TableCell>{record.plant}</TableCell>
                   <TableCell>

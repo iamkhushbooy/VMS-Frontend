@@ -63,8 +63,9 @@ export interface MaintenanceLog {
   lube_rate?: number | string
   lube_expense?: number | string
   lube_remark?: string
-
   docstatus: 0 | 1 | 2
+
+  creation: string
 }
 
 interface MaintenanceTableProps {
@@ -491,12 +492,13 @@ const handleExportExcel = () => {
                   onCheckedChange={(checked) => handleToggleSelectAll(checked === true)}
                 />
               </TableHead>
-              <TableHead>Issuer Name</TableHead>
-              <TableHead>Registration No</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Priority</TableHead>
-              <TableHead>Employees</TableHead>
-              <TableHead>Doc Status</TableHead>
+              <TableHead  className="text-primary font-semibold">Issuer Name</TableHead>
+              <TableHead  className="text-primary font-semibold">Registration No</TableHead>
+              <TableHead className="text-primary font-semibold">Status</TableHead>
+              <TableHead className="text-primary font-semibold">Created On</TableHead>
+              <TableHead className="text-primary font-semibold">Priority</TableHead>
+              <TableHead className="text-primary font-semibold">Employees</TableHead>
+              <TableHead className="text-primary font-semibold">Doc Status</TableHead>
             </TableRow>
           </TableHeader>
 
@@ -534,6 +536,15 @@ const handleExportExcel = () => {
                   <TableCell>{log.issuer_name}</TableCell>
                   <TableCell>{log.license_plate}</TableCell>
                   <TableCell>{log.status}</TableCell>
+                   <TableCell className="font-mono">
+                    {log.creation ? new Date(log.creation).toLocaleString('en-GB', {
+                      day: '2-digit',
+                      month: 'short',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    }) : "-"}
+                  </TableCell>
                   <TableCell>{log.priority_level}</TableCell>
                   <TableCell>{log.working_employee.join(", ")}</TableCell>
 

@@ -43,6 +43,7 @@ export interface RefuelingRecord {
   fuel_consumption: string
   remarks: string
   docstatus: 0 | 1 | 2
+  creation: string;
 }
 
 interface RefuelingTableProps {
@@ -448,6 +449,7 @@ export function RefuelingTable({
               <TableHead className="text-primary font-semibold">Name</TableHead>
               <TableHead className="text-primary font-semibold">Date</TableHead>
               <TableHead className="text-primary font-semibold">Company</TableHead>
+               <TableHead className="text-primary font-semibold">Created On</TableHead>
               <TableHead className="text-primary font-semibold">Fuel Item</TableHead>
               <TableHead className="text-primary font-semibold">Issuer Name</TableHead>
               <TableHead className="text-primary font-semibold">Status</TableHead>
@@ -485,6 +487,15 @@ export function RefuelingTable({
                   <TableCell>{record.name}</TableCell>
                   <TableCell>{record.date}</TableCell>
                   <TableCell>{record.company}</TableCell>
+                   <TableCell className="font-mono">
+                    {record.creation ? new Date(record.creation).toLocaleString('en-GB', {
+                      day: '2-digit',
+                      month: 'short',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    }) : "-"}
+                  </TableCell>
                   <TableCell>{record.fuel_item}</TableCell>
                   <TableCell>{record.issuer_name}</TableCell>
 

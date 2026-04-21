@@ -44,11 +44,25 @@ export interface VehicleRecord {
   license_plate: string
   make: string
   model: string
+  image: string | null
+  last_odometer: number
   warehouse: string
   employee: string
+  chassis_no: number
+  acquisition_date: string
+  vehicle_value: number
+  location: string
+  insurance_company: string
+  policy_no: number
+  start_date: string
+  end_date: string
   fuel_type: string
-  last_odometer: number
-  image: string | null
+  color: string
+  uom: string
+  carbon_check_date: string
+  wheels: string
+  doors: string
+  creation: string
 }
 
 interface VehicleTableProps {
@@ -93,8 +107,7 @@ export default function VehicleMasterTable({ onAddVehicle, onSelectVehicle }: Ve
     setIsLoading(true)
     try {
       const fieldsToFetch = [
-        "name", "license_plate", "make", "model",
-        "warehouse", "employee", "fuel_type", "last_odometer", "image"
+        "*"
       ]
 
       const params = new URLSearchParams({
@@ -249,13 +262,28 @@ export default function VehicleMasterTable({ onAddVehicle, onSelectVehicle }: Ve
 
       // 2. Data prepare करें (Vehicle Master टेबल के हिसाब से कॉलम)
       const exportData = dataToExport.map((record) => ({
-        "License Plate": record.license_plate,
-        "Make": record.make,
-        "Model": record.model,
-        "Warehouse": record.warehouse,
-        "Employee": record.employee,
-        "Fuel Type": record.fuel_type,
-        "Odometer": record.last_odometer,
+        "ID / Name": record.name || "",
+        "License Plate": record.license_plate || "",
+        "Make": record.make || "",
+        "Model": record.model || "",
+        // "Image URL": record.image || "",
+        "Last Odometer": record.last_odometer || 0,
+        "Warehouse": record.warehouse || "",
+        "Employee": record.employee || "",
+        "Chassis No": record.chassis_no || "",
+        "Acquisition Date": record.acquisition_date || "",
+        "Vehicle Value": record.vehicle_value || 0,
+        "Location": record.location || "",
+        "Insurance Company": record.insurance_company || "",
+        "Policy No": record.policy_no || "",
+        "Policy Start Date": record.start_date || "",
+        "Policy End Date": record.end_date || "",
+        "Fuel Type": record.fuel_type || "",
+        "UOM": record.uom || "",
+        "Color": record.color || "",
+        "Carbon Check Date": record.carbon_check_date || "",
+        "Wheels": record.wheels || "",
+        "Doors": record.doors || "",
       }));
 
       // 3. Excel Workbook बनाएं
@@ -313,13 +341,13 @@ export default function VehicleMasterTable({ onAddVehicle, onSelectVehicle }: Ve
           <Button onClick={onAddVehicle} className="cursor-pointer glow-button-pink text-white">
             + Add Vehicle
           </Button>
-          {/* <Button
+          <Button
             onClick={handleExportExcel}
             className="glow-button-pink text-white font-semibold"
           >
             <Download className="mr-2 h-4 w-4" />
             Export Excel
-          </Button> */}
+          </Button>
         </div>
 
       </div>
@@ -336,13 +364,14 @@ export default function VehicleMasterTable({ onAddVehicle, onSelectVehicle }: Ve
                   />
                 </TableHead>
 
-                <TableHead>Image</TableHead>
-                <TableHead>License Plate</TableHead>
-                <TableHead>Make & Model</TableHead>
-                <TableHead>Warehouse</TableHead>
-                <TableHead>Employee</TableHead>
-                <TableHead>Fuel Type</TableHead>
-                <TableHead className="text-right">Odometer</TableHead>
+                <TableHead className="text-primary font-semibold">Image</TableHead>
+                <TableHead className="text-primary font-semibold">License Plate</TableHead>
+                {/* <TableHead className="text-primary font-semibold">Make & Model</TableHead> */}
+                <TableHead className="text-primary font-semibold">Warehouse</TableHead>
+                <TableHead className="text-primary font-semibold">Created On</TableHead>
+                <TableHead className="text-primary font-semibold">Employee</TableHead>
+                <TableHead className="text-primary font-semibold">Fuel Type</TableHead>
+                <TableHead className="text-primary font-semibold">Odometer</TableHead>
               </TableRow>
             </TableHeader>
 
@@ -398,11 +427,20 @@ export default function VehicleMasterTable({ onAddVehicle, onSelectVehicle }: Ve
                     </TableCell>
 
                     <TableCell className="font-medium">{record.license_plate}</TableCell>
-                    <TableCell>{record.make} {record.model}</TableCell>
+                    {/* <TableCell>{record.make} {record.model}</TableCell> */}
                     <TableCell>{record.warehouse}</TableCell>
+                    <TableCell className="font-mono">
+                                        {record.creation ? new Date(record.creation).toLocaleString('en-GB', {
+                                          day: '2-digit',
+                                          month: 'short',
+                                          year: 'numeric',
+                                          hour: '2-digit',
+                                          minute: '2-digit'
+                                        }) : "-"}
+                                      </TableCell>
                     <TableCell>{record.employee}</TableCell>
                     <TableCell>{record.fuel_type}</TableCell>
-                    <TableCell className="text-right">{record.last_odometer}</TableCell>
+                    <TableCell>{record.last_odometer}</TableCell>
                   </TableRow>
                 ))
               ) : (
