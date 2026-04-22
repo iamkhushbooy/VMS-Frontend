@@ -328,7 +328,7 @@ export function GeneralDetailsSection({
             isLoading={isBusy}
           />
         </div>
-        
+
         {/* Updated: Issuer Name is now a simple read-only input field */}
         <div>
           <Label htmlFor="issuer_name" className="text-foreground mb-1">Issuer Name*</Label>
@@ -426,6 +426,7 @@ export function GeneralDetailsSection({
                 target: { name: 'date_and_time_of_job_initiation', value: newDateString }
               } as unknown as React.ChangeEvent<HTMLInputElement>)
             }}
+            showTime={true}
           />
         </div>
 
@@ -433,12 +434,13 @@ export function GeneralDetailsSection({
           <div>
             <Label htmlFor="date_and_time_of_job_completion" className="text-foreground">Date and Time of Job Completion</Label>
             <CustomDatePicker
-               value={formData.date_and_time_of_job_completion} 
+              value={formData.date_and_time_of_job_completion}
               onChange={(newDateString) => {
                 handleInputChange({
                   target: { name: 'date_and_time_of_job_completion', value: newDateString }
                 } as unknown as React.ChangeEvent<HTMLInputElement>)
               }}
+              showTime={true}
             />
           </div>
         }

@@ -206,6 +206,7 @@ export function FuelEntryForm({
         <div>
           <Label>Date</Label>
           <CustomDatePicker
+           showTime={true} 
             value={newEntry.date || ""}
             onChange={(dateStr) =>
               setNewEntry((p) => ({ ...p, date: dateStr }))

@@ -6,6 +6,8 @@ import { Loader2 } from "lucide-react"
 import { ReusableCombobox } from "./ReusableCombobox"
 import { on } from "events"
 import { CustomDatePicker } from "@/components/ui/CustomDatePicker"
+import { Button } from "@/components/ui/button"
+import { Plus, X } from "lucide-react"
 interface FrappeDoc {
   name: string
   [key: string]: any
@@ -24,9 +26,10 @@ interface UtilizationLogEventFormProps {
   companyOptions: FrappeDoc[]
   shiftOptions: { name: string }[]
   statusOptions: { name: string }[]
-
   isBusy: boolean
   isLoading: boolean
+  onAddRemark: (remark: string) => void;
+  onRemoveRemark: (index: number) => void;
 }
 
 export function UtilizationLogEventForm({
@@ -43,9 +46,11 @@ export function UtilizationLogEventForm({
   statusOptions,
   isBusy,
   isLoading,
-  onEmployeeFieldClick
+  onEmployeeFieldClick,
+  onAddRemark, 
+  onRemoveRemark
 }: UtilizationLogEventFormProps) {
-  
+
   return (
     <div className="p-6 pt-2 space-y-6 overflow-y-auto max-h-[80vh]">
       {isLoading && (
@@ -82,25 +87,28 @@ export function UtilizationLogEventForm({
               isLoading={isBusy}
             />
           </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="fromDate" className="text-sm font-medium text-gray-700">From Date & Time</Label>
-                <CustomDatePicker
-                  value={formData.fromDate}
-                  onChange={(newDateString) => {
-                    onInputChange({ target: { name: 'fromDate', value: newDateString } })
-                  }}
-                />
-              </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="toDate" className="text-sm font-medium text-gray-700">To Date & Time</Label>
-                <CustomDatePicker
-                  value={formData.toDate}
-                  onChange={(newDateString) => {
-                    onInputChange({ target: { name: 'toDate', value: newDateString } })
-                  }}
-                />
-              </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="fromDate" className="text-sm font-medium text-gray-700">From Date & Time</Label>
+            <CustomDatePicker
+              value={formData.fromDate}
+              showTime={true} 
+              onChange={(newDateString) => {
+                onInputChange({ target: { name: 'fromDate', value: newDateString } })
+              }}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="toDate" className="text-sm font-medium text-gray-700">To Date & Time</Label>
+            <CustomDatePicker
+              value={formData.toDate}
+              showTime={true} 
+              onChange={(newDateString) => {
+                onInputChange({ target: { name: 'toDate', value: newDateString } })
+              }}
+            />
+          </div>
 
           <div className="space-y-1.5">
             <Label htmlFor="warehouse" className="text-sm font-medium text-gray-700">Company</Label>
@@ -165,44 +173,17 @@ export function UtilizationLogEventForm({
               isLoading={isBusy}
             />
           </div>
+
           <div className="space-y-1.5">
-            <Label className="text-sm font-medium text-gray-700">Utilization Run Time (HH:MM)</Label>
-            <div className="flex items-center gap-2">
-              {/* Hours Box */}
-              <div className="flex-1 relative">
-                <Input
-                  name="timeHours"
-                  type="number"
-                  min="0"
-                  placeholder="hr"
-                  value={formData.timeHours}
-                  onChange={onInputChange}
-                  onKeyDown={(e) => ["e", "E", "+", "-", "."].includes(e.key) && e.preventDefault()}
-                  className="bg-white pr-7"
-                />
-              </div>
-
-              <span className="font-bold text-gray-500">:</span>
-
-              {/* Minutes Box */}
-              <div className="flex-1 relative">
-                <Input
-                  name="timeMinutes"
-                  type="number"
-                  min="0"
-                  max="59"
-                  placeholder="min"
-                  value={formData.timeMinutes}
-                  onChange={(e) => {
-                    const val = parseInt(e.target.value);
-                    if (val > 59) return;
-                    onInputChange(e);
-                  }}
-                  onKeyDown={(e) => ["e", "E", "+", "-", "."].includes(e.key) && e.preventDefault()}
-                  className="bg-white pr-8"
-                />
-              </div>
-            </div>
+            <Label className="text-sm font-medium text-gray-700">Utilization Run Time</Label>
+            <Input
+              type="text"
+              // Ye automatically "Xh Ym" format me dikhayega (e.g., "2h 30m")
+              value={`${formData.timeHours || "0"}h ${formData.timeMinutes || "0"}m`}
+              readOnly
+              tabIndex={-1}
+              className="bg-gray-100 cursor-not-allowed text-gray-600 focus-visible:ring-0 w-full"
+            />
           </div>
 
         </div>
@@ -260,6 +241,61 @@ export function UtilizationLogEventForm({
             />
           </div>
 
+         <div className="space-y-3 md:col-span-3 border-t pt-4 mt-2">
+  <Label className="text-sm font-semibold text-gray-800">Remarks List</Label>
+  
+  {/* Input Area with Add Button */}
+  <div className="flex gap-2">
+    <Input
+      id="currentRemark"
+      placeholder="Type a remark..."
+      className="bg-white border-gray-200"
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const val = e.currentTarget.value;
+          if(val) {
+            onAddRemark(val);
+            e.currentTarget.value = "";
+          }
+        }
+      }}
+    />
+    <Button 
+      type="button" 
+      variant="secondary"
+      className="bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200"
+      onClick={(e) => {
+        const input = document.getElementById('currentRemark') as HTMLInputElement;
+        if (input.value) {
+          onAddRemark(input.value);
+          input.value = "";
+        }
+      }}
+    >
+      <Plus className="w-4 h-4 mr-1" /> Add
+    </Button>
+  </div>
+
+  {/* Display Added Remarks */}
+  <div className="flex flex-wrap gap-2 mt-3">
+    {formData.remarks && formData.remarks.map((item: string, index: number) => (
+      <div 
+        key={index} 
+        className="flex items-center gap-2 bg-slate-100 text-slate-700 px-3 py-1.5 rounded-md border border-slate-200 text-sm animate-in fade-in zoom-in duration-200"
+      >
+        <span>{item}</span>
+        <button
+          type="button"
+          onClick={() => onRemoveRemark(index)}
+          className="text-slate-400 hover:text-red-500 transition-colors"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    ))}
+  </div>
+</div>
         </div>
       </div>
     </div>

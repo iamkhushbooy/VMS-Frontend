@@ -162,7 +162,12 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
         {/* Footer */}
         <div className="mt-auto p-4 border-t border-gray-700">
-          <p className="text-sm text-gray-500">VMS &copy; 2025</p>
+          {/* <p className="text-sm text-gray-500">VMS &copy; 2025</p> */}
+            <p className="text-sm text-gray-500">Design and Developed by
+              <Link href="https://octavision.in" target="_blank" rel="noopener noreferrer" className="text-cyan-500">
+                {" "} Octavision
+              </Link>
+            </p>
         </div>
       </aside>
     </>

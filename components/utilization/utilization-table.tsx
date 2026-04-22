@@ -132,34 +132,46 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
     fetchFrappeData()
   }, [fetchFrappeData])
 
-  // const filteredRecords = records.filter(
-  //   (r) =>
-  //     r.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-  //     r.vehicle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-  //     r.plant?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-  //     r.status?.toLowerCase().includes(searchTerm.toLowerCase())||
-  //     r.date?.toLowerCase().includes(searchTerm.toLowerCase())
-  // )
+ const filteredRecords = useMemo(() => {
+  const filtered = records.filter((r) => {
+    const search = searchTerm.toLowerCase();
 
-  const filteredRecords = useMemo(() => {
-    const filtered = records.filter(
-      (r) =>
-        r.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        r.vehicle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        r.plant?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        r.status?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        r.date?.toLowerCase().includes(searchTerm.toLowerCase())
+    // 1. Creation Date ko format karein (Jaisa table mein dikhta hai: "22 Apr 2026...")
+    const formattedCreation = r.creation 
+      ? new Date(r.creation).toLocaleString('en-GB', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        }).toLowerCase() 
+      : "";
+
+    // 2. Normal Date ko bhi format karein
+    const formattedDate = r.date 
+      ? new Date(r.date).toLocaleDateString('en-GB', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric'
+        }).toLowerCase() 
+      : "";
+
+    // Sabhi fields ko check karein
+    return (
+      r.vehicle?.toLowerCase().includes(search) ||
+      formattedCreation.includes(search) ||
+      r.plant?.toLowerCase().includes(search) ||
+      r.status?.toLowerCase().includes(search) ||
+      r.supervisor_name?.toLowerCase().includes(search) ||
+      formattedDate.includes(search)
     );
-    return filtered.sort((a, b) => {
-      const dateA = new Date(a.date).getTime();
-      const dateB = new Date(b.date).getTime();
-
-      if (dateB !== dateA) {
-        return dateB - dateA;
-      }
-      return b.name.localeCompare(a.name);
-    });
-  }, [records, searchTerm]);
+  });
+  return filtered.sort((a, b) => {
+    const timeA = new Date(a.creation || 0).getTime();
+    const timeB = new Date(b.creation || 0).getTime();
+    return timeB - timeA;
+  });
+}, [records, searchTerm]);
 
   const ITEMS_PER_PAGE = 50
   const [currentPage, setCurrentPage] = useState(1)
@@ -302,7 +314,6 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
       }
 
       const exportData = dataToExport.map(record => ({
-        "Name": record.name,
         "Date": record.date?.split(" ")[0],
         "Supervisor": record.supervisor_name,
         "From Date": record.from_date,
@@ -343,7 +354,7 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
-            placeholder="Search by name, vehicle, plant, status , date"
+            placeholder="Search by vehicle, Created On, plant, status..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10 glass-card text-foreground placeholder:text-muted-foreground focus:bg-white/10"
@@ -387,10 +398,10 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
                   }
                 />
               </TableHead>
-              <TableHead className="text-primary font-semibold">Name</TableHead>
-              <TableHead className="text-primary font-semibold">Date</TableHead>
-              <TableHead className="text-primary font-semibold">Shift</TableHead>
+              <TableHead className="text-primary font-semibold">Supervisor</TableHead>
+              {/* <TableHead className="text-primary font-semibold">Date</TableHead> */}
               <TableHead className="text-primary font-semibold">Vehicle</TableHead>
+              <TableHead className="text-primary font-semibold">Shift</TableHead>
               <TableHead className="text-primary font-semibold">Created On</TableHead>
               <TableHead className="text-primary font-semibold">HMR</TableHead>
               <TableHead className="text-primary font-semibold">Plant</TableHead>
@@ -429,14 +440,15 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
                     />
                   </TableCell>
 
-                  <TableCell className="font-medium">{record.name}</TableCell>
-                  <TableCell>{record.date?.split(" ")[0]}</TableCell>
-                  <TableCell>
+                  <TableCell className="font-medium">{record.supervisor_name}</TableCell>
+                  {/* <TableCell>{record.date?.split(" ")[0]}</TableCell> */}
+
+                  <TableCell className="font-mono">{record.vehicle}</TableCell>
+                                    <TableCell>
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
                       {record.shift}
                     </span>
                   </TableCell>
-                  <TableCell className="font-mono">{record.vehicle}</TableCell>
                   <TableCell className="font-mono">
                     {record.creation ? new Date(record.creation).toLocaleString('en-GB', {
                       day: '2-digit',
