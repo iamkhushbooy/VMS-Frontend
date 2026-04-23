@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useMemo } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, Loader2, Download } from "lucide-react"
+import { Search, Loader2, Download, X } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
 import CustomAlert from "../alert/alert"
 import { AlertButton } from "../alert/types"
@@ -63,6 +63,9 @@ const formatDuration = (totalSeconds: number | string) => {
 
 export default function UtilizationTable({ onLogUtilization, onSelectRecord }: UtilizationTableProps) {
   const [searchTerm, setSearchTerm] = useState("")
+  const [fromDate, setFromDate] = useState("")
+  const [toDate, setToDate] = useState("")
+  
   const [records, setRecords] = useState<UtilizationRecord[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [selectedNames, setSelectedNames] = useState<string[]>([])
@@ -78,6 +81,7 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
     message: "",
     buttons: [],
   });
+  
   const showAlert = (title: string, message: string, buttons?: AlertButton[]) => {
     setAlertState({
       visible: true,
@@ -86,6 +90,7 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
       buttons: buttons || [{ text: "OK", style: "cancel" }],
     });
   };
+  
   const closeAlert = () => {
     setAlertState((p) => ({ ...p, visible: false }));
   };
@@ -132,46 +137,75 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
     fetchFrappeData()
   }, [fetchFrappeData])
 
- const filteredRecords = useMemo(() => {
-  const filtered = records.filter((r) => {
-    const search = searchTerm.toLowerCase();
+  const filteredRecords = useMemo(() => {
+    const filtered = records.filter((r) => {
+      // --- Date & Time Range Filter Logic ---
+      let withinDateRange = true;
+      const recordDateStr = r.creation || r.date; 
+      
+      if (recordDateStr) {
+        const recordTime = new Date(recordDateStr).getTime();
 
-    // 1. Creation Date ko format karein (Jaisa table mein dikhta hai: "22 Apr 2026...")
-    const formattedCreation = r.creation 
-      ? new Date(r.creation).toLocaleString('en-GB', {
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        }).toLowerCase() 
-      : "";
+        if (fromDate) {
+          const fromTime = new Date(fromDate).getTime();
+          if (recordTime < fromTime) withinDateRange = false;
+          
+          if (!toDate) {
+            const endOfFromDate = new Date(fromDate);
+            endOfFromDate.setHours(23, 59, 59, 999);
+            if (recordTime > endOfFromDate.getTime()) withinDateRange = false;
+          }
+        }
 
-    // 2. Normal Date ko bhi format karein
-    const formattedDate = r.date 
-      ? new Date(r.date).toLocaleDateString('en-GB', {
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric'
-        }).toLowerCase() 
-      : "";
+        if (toDate) {
+          const toTime = new Date(toDate).getTime();
+          const finalToTime = (new Date(toDate).getHours() === 0 && new Date(toDate).getMinutes() === 0) 
+              ? new Date(toDate).setHours(23, 59, 59, 999) 
+              : toTime;
+              
+          if (recordTime > finalToTime) withinDateRange = false;
+        }
+      }
 
-    // Sabhi fields ko check karein
-    return (
-      r.vehicle?.toLowerCase().includes(search) ||
-      formattedCreation.includes(search) ||
-      r.plant?.toLowerCase().includes(search) ||
-      r.status?.toLowerCase().includes(search) ||
-      r.supervisor_name?.toLowerCase().includes(search) ||
-      formattedDate.includes(search)
-    );
-  });
-  return filtered.sort((a, b) => {
-    const timeA = new Date(a.creation || 0).getTime();
-    const timeB = new Date(b.creation || 0).getTime();
-    return timeB - timeA;
-  });
-}, [records, searchTerm]);
+      if (!withinDateRange) return false;
+
+      // --- Search Keyword Filter Logic ---
+      const search = searchTerm.toLowerCase();
+
+      const formattedCreation = r.creation 
+        ? new Date(r.creation).toLocaleString('en-GB', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          }).toLowerCase() 
+        : "";
+
+      const formattedDate = r.date 
+        ? new Date(r.date).toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+          }).toLowerCase() 
+        : "";
+
+      return (
+        r.vehicle?.toLowerCase().includes(search) ||
+        formattedCreation.includes(search) ||
+        r.plant?.toLowerCase().includes(search) ||
+        r.status?.toLowerCase().includes(search) ||
+        r.supervisor_name?.toLowerCase().includes(search) ||
+        formattedDate.includes(search)
+      );
+    });
+
+    return filtered.sort((a, b) => {
+      const timeA = new Date(a.creation || 0).getTime();
+      const timeB = new Date(b.creation || 0).getTime();
+      return timeB - timeA;
+    });
+  }, [records, searchTerm, fromDate, toDate]);
 
   const ITEMS_PER_PAGE = 50
   const [currentPage, setCurrentPage] = useState(1)
@@ -185,8 +219,7 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchTerm])
-
+  }, [searchTerm, fromDate, toDate])
 
   const toggleRowSelection = (name: string, checked: boolean) => {
     setSelectedNames((prev) => {
@@ -201,6 +234,7 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
       return updated
     })
   }
+  
   const allVisibleSelected =
     paginatedRecords.length > 0 &&
     paginatedRecords.every((r) => selectedNames.includes(r.name))
@@ -215,9 +249,7 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
     }
   }
 
-
   const handleBulkAction = async () => {
-    // 1. Validation Alert
     if (selectedNames.length === 0) {
       showAlert("Selection Required", "Please select at least one record to proceed.", [
         { text: "Understood", style: "default" }
@@ -225,7 +257,6 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
       return;
     }
 
-    // 2. Confirmation Alert
     const confirmText = `Are you sure you want to DELETE ${selectedNames.length} records.`;
 
     showAlert(
@@ -240,16 +271,16 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
         {
           text: "Delete Records",
           style: "destructive",
-          onPress: () => executeDelete(), // Trigger the logic here
+          onPress: () => executeDelete(),
         },
       ]
     );
   };
+  
   const executeDelete = async () => {
     try {
       setIsActionLoading(true);
 
-      // Fetch CSRF Token
       const tokenResp = await fetch(getApiUrl(config.api.getCsrfToken), {
         credentials: "include",
       });
@@ -279,12 +310,11 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
         return;
       }
 
-      // Success Alert
       showAlert("Success", "The selected records have been deleted.", [
         {
           text: "Finish",
           style: "default",
-          onPress: () => fetchFrappeData() // Refresh data after user acknowledges
+          onPress: () => fetchFrappeData()
         }
       ]);
 
@@ -348,20 +378,64 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
     }
   };
 
+  // Naya function: Clear saare filters 
+  const handleClearFilters = () => {
+    setSearchTerm("");
+    setFromDate("");
+    setToDate("");
+  };
+
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by vehicle, Created On, plant, status..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 glass-card text-foreground placeholder:text-muted-foreground focus:bg-white/10"
-          />
+      <div className="flex flex-col xl:flex-row gap-4 justify-between items-start xl:items-center">
+        
+        {/* Search and Date Range Block */}
+        <div className="flex flex-col sm:flex-row items-end sm:items-center gap-3 flex-1 w-full xl:max-w-4xl">
+          <div className="relative flex-1 min-w-[200px] w-full">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by vehicle, Created On, plant, status..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 glass-card text-foreground placeholder:text-muted-foreground focus:bg-white/10 w-full"
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-muted-foreground hidden sm:inline">From:</span>
+            <Input
+              type="datetime-local"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+              className="glass-card text-foreground w-[170px] sm:w-[190px] focus:bg-white/10"
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-muted-foreground hidden sm:inline">To:</span>
+            <Input
+              type="datetime-local"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+              className="glass-card text-foreground w-[170px] sm:w-[190px] focus:bg-white/10"
+            />
+          </div>
+
+          {/* Clear Filter Button - Sirf tab dikhega jab koi filter laga hoga */}
+          {(searchTerm || fromDate || toDate) && (
+            <Button 
+              variant="ghost" 
+              onClick={handleClearFilters}
+              className="text-red-400 hover:text-red-500 hover:bg-red-500/10 h-10 px-3"
+              title="Clear all filters"
+            >
+              <X className="w-4 h-4 mr-1" /> Clear
+            </Button>
+          )}
         </div>
 
-        <div className="flex gap-6 flex-wrap">
+        {/* Action Buttons */}
+        <div className="flex gap-3 flex-wrap">
           <Button
             variant="destructive"
             disabled={selectedNames.length === 0 || isActionLoading}
@@ -399,7 +473,6 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
                 />
               </TableHead>
               <TableHead className="text-primary font-semibold">Supervisor</TableHead>
-              {/* <TableHead className="text-primary font-semibold">Date</TableHead> */}
               <TableHead className="text-primary font-semibold">Vehicle</TableHead>
               <TableHead className="text-primary font-semibold">Shift</TableHead>
               <TableHead className="text-primary font-semibold">Created On</TableHead>
@@ -441,7 +514,6 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
                   </TableCell>
 
                   <TableCell className="font-medium">{record.supervisor_name}</TableCell>
-                  {/* <TableCell>{record.date?.split(" ")[0]}</TableCell> */}
 
                   <TableCell className="font-mono">{record.vehicle}</TableCell>
                                     <TableCell>
@@ -484,7 +556,7 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
             ) : (
               <TableRow>
                 <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-                  No utilization reports found.
+                  No utilization reports found for this filter.
                 </TableCell>
               </TableRow>
             )}

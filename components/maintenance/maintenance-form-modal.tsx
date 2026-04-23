@@ -2100,6 +2100,7 @@ export function MaintenanceFormModal({
   }
 
   // 1. API Worker (Does the actual work)
+// Is function ko apne code me replace karein
   const executeSave = async () => {
     setIsSubmitting(true);
     try {
@@ -2119,17 +2120,20 @@ export function MaintenanceFormModal({
       );
 
       if (res.status >= 200 && res.status < 300 && res.data.message) {
-        const { name: newName, docstatus: newStatus } = res.data.message;
+        const msg = res.data.message;
+        const newName = msg?.name || (typeof msg === 'string' ? msg : msg?.message?.name) || currentName;
+        const newStatus = msg?.docstatus !== undefined ? msg.docstatus : 0;
 
-        // Update local context
         const isUpdating = !!currentName;
-        setCurrentName(newName);
+        
+        // Ye line ensure karegi ki ID state me save ho gayi hai
+        if (newName) {
+          setCurrentName(newName);
+        }
         setDocStatus(newStatus);
 
-        // Refresh parent data if needed
         onSuccess?.();
 
-        // Show Elegant Success Alert
         showAlert(
           "Success",
           isUpdating ? "Updated successfully." : "Saved successfully.",
@@ -2139,8 +2143,6 @@ export function MaintenanceFormModal({
     } catch (err: any) {
       const errorMsg = getErrorMessage(err);
       console.error("Save Error:", err);
-
-      // Show Elegant Error Alert
       showAlert("Save Error", errorMsg, [{ text: "Close", style: "cancel" }]);
     } finally {
       setIsSubmitting(false);
