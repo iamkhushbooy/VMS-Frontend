@@ -3,7 +3,7 @@ import { useEffect, useState } from "react"
 import { AppLayout } from "@/components/app-layout"
 import { FilterBar } from "@/components/vms/reports/FilterBar"
 import { useVmsFilters } from "@/lib/store/vms-filters-store"
-import { UtilizationReportTable } from "@/components/vms/reports/UtilizationReportTable"
+import { VehicleUtilizationReport } from "@/components/vms/reports/UtilizationReportTable"
 import { FuelReportTable } from "@/components/vms/reports/FuelReportTable"
 import { MaintenanceReportTable } from "@/components/vms/reports/MaintenanceReportTable"
 import { VehicleMasterReportTable } from "@/components/vms/reports/VehicleMasterReportTable"
@@ -92,7 +92,7 @@ export default function ReportsPage() {
             </TabsList>
 
             <TabsContent value="utilization" className="space-y-4">
-              <UtilizationReportTable data={utilizations} isLoading={isLoading} />
+              <VehicleUtilizationReport  />
             </TabsContent>
 
             <TabsContent value="fuel" className="space-y-4">
