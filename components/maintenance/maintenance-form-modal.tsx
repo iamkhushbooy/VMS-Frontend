@@ -1895,8 +1895,9 @@ export function MaintenanceFormModal({
           updated.expense = "";
           return updated;
         }
-        const stockNum = Number(prev.stock_qty);
 
+        // comment krni h
+        const stockNum = Number(prev.stock_qty);
         if (currentQty > stockNum) {
           showAlert("Error", "Quantity cannot exceed available stock!");
           updated.qty = "";
@@ -1972,6 +1973,7 @@ export function MaintenanceFormModal({
           return updated;
         }
 
+        // comment krni h 
         const stockNum = Number(prev.stock_qty);
         if (qtyNum > stockNum) {
           showAlert("Error", "Quantity cannot be more than available stock!");
