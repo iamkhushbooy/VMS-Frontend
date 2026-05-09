@@ -38,7 +38,6 @@ import CustomAlert from "../alert/alert"
 import { AlertButton } from "../alert/types"
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
-
 export interface VehicleRecord {
   name: string
   license_plate: string
@@ -79,6 +78,7 @@ export default function VehicleMasterTable({ onAddVehicle, onSelectVehicle }: Ve
   const [selectedNames, setSelectedNames] = useState<string[]>([])
   const [isActionLoading, setIsActionLoading] = useState(false)
   const [previewImage, setPreviewImage] = useState<string | null>(null)
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false)
 
   const [alertState, setAlertState] = useState<{
     visible: boolean;

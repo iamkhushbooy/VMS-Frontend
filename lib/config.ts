@@ -1,4 +1,3 @@
-
 export const config = {
   // ERPNext/Frappe API Base URL
   frappeBaseUrl:
@@ -11,6 +10,9 @@ export const config = {
     logout: "/api/method/logout",
     getLoggedUser: "/api/method/frappe.auth.get_logged_user",
     getCsrfToken: "/api/method/vms.api.get_csrf_token",
+    vmsDashboard:
+      process.env.NEXT_PUBLIC_VMS_DASHBOARD_METHOD ||
+      "vms.dashboard.get_dashboard_data",
     resource: (doctype: string) => `/api/resource/${doctype}`,
     method: (method: string) => `/api/method/${method}`,
   },
@@ -25,4 +27,3 @@ if (!config.frappeBaseUrl) {
 export function getApiUrl(path: string): string {
   return `${config.frappeBaseUrl}${path}`
 }
-

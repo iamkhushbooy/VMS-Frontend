@@ -93,6 +93,19 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             </Button>
           </Link>
 
+          <Link href="/transfervehicle" onClick={onClose}>
+            <Button
+              variant="ghost"
+              className={cn(
+                "w-full justify-start font-medium text-base h-11 rounded-lg transition-colors duration-200",
+                pathname === "/transfervehicle" ? activeButtonStyle : inactiveButtonStyle,
+              )}
+            >
+              <PersonStanding className="w-5 h-5 mr-3" />
+              Transfer Vehicle
+            </Button>
+          </Link>
+
           {/* Maintenance */}
           <Link href="/maintenance" onClick={onClose}>
             <Button

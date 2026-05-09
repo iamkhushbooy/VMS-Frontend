@@ -1897,13 +1897,13 @@ export function MaintenanceFormModal({
         }
 
         // comment krni h
-        const stockNum = Number(prev.stock_qty);
-        if (currentQty > stockNum) {
-          showAlert("Error", "Quantity cannot exceed available stock!");
-          updated.qty = "";
-          updated.expense = "";
-          return updated;
-        }
+        // const stockNum = Number(prev.stock_qty);
+        // if (currentQty > stockNum) {
+        //   showAlert("Error", "Quantity cannot exceed available stock!");
+        //   updated.qty = "";
+        //   updated.expense = "";
+        //   return updated;
+        // }
 
         if (currentQty > 0 && currentRate > 0) {
           let rawExpense = currentQty * currentRate;
@@ -1974,13 +1974,13 @@ export function MaintenanceFormModal({
         }
 
         // comment krni h 
-        const stockNum = Number(prev.stock_qty);
-        if (qtyNum > stockNum) {
-          showAlert("Error", "Quantity cannot be more than available stock!");
-          updated.qty = "";
-          updated.expense = "";
-          return updated;
-        }
+        // const stockNum = Number(prev.stock_qty);
+        // if (qtyNum > stockNum) {
+        //   showAlert("Error", "Quantity cannot be more than available stock!");
+        //   updated.qty = "";
+        //   updated.expense = "";
+        //   return updated;
+        // }
 
         if (qtyNum > 0 && rateNum > 0) {
           let totalExpense = qtyNum * rateNum;

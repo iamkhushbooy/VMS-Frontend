@@ -1,4 +1,4 @@
-import { getApiUrl } from "./config"
+import { config, getApiUrl } from "./config"
 
 export interface VehicleMaster {
   name: string
@@ -24,6 +24,9 @@ export interface VehicleLogMaster {
   status: string
   priority_level: string
   creation?: string
+  total_maintenance_cost?: number
+  parts_count?: number
+  problems?: string[]
   problem_details?: Array<{ problem_details: string }>
   work_done_details?: Array<{ work_done_details: string }>
   part_details?: Array<{
@@ -55,6 +58,13 @@ export interface VehicleRefueling {
     current_hmrkms: number
     fuel_consumption: number
   }>
+  details?: Array<{
+    registration_no: string
+    date: string
+    fuel_qty_in_ltrs: number
+    current_hmrkms: number
+    fuel_consumption: number
+  }>
 }
 
 export interface UtilizationReport {
@@ -70,6 +80,39 @@ export interface UtilizationReport {
   supervisor_name: string
   hmr: number
   status: string
+}
+
+export interface VmsDashboardData {
+  vehicles: VehicleMaster[]
+  logs: VehicleLogMaster[]
+  refuelings: VehicleRefueling[]
+  utilizations: UtilizationReport[]
+}
+
+function getRecords<T>(value: unknown): T[] {
+  if (Array.isArray(value)) return value as T[]
+  if (value && typeof value === "object") {
+    const objectValue = value as { records?: unknown; data?: unknown }
+    if (Array.isArray(objectValue.records)) return objectValue.records as T[]
+    if (Array.isArray(objectValue.data)) return objectValue.data as T[]
+  }
+  return []
+}
+
+function normalizeDashboardResponse(payload: unknown): VmsDashboardData {
+  const root =
+    payload && typeof payload === "object" && "message" in payload
+      ? (payload as { message: unknown }).message
+      : payload
+
+  const data = root && typeof root === "object" ? (root as Record<string, unknown>) : {}
+
+  return {
+    vehicles: getRecords<VehicleMaster>(data.vehicles || data.vehicle || data.vehicle_master),
+    logs: getRecords<VehicleLogMaster>(data.maintenance || data.logs || data.vehicle_logs),
+    refuelings: getRecords<VehicleRefueling>(data.fuel || data.refuelings || data.vehicle_refuelings),
+    utilizations: getRecords<UtilizationReport>(data.utilization || data.utilizations || data.utilization_reports),
+  }
 }
 
 async function fetchFrappeResource<T>(
@@ -110,6 +153,28 @@ async function fetchFrappeResource<T>(
 }
 
 export const vmsApi = {
+  getDashboardData: async (): Promise<VmsDashboardData> => {
+    const url = getApiUrl(config.api.method(config.api.vmsDashboard))
+
+    const response = await fetch(url, {
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    })
+
+    if (response.status === 403 || response.status === 401) {
+      throw new Error("Session expired. Please login again.")
+    }
+
+    if (!response.ok) {
+      throw new Error(`VMS Dashboard API Error: ${response.status}`)
+    }
+
+    const result = await response.json()
+    return normalizeDashboardResponse(result)
+  },
+
   // Vehicle Master
   getVehicleMasters: (filters?: Record<string, any>) =>
     fetchFrappeResource<VehicleMaster>("Vehicle Master", [
@@ -192,4 +257,3 @@ export const vmsApi = {
       "status",
     ], filters),
 }
-
