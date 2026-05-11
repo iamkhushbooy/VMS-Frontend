@@ -19,7 +19,7 @@ import { getApiUrl, config } from "@/lib/config"
 import CustomAlert from "../alert/alert"
 import { AlertButton } from "../alert/types"
 const DOCTYPE_NAME = "Vehicle Master"
-
+import { TransferVehicleModal } from "./TransferVehicleModal"
 interface FrappeDoc {
   name: string
   [key: string]: any
@@ -86,7 +86,9 @@ export function VehicleMasterModal({ isOpen, onClose, record }: VehicleModalProp
   const [warehouseOptions, setWarehouseOptions] = useState<FrappeDoc[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false)
   const [alertState, setAlertState] = useState<{
+
     visible: boolean;
     title?: string;
     message?: string;
@@ -451,6 +453,7 @@ export function VehicleMasterModal({ isOpen, onClose, record }: VehicleModalProp
             Cancel
           </Button>
 
+
           {!record && (
             <Button onClick={handleSubmit} disabled={isSubmitting}>
               {isSubmitting ? "Saving..." : "Save Vehicle"}
@@ -461,7 +464,17 @@ export function VehicleMasterModal({ isOpen, onClose, record }: VehicleModalProp
               {isSubmitting ? "Updating..." : "Update Vehicle"}
             </Button>
           )}
+          {record && (
+
+            <Button
+              onClick={() => setIsTransferModalOpen(true)}
+            >
+              Transfer Vehicle
+            </Button>
+
+          )}
         </div>
+
       </DialogContent>
       <CustomAlert
         visible={alertState.visible}
@@ -470,6 +483,14 @@ export function VehicleMasterModal({ isOpen, onClose, record }: VehicleModalProp
         buttons={alertState.buttons}
         onClose={closeAlert}
       />
+      {record && (
+        <TransferVehicleModal
+          isOpen={isTransferModalOpen}
+          onClose={() => setIsTransferModalOpen(false)}
+          prefillVehicle={record.name}
+        />
+      )}
     </Dialog>
+
   )
 }

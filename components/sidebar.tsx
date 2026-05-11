@@ -178,7 +178,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           {/* <p className="text-sm text-gray-500">VMS &copy; 2025</p> */}
             <p className="text-sm text-gray-500">Design and Developed by
               <Link href="https://octavision.in" target="_blank" rel="noopener noreferrer" className="text-cyan-500">
-                {" "} Octavision
+                {" "} Octavision Software Solutions
               </Link>
             </p>
         </div>

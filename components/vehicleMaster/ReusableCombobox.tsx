@@ -27,6 +27,7 @@ interface ReusableComboboxProps {
   displayField?: string
   isLoading?: boolean
   icon?: React.ComponentType<React.SVGProps<SVGSVGElement>>
+  disabled?: boolean
 }
 
 const ReusableCombobox = React.forwardRef<HTMLButtonElement, ReusableComboboxProps>(
