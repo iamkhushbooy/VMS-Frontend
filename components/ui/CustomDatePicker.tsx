@@ -48,7 +48,7 @@ export function CustomDatePicker({ value, onChange, showTime = false }: CustomDa
         <Button
           variant={"outline"}
           className={cn(
-            "w-full justify-start text-left font-normal bg-white text-black border-gray-200",
+            "w-auto justify-start text-left font-normal bg-white text-black border-gray-200",
             !date && "text-muted-foreground"
           )}
         >

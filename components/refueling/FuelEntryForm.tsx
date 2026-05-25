@@ -180,6 +180,23 @@ export function FuelEntryForm({
     // Agar sab fields valid hain, tabhi add hoga
     addFuelEntry();
   };
+  const getIndianDateTime = () => {
+    const now = new Date()
+
+    const indiaTime = new Date(
+      now.toLocaleString("en-US", {
+        timeZone: "Asia/Kolkata",
+      })
+    )
+
+    const year = indiaTime.getFullYear()
+    const month = String(indiaTime.getMonth() + 1).padStart(2, "0")
+    const day = String(indiaTime.getDate()).padStart(2, "0")
+    const hours = String(indiaTime.getHours()).padStart(2, "0")
+    const minutes = String(indiaTime.getMinutes()).padStart(2, "0")
+
+    return `${year}-${month}-${day}T${hours}:${minutes}`
+  }
 
   return (
     <div className="bg-slate-100/50 p-5 rounded-lg border border-slate-100 border-red">
@@ -205,13 +222,15 @@ export function FuelEntryForm({
         {/* Date Field */}
         <div>
           <Label>Date</Label>
-          <CustomDatePicker
-           showTime={true} 
-            value={newEntry.date || ""}
-            onChange={(dateStr) =>
-              setNewEntry((p) => ({ ...p, date: dateStr }))
-            }
-          />
+          <div className="w-full [&>*]:w-full">
+            <CustomDatePicker
+              showTime={true}
+              value={newEntry.date || ""}
+              onChange={(dateStr) =>
+                setNewEntry((p) => ({ ...p, date: dateStr }))
+              }
+            />
+          </div>
         </div>
 
         {/* Fuel Quantity Field */}
@@ -297,6 +316,6 @@ export function FuelEntryForm({
           onClose={closeAlert}
         />
       </div>
-      </div>
-      )
+    </div>
+  )
 }

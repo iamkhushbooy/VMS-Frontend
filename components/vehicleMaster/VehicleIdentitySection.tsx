@@ -21,7 +21,7 @@ export default function VehicleIdentitySection({
     <FormSection title="Vehicle Identity" icon={Info}>
 
       {/* License Plate */}
-      <InputGroup label="License Plate" required>
+      <InputGroup label="License Plate *" required >
         <Input
           name="licensePlate"
           value={formData.licensePlate}
@@ -32,7 +32,7 @@ export default function VehicleIdentitySection({
       </InputGroup>
 
       {/* Make */}
-      <InputGroup label="Make" required>
+      <InputGroup label="Make *" required>
         <Input
           name="make"
           value={formData.make}
@@ -43,7 +43,7 @@ export default function VehicleIdentitySection({
       </InputGroup>
 
       {/* Model */}
-      <InputGroup label="Model" required>
+      <InputGroup label="Model *" required>
         <Input
           name="model"
           value={formData.model}

@@ -151,14 +151,17 @@ export function RefuelingTopForm({
   return (
     <div className="bg-slate-100/50 p-5 rounded-lg border border-slate-100">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-        <div>
+        <div className="w-full">
           <Label>Date*</Label>
-          <CustomDatePicker
-            value={formData.date}
-            onChange={(newDateString) => {
-              setFormData((prev) => ({ ...prev, date: newDateString }))
-            }}
-          />
+
+          <div className="w-full [&>*]:w-full">
+            <CustomDatePicker
+              value={formData.date}
+              onChange={(newDateString) => {
+                setFormData((prev) => ({ ...prev, date: newDateString }))
+              }}
+            />
+          </div>
         </div>
 
         <div>
@@ -230,7 +233,7 @@ export function RefuelingTopForm({
           />
         </div>
       </div>
-      </div>
-      )
-     
+    </div>
+  )
+
 }

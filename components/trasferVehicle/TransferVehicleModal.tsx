@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { User } from "lucide-react" 
+import { User } from "lucide-react"
 import axios from "axios"
 
 import { getErrorMessage } from "@/lib/errorMessage"
@@ -63,10 +63,10 @@ export function TransferVehicleModal({ isOpen, onClose }: TransferModalProps) {
   const [vehicleOptions, setVehicleOptions] = useState<FrappeDoc[]>([])
   const [warehouseOptions, setWarehouseOptions] = useState<FrappeDoc[]>([])
   const [employeeOptions, setEmployeeOptions] = useState<FrappeDoc[]>([])
-  
+
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  
+
   const [alertState, setAlertState] = useState<{
     visible: boolean;
     title?: string;
@@ -87,7 +87,7 @@ export function TransferVehicleModal({ isOpen, onClose }: TransferModalProps) {
       buttons: buttons || [{ text: "OK", style: "cancel" }],
     });
   };
-  
+
   const closeAlert = () => setAlertState((p) => ({ ...p, visible: false }));
 
   useEffect(() => {
@@ -113,15 +113,15 @@ export function TransferVehicleModal({ isOpen, onClose }: TransferModalProps) {
       ])
 
       if (cancel) return
-      
+
       const vehiclesWithLabel = vehicles.map((v) => ({
         ...v,
         display_label: v.license_plate ? `${v.license_plate} (${v.name})` : v.name
       }));
       setVehicleOptions(vehiclesWithLabel)
-      
+
       setWarehouseOptions(warehouses)
-      
+
       const empsWithCombinedLabel = employees.map((emp) => ({
         ...emp,
         combined_label: `${emp.name} - ${emp.employee_name}`
@@ -156,7 +156,7 @@ export function TransferVehicleModal({ isOpen, onClose }: TransferModalProps) {
     }
 
     setIsSubmitting(true)
-    
+
     try {
       const csrfRes = await fetch(getApiUrl(config.api.getCsrfToken), {
         credentials: "include"
@@ -176,7 +176,7 @@ export function TransferVehicleModal({ isOpen, onClose }: TransferModalProps) {
         payload,
         {
           withCredentials: true,
-          headers: { 
+          headers: {
             "X-Frappe-CSRF-Token": csrfToken,
             "Content-Type": "application/json",
             "Accept": "application/json"
@@ -185,6 +185,23 @@ export function TransferVehicleModal({ isOpen, onClose }: TransferModalProps) {
       )
 
       if (res.status === 200) {
+
+        // Update Vehicle Master warehouse
+        await axios.put(
+          getApiUrl(config.api.resource(`Vehicle Master/${formData.registrationNo}`)),
+          {
+            warehouse: formData.toWarehouse,
+          },
+          {
+            withCredentials: true,
+            headers: {
+              "X-Frappe-CSRF-Token": csrfToken,
+              "Content-Type": "application/json",
+              "Accept": "application/json",
+            },
+          }
+        )
+
         showAlert("Success", "Vehicle transferred successfully!", [
           {
             text: "OK",
@@ -216,7 +233,7 @@ export function TransferVehicleModal({ isOpen, onClose }: TransferModalProps) {
 
         <div className="p-6 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-            
+
             {/* Left Column */}
             <div className="space-y-4">
               <InputGroup label="Registration no." required>

@@ -10,6 +10,12 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-}
 
-export default nextConfig;
+  allowedDevOrigins: [
+    'prayog.vaaman.in',
+    'https://prayog.vaaman.in',
+    'http://prayog.vaaman.in'
+  ],
+};
+
+module.exports = nextConfig;

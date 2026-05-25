@@ -153,8 +153,18 @@ async function fetchFrappeResource<T>(
 }
 
 export const vmsApi = {
-  getDashboardData: async (): Promise<VmsDashboardData> => {
-    const url = getApiUrl(config.api.method(config.api.vmsDashboard))
+  getDashboardData: async (params?: { from_datetime?: string; to_datetime?: string }): Promise<VmsDashboardData> => {
+    let url = getApiUrl(config.api.method(config.api.vmsDashboard))
+
+    // Append query parameters if they exist
+    if (params && (params.from_datetime || params.to_datetime)) {
+      const queryParams = new URLSearchParams()
+      if (params.from_datetime) queryParams.append("from_datetime", params.from_datetime)
+      if (params.to_datetime) queryParams.append("to_datetime", params.to_datetime)
+
+      const separator = url.includes("?") ? "&" : "?"
+      url += `${separator}${queryParams.toString()}`
+    }
 
     const response = await fetch(url, {
       credentials: "include",
@@ -202,30 +212,30 @@ export const vmsApi = {
       "priority_level",
       "creation"
     ], filters),
-  
+
   // Vehicle Log Master (Details)
   getVehicleLogMasterDetails: async (name: string): Promise<VehicleLogMaster | null> => {
     try {
       const url = getApiUrl(`/api/resource/Vehicle Log Master/${name}`)
-  
+
       const response = await fetch(url, {
         credentials: "include",
         headers: { "Content-Type": "application/json" }
       })
-  
+
       if (!response.ok) {
         throw new Error(`Frappe API Error: ${response.status}`)
       }
-  
+
       const result = await response.json()
       return result.data || null
-  
+
     } catch (error) {
       console.error("Error fetching Vehicle Log Master details:", error)
       return null
     }
   },
-  
+
 
   // Vehicle Refueling
   getVehicleRefuelings: (filters?: Record<string, any>) =>

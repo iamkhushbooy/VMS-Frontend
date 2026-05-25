@@ -44,7 +44,7 @@ export const InputGroup = ({
 }) => (
   <div className="space-y-1.5">
     <Label className="text-sm font-medium text-muted-foreground">
-      {label} {required && <span className="text-red-500 ml-0.5">*</span>}
+      {label} {required && <span className="text-red-500 ml-0.5"></span>}
     </Label>
     {children}
   </div>

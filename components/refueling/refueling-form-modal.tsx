@@ -7,6 +7,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog"
+import { getIndianDateTime } from "@/lib/date"
 import { Button } from "@/components/ui/button"
 import {
   Table,
@@ -70,7 +71,7 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
   const [newEntry, setNewEntry] = useState<Partial<FuelEntry>>({
     vehicle: "",
     registrationName: "",
-    date: new Date().toISOString().split("T")[0],
+    date: getIndianDateTime(),
     fuel_qty_in_ltrs: undefined,
     current_hmrkms: undefined,
     fuel_consumption: undefined,
@@ -91,7 +92,7 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
     setNewEntry({
       vehicle: "",
       registrationName: "",
-      date: new Date().toISOString().split("T")[0],
+      date: getIndianDateTime(),
       fuel_qty_in_ltrs: undefined,
       current_hmrkms: undefined,
       fuel_consumption: undefined,
@@ -246,6 +247,7 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
       )
       const json = await res.json()
       const doc = json.data
+      
 
       setCurrentName(doc.name)
       setDocStatus(doc.docstatus)

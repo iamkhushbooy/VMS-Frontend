@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { User } from "lucide-react" 
+import { User } from "lucide-react"
 import axios from "axios"
 
 import { getErrorMessage } from "@/lib/errorMessage"
@@ -65,10 +65,10 @@ export function TransferVehicleModal({ isOpen, onClose, record, prefillVehicle }
   const [vehicleOptions, setVehicleOptions] = useState<FrappeDoc[]>([])
   const [warehouseOptions, setWarehouseOptions] = useState<FrappeDoc[]>([])
   const [employeeOptions, setEmployeeOptions] = useState<FrappeDoc[]>([])
-  
+
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  
+
   const isViewMode = !!record
 
   const [alertState, setAlertState] = useState<{
@@ -118,14 +118,14 @@ export function TransferVehicleModal({ isOpen, onClose, record, prefillVehicle }
       ])
 
       if (cancel) return
-      
+
       const vehiclesWithLabel = vehicles.map((v) => ({
         ...v,
         display_label: v.license_plate ? `${v.license_plate} (${v.name})` : v.name
       }));
       setVehicleOptions(vehiclesWithLabel)
       setWarehouseOptions(warehouses)
-      
+
       const empsWithCombinedLabel = employees.map((emp) => ({
         ...emp,
         combined_label: `${emp.name} - ${emp.employee_name}`
@@ -150,8 +150,8 @@ export function TransferVehicleModal({ isOpen, onClose, record, prefillVehicle }
   }, [isOpen, record, prefillVehicle])
 
   const handleSelectChange = (field: string, value: string) => {
-    if (isViewMode) return; 
-    
+    if (isViewMode) return;
+
     if (field === "registrationNo") {
       const selectedVehicle = vehicleOptions.find(v => v.name === value);
       setFormData(prev => ({
@@ -197,8 +197,33 @@ export function TransferVehicleModal({ isOpen, onClose, record, prefillVehicle }
       )
 
       if (res.status === 200) {
-        showAlert("Success", "Vehicle transferred successfully!", [
-          { text: "OK", style: "cancel", onPress: () => { onClose(); window.location.reload(); } },
+
+        let x = await axios.put(
+          getApiUrl(config.api.resource(`Vehicle Master/${formData.registrationNo}`)),
+          {
+            warehouse: formData.toWarehouse,
+          },
+          {
+            withCredentials: true,
+            headers: {
+              "X-Frappe-CSRF-Token": csrfToken,
+              "Content-Type": "application/json",
+              "Accept": "application/json",
+            },
+          }
+        )
+        console.log(x.data);
+
+
+        showAlert("Success", "Vehicle transferred successfully! Updated warehouse.", [
+          {
+            text: "OK",
+            style: "cancel",
+            onPress: () => {
+              onClose();
+              window.location.reload();
+            },
+          },
         ]);
       }
     } catch (err: any) {
@@ -288,9 +313,9 @@ export function TransferVehicleModal({ isOpen, onClose, record, prefillVehicle }
             {isViewMode ? "Close" : "Cancel"}
           </Button>
           {!isViewMode && (
-             <Button onClick={handleSubmit} disabled={isSubmitting || isLoading}>
-               {isSubmitting ? "Saving..." : "Save"}
-             </Button>
+            <Button onClick={handleSubmit} disabled={isSubmitting || isLoading}>
+              {isSubmitting ? "Saving..." : "Save"}
+            </Button>
           )}
         </div>
       </DialogContent>

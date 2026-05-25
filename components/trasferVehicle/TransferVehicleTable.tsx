@@ -48,12 +48,12 @@ export default function TransferVehicleTable({ onTransferVehicle, onSelectRecord
     setIsLoading(true)
     try {
       const fieldsToFetch = [
-        "name", 
-        "registration_no", 
-        "from_warehouse", 
-        "to_warehouse", 
-        "date", 
-        "employee", 
+        "name",
+        "registration_no",
+        "from_warehouse",
+        "to_warehouse",
+        "date",
+        "employee",
         "creation"
       ]
 
@@ -107,14 +107,14 @@ export default function TransferVehicleTable({ onTransferVehicle, onSelectRecord
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-        
+
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             placeholder="Search by vehicle or warehouse..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 glass-card" 
+            className="pl-10 glass-card"
           />
         </div>
 
@@ -130,7 +130,8 @@ export default function TransferVehicleTable({ onTransferVehicle, onSelectRecord
               <TableRow>
                 <TableHead className="text-primary font-semibold">Date</TableHead>
                 <TableHead className="text-primary font-semibold">Vehicle No.</TableHead>
-                <TableHead className="text-primary font-semibold">Transfer Vehicle</TableHead>
+                <TableHead className="text-primary font-semibold">From Warehouse</TableHead>
+                <TableHead className="text-primary font-semibold">To Warehouse</TableHead>
                 <TableHead className="text-primary font-semibold">Employee</TableHead>
               </TableRow>
             </TableHeader>
@@ -162,13 +163,11 @@ export default function TransferVehicleTable({ onTransferVehicle, onSelectRecord
                       }) : "-"}
                     </TableCell>
                     <TableCell className="font-semibold">{record.registration_no}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-muted-foreground">{record.from_warehouse || 'N/A'}</span>
-                        <ArrowRight className="w-3 h-3 text-muted-foreground" />
-                        <span className="text-sm font-medium">{record.to_warehouse}</span>
-                      </div>
+                    <TableCell
+                      className="text-sm text-muted-foreground">{record.from_warehouse || 'N/A'}
                     </TableCell>
+                    
+                    <TableCell className="text-sm font-medium">{record.to_warehouse}</TableCell>
                     <TableCell>{record.employee || "-"}</TableCell>
                   </TableRow>
                 ))

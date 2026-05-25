@@ -24,7 +24,7 @@ const VehicleAdditionalSection: React.FC<VehicleAdditionalSectionProps> = ({
 }) => {
   return (
     <FormSection title="Additional Details" icon={Fuel}>
-      <InputGroup label="Fuel Type" required>
+      <InputGroup label="Fuel Type *" required>
         <ReusableCombobox
           options={fuelTypeOptions}
           value={formData.fuelType}
@@ -34,7 +34,7 @@ const VehicleAdditionalSection: React.FC<VehicleAdditionalSectionProps> = ({
         />
       </InputGroup>
 
-      <InputGroup label="Fuel UOM" required>
+      <InputGroup label="Fuel UOM *" required>
         <ReusableCombobox
           options={uomOptions}
           value={formData.fuelUOM}

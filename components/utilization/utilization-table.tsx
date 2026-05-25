@@ -49,6 +49,7 @@ interface UtilizationTableProps {
 }
 
 import { getApiUrl, config } from "@/lib/config"
+import { CustomDatePicker } from "../ui/CustomDatePicker"
 const DOCTYPE_NAME = "Utilization Report"
 
 const formatDuration = (totalSeconds: number | string) => {
@@ -65,7 +66,7 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
   const [searchTerm, setSearchTerm] = useState("")
   const [fromDate, setFromDate] = useState("")
   const [toDate, setToDate] = useState("")
-  
+
   const [records, setRecords] = useState<UtilizationRecord[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [selectedNames, setSelectedNames] = useState<string[]>([])
@@ -81,7 +82,7 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
     message: "",
     buttons: [],
   });
-  
+
   const showAlert = (title: string, message: string, buttons?: AlertButton[]) => {
     setAlertState({
       visible: true,
@@ -90,7 +91,7 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
       buttons: buttons || [{ text: "OK", style: "cancel" }],
     });
   };
-  
+
   const closeAlert = () => {
     setAlertState((p) => ({ ...p, visible: false }));
   };
@@ -141,15 +142,15 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
     const filtered = records.filter((r) => {
       // --- Date & Time Range Filter Logic ---
       let withinDateRange = true;
-      const recordDateStr = r.creation || r.date; 
-      
+      const recordDateStr = r.creation || r.date;
+
       if (recordDateStr) {
         const recordTime = new Date(recordDateStr).getTime();
 
         if (fromDate) {
           const fromTime = new Date(fromDate).getTime();
           if (recordTime < fromTime) withinDateRange = false;
-          
+
           if (!toDate) {
             const endOfFromDate = new Date(fromDate);
             endOfFromDate.setHours(23, 59, 59, 999);
@@ -159,10 +160,10 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
 
         if (toDate) {
           const toTime = new Date(toDate).getTime();
-          const finalToTime = (new Date(toDate).getHours() === 0 && new Date(toDate).getMinutes() === 0) 
-              ? new Date(toDate).setHours(23, 59, 59, 999) 
-              : toTime;
-              
+          const finalToTime = (new Date(toDate).getHours() === 0 && new Date(toDate).getMinutes() === 0)
+            ? new Date(toDate).setHours(23, 59, 59, 999)
+            : toTime;
+
           if (recordTime > finalToTime) withinDateRange = false;
         }
       }
@@ -172,22 +173,22 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
       // --- Search Keyword Filter Logic ---
       const search = searchTerm.toLowerCase();
 
-      const formattedCreation = r.creation 
+      const formattedCreation = r.creation
         ? new Date(r.creation).toLocaleString('en-GB', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-          }).toLowerCase() 
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        }).toLowerCase()
         : "";
 
-      const formattedDate = r.date 
+      const formattedDate = r.date
         ? new Date(r.date).toLocaleDateString('en-GB', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric'
-          }).toLowerCase() 
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric'
+        }).toLowerCase()
         : "";
 
       return (
@@ -234,7 +235,7 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
       return updated
     })
   }
-  
+
   const allVisibleSelected =
     paginatedRecords.length > 0 &&
     paginatedRecords.every((r) => selectedNames.includes(r.name))
@@ -276,7 +277,7 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
       ]
     );
   };
-  
+
   const executeDelete = async () => {
     try {
       setIsActionLoading(true);
@@ -388,52 +389,68 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col xl:flex-row gap-4 justify-between items-start xl:items-center">
-        
+
         {/* Search and Date Range Block */}
-        <div className="flex flex-col sm:flex-row items-end sm:items-center gap-3 flex-1 w-full xl:max-w-4xl">
-          <div className="relative flex-1 min-w-[200px] w-full">
+        <div className="flex flex-col xl:flex-row xl:items-end gap-3 flex-1 w-full xl:max-w-4xl">
+
+          {/* Search */}
+          <div className="relative flex-1 min-w-[220px] w-full">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Search by vehicle, Created On, plant, status..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 glass-card text-foreground placeholder:text-muted-foreground focus:bg-white/10 w-full"
+              className="pl-9 glass-card text-foreground placeholder:text-muted-foreground focus:bg-white/10 w-full h-10"
             />
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-muted-foreground hidden sm:inline">From:</span>
-            <Input
-              type="datetime-local"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-              className="glass-card text-foreground w-[170px] sm:w-[190px] focus:bg-white/10"
-            />
+          {/* Date Filters */}
+          <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
+
+            {/* From Date */}
+            <div className="flex flex-col justify-end gap-1 min-w-[240px] w-full sm:w-auto">
+              <div className="w-full">
+                <span className="text-sm font-medium text-muted-foreground">
+                  From
+                </span>
+                <CustomDatePicker
+                  showTime={true}
+                  value={fromDate}
+                  onChange={setFromDate}
+                />
+              </div>
+            </div>
+
+            {/* To Date */}
+            <div className="flex flex-col justify-end gap-1 min-w-[240px] w-full sm:w-auto">
+              <div className="w-full">
+                <span className="text-sm font-medium text-muted-foreground">
+                  To
+                </span>
+                <CustomDatePicker
+                  showTime={true}
+                  value={toDate}
+                  onChange={setToDate}
+                />
+              </div>
+            </div>
+
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-muted-foreground hidden sm:inline">To:</span>
-            <Input
-              type="datetime-local"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-              className="glass-card text-foreground w-[170px] sm:w-[190px] focus:bg-white/10"
-            />
-          </div>
-
-          {/* Clear Filter Button - Sirf tab dikhega jab koi filter laga hoga */}
+          {/* Clear Button */}
           {(searchTerm || fromDate || toDate) && (
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               onClick={handleClearFilters}
-              className="text-red-400 hover:text-red-500 hover:bg-red-500/10 h-10 px-3"
+              className="text-red-400 hover:text-red-500 hover:bg-red-500/10 h-10 px-4"
               title="Clear all filters"
             >
-              <X className="w-4 h-4 mr-1" /> Clear
+              <X className="w-4 h-4 mr-1" />
+              Clear
             </Button>
           )}
-        </div>
 
+        </div>
         {/* Action Buttons */}
         <div className="flex gap-3 flex-wrap">
           <Button
@@ -516,7 +533,7 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
                   <TableCell className="font-medium">{record.supervisor_name}</TableCell>
 
                   <TableCell className="font-mono">{record.vehicle}</TableCell>
-                                    <TableCell>
+                  <TableCell>
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
                       {record.shift}
                     </span>

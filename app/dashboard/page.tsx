@@ -15,7 +15,6 @@ import {
   RefreshCcw,
   TrendingUp,
   Wrench,
-  Filter
 } from "lucide-react"
 import {
   Area,
@@ -35,15 +34,16 @@ import {
   YAxis,
 } from "recharts"
 
+import { Input } from "@/components/ui/input"
 import { AppLayout } from "@/components/app-layout"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { vmsApi, type UtilizationReport, type VehicleLogMaster, type VehicleMaster, type VehicleRefueling, type VmsDashboardData } from "@/lib/vms-api"
+import { CustomDatePicker } from "@/components/ui/CustomDatePicker"
 
 type DashboardState = {
   vehicles: VehicleMaster[]
@@ -86,12 +86,15 @@ const formatCurrency = (value: number) =>
 
 const parseDashboardDate = (raw?: string) => {
   if (!raw) return null
+
   const datePart = raw.split(" ")[0]
   const parts = datePart.split("-")
+
   if (parts.length === 3 && parts[0].length === 2 && parts[2].length === 4) {
     const [day, month, year] = parts
     return new Date(`${year}-${month}-${day}T00:00:00`)
   }
+
   const parsed = new Date(raw)
   return Number.isNaN(parsed.getTime()) ? null : parsed
 }
@@ -130,25 +133,15 @@ const getMaintenanceCost = (log: VehicleLogMaster) => {
   if (typeof log.total_maintenance_cost === "number") {
     return log.total_maintenance_cost
   }
+
   const partCost = log.part_details?.reduce((sum, item) => sum + Number(item.expense || 0), 0) || 0
   const lubeCost = log.lube_details?.reduce((sum, item) => sum + Number(item.expense || 0), 0) || 0
   return partCost + lubeCost
 }
 
-// NEW: Helper to get Today's start and end times dynamically
-const getTodayDates = () => {
-  const today = new Date()
-  const yyyy = today.getFullYear()
-  const mm = String(today.getMonth() + 1).padStart(2, '0')
-  const dd = String(today.getDate()).padStart(2, '0')
-  return {
-    start: `${yyyy}-${mm}-${dd}T00:00`,
-    end: `${yyyy}-${mm}-${dd}T23:59`
-  }
-}
-
 function CustomTooltip({ active, payload, label }: ChartTooltipProps) {
   if (!active || !payload?.length) return null
+
   return (
     <div className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm shadow-lg">
       <div className="mb-1 font-medium text-slate-900">{label}</div>
@@ -178,9 +171,19 @@ function EmptyChart({ label }: { label: string }) {
 }
 
 function MetricCard({
-  title, value, description, icon: Icon, tone, isLoading,
+  title,
+  value,
+  description,
+  icon: Icon,
+  tone,
+  isLoading,
 }: {
-  title: string, value: string, description: string, icon: typeof Car, tone: string, isLoading: boolean
+  title: string
+  value: string
+  description: string
+  icon: typeof Car
+  tone: string
+  isLoading: boolean
 }) {
   return (
     <Card className="gap-4 rounded-lg border-slate-200 bg-white py-5 shadow-sm">
@@ -213,14 +216,31 @@ function MetricCard({
 function StatusBadge({ status }: { status?: string }) {
   const normalized = normalizeStatus(status)
   const classes =
-    normalized === "breakdown" ? "border-red-200 bg-red-50 text-red-700"
-      : normalized === "idle" ? "border-amber-200 bg-amber-50 text-amber-700"
-        : normalized === "maintenance" ? "border-blue-200 bg-blue-50 text-blue-700"
-          : normalized === "running" || normalized === "active" ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+    normalized === "breakdown"
+      ? "border-red-200 bg-red-50 text-red-700"
+      : normalized === "idle"
+        ? "border-amber-200 bg-amber-50 text-amber-700"
+        : normalized === "maintenance"
+          ? "border-blue-200 bg-blue-50 text-blue-700"
+          : normalized === "running" || normalized === "active"
+            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
             : "border-slate-200 bg-slate-50 text-slate-600"
 
-  return <Badge variant="outline" className={classes}>{status || "Unknown"}</Badge>
+  return (
+    <Badge variant="outline" className={classes}>
+      {status || "Unknown"}
+    </Badge>
+  )
 }
+
+const getTodayDates = () => {
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const dd = String(today.getDate()).padStart(2, '0');
+  const dateStr = `${yyyy}-${mm}-${dd}`;
+  return { from: `${dateStr}T00:00`, to: `${dateStr}T23:59` };
+};
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -229,69 +249,61 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null)
   const [lastUpdated, setLastUpdated] = useState<string>("")
 
-  // INITIALIZE with today's dates so it immediately filters to Today
-  const { start: defaultStart, end: defaultEnd } = useMemo(() => getTodayDates(), [])
+  // Date Filter State
+  const [fromDate, setFromDate] = useState("")
+  const [toDate, setToDate] = useState("")
 
-  const [fromDate, setFromDate] = useState(defaultStart)
-  const [toDate, setToDate] = useState(defaultEnd)
-
-  // Track applied filters so the UI only recalculates on "Apply"
-  const [appliedFrom, setAppliedFrom] = useState(defaultStart)
-  const [appliedTo, setAppliedTo] = useState(defaultEnd)
+  const handleSetToday = () => {
+    const { from, to } = getTodayDates();
+    setFromDate(from);
+    setToDate(to);
+  };
 
   const loadDashboard = async (overrideFrom?: string, overrideTo?: string) => {
     try {
       setIsLoading(true)
       setError(null)
 
-      // Use override if we click quick buttons, otherwise use whatever is in the input boxes
-      const targetFrom = overrideFrom !== undefined ? overrideFrom : fromDate
-      const targetTo = overrideTo !== undefined ? overrideTo : toDate
+      // Use the override dates if provided (during initial mount), otherwise use React state
+      const activeFrom = overrideFrom !== undefined ? overrideFrom : fromDate;
+      const activeTo = overrideTo !== undefined ? overrideTo : toDate;
 
-      setAppliedFrom(targetFrom)
-      setAppliedTo(targetTo)
+      let dashboardData: VmsDashboardData
+      const sqlFromDate = activeFrom ? activeFrom.replace('T', ' ') + ':00' : undefined;
+      const sqlToDate = activeTo ? activeTo.replace('T', ' ') + ':00' : undefined;
 
-      let dashboardData: VmsDashboardData | null = null
-
-      let fetchUrl = "/api/method/vms.api.get_dashboard_data"
-      if (targetFrom && targetTo) {
-        const sqlFromDate = targetFrom.replace("T", " ") + ":00"
-        const sqlToDate = targetTo.replace("T", " ") + ":00"
-        fetchUrl += `?from_datetime=${sqlFromDate}&to_datetime=${sqlToDate}`
-      }
+      const filterParams = (sqlFromDate && sqlToDate)
+        ? { from_datetime: sqlFromDate, to_datetime: sqlToDate }
+        : undefined;
 
       try {
-        const response = await fetch(fetchUrl)
-        if (!response.ok) throw new Error("Fetch failed")
-        const result = await response.json()
-        dashboardData = result.message as VmsDashboardData
+        dashboardData = await vmsApi.getDashboardData(filterParams)
+      } catch (dashboardError) {
+        console.warn("Dashboard endpoint failed, falling back to resource APIs:", dashboardError)
 
-        if (!dashboardData) throw new Error("Invalid response format")
-      } catch (fetchError) {
-        console.warn("Direct fetch with parameters failed, falling back to standard vmsApi", fetchError)
-        try {
-          dashboardData = await vmsApi.getDashboardData()
-        } catch (dashboardError) {
-          const [vehicles, logs, refuelings, utilizations] = await Promise.all([
-            vmsApi.getVehicleMasters(), vmsApi.getVehicleLogMasters(), vmsApi.getVehicleRefuelings(), vmsApi.getUtilizationReports(),
-          ])
-          dashboardData = { vehicles, logs, refuelings, utilizations }
-        }
+        // Keep fallbacks parameterless to prevent strict TypeScript compilation errors
+        const [vehicles, logs, refuelings, utilizations] = await Promise.all([
+          vmsApi.getVehicleMasters(),
+          vmsApi.getVehicleLogMasters(),
+          vmsApi.getVehicleRefuelings(),
+          vmsApi.getUtilizationReports(),
+        ])
+
+        dashboardData = { vehicles, logs, refuelings, utilizations }
       }
 
-      if (dashboardData) {
-        setData({
-          vehicles: Array.isArray(dashboardData.vehicles) ? dashboardData.vehicles : [],
-          logs: Array.isArray(dashboardData.logs) ? dashboardData.logs : [],
-          refuelings: Array.isArray(dashboardData.refuelings) ? dashboardData.refuelings : [],
-          utilizations: Array.isArray(dashboardData.utilizations) ? dashboardData.utilizations : [],
-        })
-      }
+      setData({
+        vehicles: Array.isArray(dashboardData.vehicles) ? dashboardData.vehicles : [],
+        logs: Array.isArray(dashboardData.logs) ? dashboardData.logs : [],
+        refuelings: Array.isArray(dashboardData.refuelings) ? dashboardData.refuelings : [],
+        utilizations: Array.isArray(dashboardData.utilizations) ? dashboardData.utilizations : [],
+      })
       setLastUpdated(new Date().toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }))
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unable to load dashboard data."
       setError(message)
-      if (message.includes("Session expired") || message.includes("403")) {
+
+      if (message.includes("Session expired")) {
         localStorage.removeItem("isLoggedIn")
         router.push("/Login")
       }
@@ -301,37 +313,17 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
-    loadDashboard()
+    const { from, to } = getTodayDates();
+    setFromDate(from);
+    setToDate(to);
+    loadDashboard(from, to);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const analytics = useMemo(() => {
-    const filterStart = appliedFrom ? new Date(appliedFrom.replace("T", " ") + ":00").getTime() : 0;
-    const filterEnd = appliedTo ? new Date(appliedTo.replace("T", " ") + ":00").getTime() : Number.MAX_SAFE_INTEGER;
-    const getTime = (raw?: string) => parseDashboardDate(raw)?.getTime() || 0;
-
-    const filteredUtilizations = data.utilizations.filter(report => {
-      if (!filterStart && filterEnd === Number.MAX_SAFE_INTEGER) return true;
-      const rFrom = getTime(report.from_date || report.date);
-      const rTo = report.to_date ? getTime(report.to_date) : rFrom;
-      return rFrom <= filterEnd && rTo >= filterStart;
-    });
-
-    const filteredRefuelings = data.refuelings.filter(entry => {
-      if (!filterStart && filterEnd === Number.MAX_SAFE_INTEGER) return true;
-      const t = getTime(entry.date);
-      return t >= filterStart && t <= filterEnd;
-    });
-
-    const filteredLogs = data.logs.filter(log => {
-      if (!filterStart && filterEnd === Number.MAX_SAFE_INTEGER) return true;
-      const t = getTime(log.date_of_initiation || log.creation);
-      return t >= filterStart && t <= filterEnd;
-    });
-
     const utilizationByVehicle = new Map<string, UtilizationReport>()
 
-    filteredUtilizations.forEach((report) => {
+    data.utilizations.forEach((report) => {
       const key = getVehicleKey(report.vehicle)
       const existing = utilizationByVehicle.get(key)
       const currentTime = parseDashboardDate(report.date || report.to_date || report.from_date)?.getTime() || 0
@@ -354,22 +346,23 @@ export default function DashboardPage() {
     const idleVehicles = statusCounts.idle || 0
     const maintenanceVehicles = statusCounts.maintenance || 0
     const trackedVehicles = latestUtilizations.length
+    const runningVehicles = Math.max(0, (statusCounts.running || statusCounts.active || 0) || totalVehicles - breakdownVehicles - idleVehicles - maintenanceVehicles)
 
-    const runningVehicles = Math.max(0, totalVehicles - breakdownVehicles - idleVehicles - maintenanceVehicles)
-
-    const refuelingDetails = filteredRefuelings.flatMap((entry) =>
+    const refuelingDetails = data.refuelings.flatMap((entry) =>
       (entry.vehicle_refueling_details || entry.details || []).map((detail) => ({
-        parent: entry, detail, date: detail.date || entry.date,
+        parent: entry,
+        detail,
+        date: detail.date || entry.date,
       })),
     )
 
     const totalFuel = refuelingDetails.reduce((sum, item) => sum + Number(item.detail.fuel_qty_in_ltrs || 0), 0)
     const efficiencies = refuelingDetails.map((item) => Number(item.detail.fuel_consumption || 0)).filter((value) => value > 0)
     const avgEfficiency = efficiencies.length ? efficiencies.reduce((sum, value) => sum + value, 0) / efficiencies.length : 0
-    const totalHmr = filteredUtilizations.reduce((sum, item) => sum + Number(item.hmr || 0), 0)
-    const totalMaintenanceCost = filteredLogs.reduce((sum, log) => sum + getMaintenanceCost(log), 0)
+    const totalHmr = data.utilizations.reduce((sum, item) => sum + Number(item.hmr || 0), 0)
+    const totalMaintenanceCost = data.logs.reduce((sum, log) => sum + getMaintenanceCost(log), 0)
 
-    const utilizationTrendMap = filteredUtilizations.reduce<Record<string, { date: string; Running: number; Idle: number; Breakdown: number; Maintenance: number }>>((acc, report) => {
+    const utilizationTrendMap = data.utilizations.reduce<Record<string, { date: string; Running: number; Idle: number; Breakdown: number; Maintenance: number }>>((acc, report) => {
       const key = dateKey(report.date || report.to_date || report.from_date)
       if (!key) return acc
 
@@ -414,7 +407,7 @@ export default function DashboardPage() {
         Efficiency: item.count ? Number((item.Efficiency / item.count).toFixed(2)) : 0,
       }))
 
-    const maintenanceTrendMap = filteredLogs.reduce<Record<string, { date: string; Jobs: number; Cost: number }>>((acc, log) => {
+    const maintenanceTrendMap = data.logs.reduce<Record<string, { date: string; Jobs: number; Cost: number }>>((acc, log) => {
       const key = dateKey(log.date_of_initiation || log.creation)
       if (!key) return acc
 
@@ -435,7 +428,7 @@ export default function DashboardPage() {
       color: statusColors[name] || statusColors.unknown,
     }))
 
-    const costCenterMap = filteredUtilizations.reduce<Record<string, { costCenter: string; HMR: number; Records: number }>>((acc, item) => {
+    const costCenterMap = data.utilizations.reduce<Record<string, { costCenter: string; HMR: number; Records: number }>>((acc, item) => {
       const costCenter = item.cost_center || "Unassigned"
       acc[costCenter] ||= { costCenter, HMR: 0, Records: 0 }
       acc[costCenter].HMR += Number(item.hmr || 0)
@@ -447,7 +440,7 @@ export default function DashboardPage() {
       .sort((a, b) => b.HMR - a.HMR)
       .slice(0, 8)
 
-    const recentLogs = [...filteredLogs]
+    const recentLogs = [...data.logs]
       .sort((a, b) => (parseDashboardDate(b.date_of_initiation || b.creation)?.getTime() || 0) - (parseDashboardDate(a.date_of_initiation || a.creation)?.getTime() || 0))
       .slice(0, 8)
 
@@ -465,109 +458,109 @@ export default function DashboardPage() {
       return {
         name: vehicle.license_plate || vehicle.name,
         model: [vehicle.make, vehicle.model].filter(Boolean).join(" ") || vehicle.location || "Vehicle",
-        status, hmr, odometer, utilizationPercent,
+        status,
+        hmr,
+        odometer,
+        utilizationPercent,
       }
     })
 
     return {
-      totalVehicles, trackedVehicles, runningVehicles, idleVehicles, breakdownVehicles,
-      maintenanceVehicles, totalFuel, avgEfficiency, totalHmr, totalMaintenanceCost,
-      utilizationTrend, fuelTrend, maintenanceTrend, statusMix, costCenters,
-      recentLogs, recentRefueling, vehicleHealth, refuelingCount: refuelingDetails.length,
+      totalVehicles,
+      trackedVehicles,
+      runningVehicles,
+      idleVehicles,
+      breakdownVehicles,
+      maintenanceVehicles,
+      totalFuel,
+      avgEfficiency,
+      totalHmr,
+      totalMaintenanceCost,
+      utilizationTrend,
+      fuelTrend,
+      maintenanceTrend,
+      statusMix,
+      costCenters,
+      recentLogs,
+      recentRefueling,
+      vehicleHealth,
+      refuelingCount: refuelingDetails.length,
     }
-  }, [data, appliedFrom, appliedTo])
+  }, [data])
 
   const healthPercent = analytics.totalVehicles
-    ? Math.round(((analytics.totalVehicles - analytics.breakdownVehicles - analytics.maintenanceVehicles) / analytics.totalVehicles) * 100) : 0
+    ? Math.round(((analytics.totalVehicles - analytics.breakdownVehicles - analytics.maintenanceVehicles) / analytics.totalVehicles) * 100)
+    : 0
 
   return (
     <AppLayout>
       <div className="min-h-screen bg-slate-50">
         <div className="mx-auto flex w-full max-w-[1500px] flex-col gap-6 px-4 py-5 sm:px-6 lg:px-8">
-          <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-            {/* Unified Toolbar */}
-            <div className="flex flex-wrap items-end gap-3">
-
-              {/* From Date - Width increased to 240px */}
-              <div className="space-y-1.5 w-full sm:w-[240px]">
-                <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-700">
-                  <Filter className="h-3.5 w-3.5" /> From Date
-                </label>
-                <Input
-                  type="datetime-local"
-                  value={fromDate}
-                  onChange={(e) => setFromDate(e.target.value)}
-                  className="h-9 w-full bg-white text-xs border-slate-200 shadow-sm"
-                />
-              </div>
-
-              {/* To Date - Width increased to 240px */}
-              <div className="space-y-1.5 w-full sm:w-[240px]">
-                <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-700">
-                  To Date
-                </label>
-                <Input
-                  type="datetime-local"
-                  value={toDate}
-                  onChange={(e) => setToDate(e.target.value)}
-                  className="h-9 w-full bg-white text-xs border-slate-200 shadow-sm"
-                />
-              </div>
-
-              {/* Actions */}
-              <Button
-                onClick={() => loadDashboard()}
-                disabled={isLoading || (!fromDate && !!toDate) || (!!fromDate && !toDate)}
-                className="h-9 w-full sm:w-auto text-xs px-4"
-              >
-                {isLoading ? (
-                  <><RefreshCcw className="mr-2 h-3.5 w-3.5 animate-spin" /> Loading...</>
-                ) : (
-                  "Apply"
+          <section className="flex flex-col gap-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            {/* 1. Header */}
+            <div className="flex flex-col gap-1.5">
+              <div className="flex flex-wrap items-center gap-3">
+                <Badge variant="secondary" className="rounded-md bg-slate-100 px-2 py-0.5 font-medium text-slate-700 hover:bg-slate-100">
+                  VMS Command Center
+                </Badge>
+                {lastUpdated && (
+                  <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500">
+                    <CalendarDays className="h-3.5 w-3.5 text-slate-400" />
+                    Updated {lastUpdated}
+                  </span>
                 )}
-              </Button>
-
-              <Button
-                onClick={() => {
-                  const { start, end } = getTodayDates();
-                  setFromDate(start);
-                  setToDate(end);
-                  loadDashboard(start, end);
-                }}
-                variant="outline"
-                className="h-9 w-full sm:w-auto px-3 text-xs text-slate-700"
-              >
-                Today
-              </Button>
-
-              {(fromDate || toDate) && (
-                <Button
-                  onClick={() => {
-                    setFromDate("")
-                    setToDate("")
-                    loadDashboard("", "")
-                  }}
-                  variant="outline"
-                  className="h-9 w-full sm:w-auto px-3 text-xs text-red-600 hover:bg-red-50 hover:text-red-700 border-red-200"
-                >
-                  Clear
-                </Button>
-              )}
-
-              {/* Last Updated */}
-              {lastUpdated && (
-                <div className="mt-2 sm:mt-0 sm:ml-auto flex w-full sm:w-auto items-center text-xs font-medium text-slate-500 pb-1.5">
-                  <CalendarDays className="mr-1.5 h-3.5 w-3.5" />
-                  Updated {lastUpdated}
-                </div>
-              )}
+              </div>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
+                Fleet Operations Dashboard
+              </h1>
+              <p className="text-sm leading-relaxed text-slate-500">
+                Live overview of vehicle availability, maintenance workload, utilization, fuel efficiency, and report-ready operational records.
+              </p>
             </div>
 
-            {/* Error Message */}
+
+            <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5">
+              {/* From */}
+              <span className="text-sm font-medium text-slate-500">From</span>
+              <CustomDatePicker showTime value={fromDate} onChange={setFromDate} />
+
+            
+              {/* To */}
+              <span className="text-sm font-medium text-slate-500">To</span>
+              <CustomDatePicker showTime value={toDate} onChange={setToDate} />
+
+              {/* Actions */}
+              <div className="ml-auto flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  onClick={handleSetToday}
+                  className="h-9 border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-100"
+                >
+                  Today
+                </Button>
+                <Button
+                  onClick={() => loadDashboard()}
+                  disabled={isLoading || (Boolean(fromDate) !== Boolean(toDate))}
+                  className="h-9 shadow-sm"
+                >
+                  <RefreshCcw className={`mr-2 h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+                  {fromDate && toDate ? "Apply Filters" : "Refresh"}
+                </Button>
+                {(fromDate || toDate) && (
+                  <Button
+                    variant="ghost"
+                    onClick={() => { setFromDate(""); setToDate(""); }}
+                    className="h-9 text-slate-500 hover:bg-slate-200/50 hover:text-slate-900"
+                  >
+                    Clear
+                  </Button>
+                )}
+              </div>
+            </div>
+
             {error && (
-              <div className="mt-4 flex items-start gap-2.5 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 shadow-sm">
-                <AlertCircle className="h-5 w-5 shrink-0 text-red-600" />
-                <p>{error}</p>
+              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                {error}
               </div>
             )}
           </section>
@@ -578,7 +571,7 @@ export default function DashboardPage() {
             <MetricCard title="Idle" value={formatNumber(analytics.idleVehicles)} description="Latest utilization status marked idle" icon={Gauge} tone="bg-amber-50 text-amber-700" isLoading={isLoading} />
             <MetricCard title="Breakdowns" value={formatNumber(analytics.breakdownVehicles)} description="Vehicles requiring immediate attention" icon={AlertTriangle} tone="bg-red-50 text-red-700" isLoading={isLoading} />
             <MetricCard title="Fuel Used" value={`${formatNumber(analytics.totalFuel, 1)} L`} description={`${formatNumber(analytics.avgEfficiency, 2)} km/l average efficiency`} icon={Fuel} tone="bg-cyan-50 text-cyan-700" isLoading={isLoading} />
-            <MetricCard title="Maint. Cost" value={formatCurrency(analytics.totalMaintenanceCost)} description={`${formatNumber(analytics.recentLogs.length)} maintenance job cards`} icon={IndianRupee} tone="bg-indigo-50 text-indigo-700" isLoading={isLoading} />
+            <MetricCard title="Maint. Cost" value={formatCurrency(analytics.totalMaintenanceCost)} description={`${formatNumber(data.logs.length)} maintenance job cards`} icon={IndianRupee} tone="bg-indigo-50 text-indigo-700" isLoading={isLoading} />
           </section>
 
           <section className="grid gap-6 xl:grid-cols-[1.6fr_1fr]">

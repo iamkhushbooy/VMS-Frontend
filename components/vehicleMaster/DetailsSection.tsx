@@ -25,7 +25,7 @@ const VehicleDetailsSection: React.FC<VehicleDetailsSectionProps> = ({
 }) => {
   return (
     <FormSection title="Details" icon={Gauge}>
-      <InputGroup label="Odometer Value (Last)" required>
+      <InputGroup label="Odometer Value (Last) *" required>
         <div className="relative">
           <Input
             name="lastOdometer"
@@ -55,7 +55,7 @@ const VehicleDetailsSection: React.FC<VehicleDetailsSectionProps> = ({
         />
       </InputGroup>
 
-      <InputGroup label="Source Warehouse" required>
+      <InputGroup label="Source Warehouse *" required>
         <ReusableCombobox
           options={warehouseOptions}
           value={formData.warehouse}
@@ -66,7 +66,7 @@ const VehicleDetailsSection: React.FC<VehicleDetailsSectionProps> = ({
         />
       </InputGroup>
 
-      <InputGroup label="Chassis No" required>
+      <InputGroup label="Chassis No *" required>
         <Input
           name="chassisNo"
           value={formData.chassisNo}
@@ -95,7 +95,7 @@ const VehicleDetailsSection: React.FC<VehicleDetailsSectionProps> = ({
         </div>
       </InputGroup>
 
-      <InputGroup label="Employee" required>
+      <InputGroup label="Employee">
         {/* <ReusableCombobox
           icon={User}
           options={employeeOptions}
