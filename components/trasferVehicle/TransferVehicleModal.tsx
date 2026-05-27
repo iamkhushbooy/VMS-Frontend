@@ -191,6 +191,7 @@ export function TransferVehicleModal({ isOpen, onClose }: TransferModalProps) {
           getApiUrl(config.api.resource(`Vehicle Master/${formData.registrationNo}`)),
           {
             warehouse: formData.toWarehouse,
+            employee: formData.employee,
           },
           {
             withCredentials: true,
@@ -275,10 +276,12 @@ export function TransferVehicleModal({ isOpen, onClose }: TransferModalProps) {
             {/* Right Column */}
             <div className="space-y-4">
               <InputGroup label="Date" required>
-                <CustomDatePicker
+                <div className="[&>button]:h-10 [&>button]:w-full">
+                  <CustomDatePicker
                   value={formData.date}
                   onChange={(newDateString) => handleSelectChange("date", newDateString)}
                 />
+                </div>
               </InputGroup>
 
               <InputGroup label="To Warehouse" required>

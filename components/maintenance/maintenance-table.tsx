@@ -118,27 +118,6 @@ export function MaintenanceTable({ onNewLog, onSelectLog, refreshTrigger }: Main
   };
 
   const router = useRouter()
-  // const fetchMaintenanceLogs = useCallback(async () => {
-  //   setIsLoading(true)
-  //   try {
-  //     const url = getApiUrl(config.api.method("vms.api.get_maintenance_logs_with_details"))
-  //     const resp = await fetch(url, { credentials: "include" })
-  //     const json = await resp.json()
-
-  //     const fixed = (json.message || []).map((log: any) => ({
-  //       ...log,
-  //       docstatus: log.docstatus ?? 0,
-  //     }))
-  //     fixed.sort((a: any, b: any) => new Date(b.modified).getTime() - new Date(a.modified).getTime())
-  //     setLogs(fixed)
-  //     setSelectedNames([])
-  //   } catch (e) {
-  //     console.error(e)
-  //     setLogs([])
-  //   } finally {
-  //     setIsLoading(false)
-  //   }
-  // }, [])
 const fetchMaintenanceLogs = useCallback(async () => {
     setIsLoading(true)
     try {
@@ -162,7 +141,6 @@ const fetchMaintenanceLogs = useCallback(async () => {
       if (!resp.ok) throw new Error(`Frappe API Error: ${resp.status}`)
       
       const json = await resp.json()
-      console.log("Backend Response:", json);
       
       let rawData = [];
       if (json.message && json.message.status === "error") {
@@ -176,31 +154,45 @@ const fetchMaintenanceLogs = useCallback(async () => {
       } 
       else if (json.message && json.message.message && Array.isArray(json.message.message)) {
         rawData = json.message.message;
-      } else {
-        console.warn("No valid array found in response");
       }
 
-      const fixed = rawData.map((log: any) => {
-        let employeesArray: string[] = [];
-        
-        // FIX 1: Backend ab 'employee' bhej raha hai 'working_employee' nahi
-        const empData = log.employee; 
+      const uniqueLogsMap = new Map();
 
-        if (Array.isArray(empData)) {
-          employeesArray = empData;
-        } else if (typeof empData === "string" && empData.trim() !== "") {
-          employeesArray = empData.split(",").map((s: string) => s.trim()).filter(Boolean);
+      rawData.forEach((log: any) => {
+        if (!uniqueLogsMap.has(log.name)) {
+          let employeesArray: string[] = [];
+          const empData = log.employee; 
+
+          if (Array.isArray(empData)) {
+            employeesArray = [...empData];
+          } else if (typeof empData === "string" && empData.trim() !== "") {
+            employeesArray = empData.split(",").map((s: string) => s.trim()).filter(Boolean);
+          }
+
+          uniqueLogsMap.set(log.name, {
+            ...log,
+            docstatus: log.docstatus ?? 0,
+            license_plate: log.license_plate || "",
+            working_employee: employeesArray,
+          });
+        } 
+        else {
+          const existingLog = uniqueLogsMap.get(log.name);
+          const empData = log.employee;
+          
+          if (typeof empData === "string" && empData.trim() !== "") {
+            const newEmps = empData.split(",").map(s => s.trim()).filter(Boolean);
+            newEmps.forEach(emp => {
+              if (!existingLog.working_employee.includes(emp)) {
+                existingLog.working_employee.push(emp);
+              }
+            });
+          }
         }
+      });
 
-        return {
-          ...log,
-          // FIX 2: docstatus ab properly map hoga kyunki SQL se aayega
-          docstatus: log.docstatus ?? 0,
-          // FIX 3: Backend directly 'license_plate' bhej raha hai
-          license_plate: log.license_plate || "",
-          working_employee: employeesArray,
-        };
-      })
+      // Map se wapas Array bana lo
+      const fixed = Array.from(uniqueLogsMap.values());
       
       setLogs(fixed)
       setSelectedNames([])
@@ -210,7 +202,7 @@ const fetchMaintenanceLogs = useCallback(async () => {
     } finally {
       setIsLoading(false)
     }
-  }, [router])
+}, [router])
 
   useEffect(() => {
     fetchMaintenanceLogs()

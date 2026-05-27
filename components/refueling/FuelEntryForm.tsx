@@ -222,7 +222,7 @@ export function FuelEntryForm({
         {/* Date Field */}
         <div>
           <Label>Date</Label>
-          <div className="w-full [&>*]:w-full">
+          <div className="w-full [&>button]:h-10 [&>button]:w-full">
             <CustomDatePicker
               showTime={true}
               value={newEntry.date || ""}

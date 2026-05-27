@@ -388,92 +388,97 @@ export default function UtilizationTable({ onLogUtilization, onSelectRecord }: U
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col xl:flex-row gap-4 justify-between items-start xl:items-center">
+      <div className="flex flex-wrap items-end justify-between gap-4">
 
-        {/* Search and Date Range Block */}
-        <div className="flex flex-col xl:flex-row xl:items-end gap-3 flex-1 w-full xl:max-w-4xl">
+        {/* Filters */}
+        <div className="flex flex-wrap items-end gap-3">
 
           {/* Search */}
-          <div className="relative flex-1 min-w-[220px] w-full">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <div className="relative w-[350px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+
             <Input
               placeholder="Search by vehicle, Created On, plant, status..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 glass-card text-foreground placeholder:text-muted-foreground focus:bg-white/10 w-full h-10"
+              className="pl-9 h-10"
             />
           </div>
 
-          {/* Date Filters */}
-          <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
+          {/* From */}
+          {/* From */}
+          <div className="flex items-center gap-2 w-[300px]">
+            <label className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+              From
+            </label>
 
-            {/* From Date */}
-            <div className="flex flex-col justify-end gap-1 min-w-[240px] w-full sm:w-auto">
-              <div className="w-full">
-                <span className="text-sm font-medium text-muted-foreground">
-                  From
-                </span>
-                <CustomDatePicker
-                  showTime={true}
-                  value={fromDate}
-                  onChange={setFromDate}
-                />
-              </div>
+            <div className="flex-1 [&>button]:w-full">
+              <CustomDatePicker
+                showTime={true}
+                value={fromDate}
+                onChange={setFromDate}
+              />
             </div>
-
-            {/* To Date */}
-            <div className="flex flex-col justify-end gap-1 min-w-[240px] w-full sm:w-auto">
-              <div className="w-full">
-                <span className="text-sm font-medium text-muted-foreground">
-                  To
-                </span>
-                <CustomDatePicker
-                  showTime={true}
-                  value={toDate}
-                  onChange={setToDate}
-                />
-              </div>
-            </div>
-
           </div>
 
-          {/* Clear Button */}
+          {/* To */}
+          <div className="flex items-center gap-2 w-[300px]">
+            <label className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+              To
+            </label>
+
+            <div className="flex-1 [&>button]:w-full">
+              <CustomDatePicker
+                showTime={true}
+                value={toDate}
+                onChange={setToDate}
+              />
+            </div>
+          </div>
+
+          {/* Clear */}
           {(searchTerm || fromDate || toDate) && (
             <Button
               variant="ghost"
               onClick={handleClearFilters}
-              className="text-red-400 hover:text-red-500 hover:bg-red-500/10 h-10 px-4"
-              title="Clear all filters"
+              className="h-10 self-end"
             >
               <X className="w-4 h-4 mr-1" />
               Clear
             </Button>
           )}
-
         </div>
-        {/* Action Buttons */}
-        <div className="flex gap-3 flex-wrap">
+
+        {/* Buttons */}
+        <div className="flex flex-wrap items-center gap-3">
+
           <Button
             variant="destructive"
             disabled={selectedNames.length === 0 || isActionLoading}
             onClick={handleBulkAction}
+            className="h-10"
           >
-            {isActionLoading ? (
+            {isActionLoading && (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : null}
+            )}
             Delete
           </Button>
 
-          <Button onClick={onLogUtilization} className="glow-button-pink text-white font-semibold">
+          <Button
+            onClick={onLogUtilization}
+            className="h-10 glow-button-pink text-white font-semibold"
+          >
             + New Report
           </Button>
+
           <Button
             onClick={handleExportExcel}
-            className="glow-button-pink text-white font-semibold"
+            className="h-10 glow-button-pink text-white font-semibold"
           >
             <Download className="mr-2 h-4 w-4" />
             Export Excel
           </Button>
+
         </div>
       </div>
 

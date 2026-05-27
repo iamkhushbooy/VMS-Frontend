@@ -45,7 +45,8 @@ const VehicleDetailsSection: React.FC<VehicleDetailsSectionProps> = ({
         </div>
       </InputGroup>
       <InputGroup label="Acquisition Date">
-        <CustomDatePicker
+        <div className="[&>button]:h-10 [&>button]:w-full">
+          <CustomDatePicker
             value={formData.acquisitionDate}
           onChange={(newDateString) => {
             handleInputChange({
@@ -53,6 +54,7 @@ const VehicleDetailsSection: React.FC<VehicleDetailsSectionProps> = ({
             } as unknown as React.ChangeEvent<HTMLInputElement>)
           }}
         />
+        </div>
       </InputGroup>
 
       <InputGroup label="Source Warehouse *" required>

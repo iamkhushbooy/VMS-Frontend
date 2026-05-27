@@ -41,6 +41,7 @@ const VehicleInsuranceSection: React.FC<VehicleInsuranceSectionProps> = ({
       </InputGroup>
 
       <InputGroup label="Start Date">
+        <div className="[&>button]:h-10 [&>button]:w-full">
           <CustomDatePicker
             value={formData.startDate}
             onChange={(newDateString) => {
@@ -49,9 +50,11 @@ const VehicleInsuranceSection: React.FC<VehicleInsuranceSectionProps> = ({
               } as unknown as React.ChangeEvent<HTMLInputElement>)
             }}
           />
+        </div>
       </InputGroup>
 
       <InputGroup label="End Date">
+        <div className="[&>button]:h-10 [&>button]:w-full">
           <CustomDatePicker
             value={formData.endDate}
             onChange={(newDateString) => {
@@ -60,6 +63,7 @@ const VehicleInsuranceSection: React.FC<VehicleInsuranceSectionProps> = ({
               } as unknown as React.ChangeEvent<HTMLInputElement>)
             }}
           />
+        </div>
       </InputGroup>
     </FormSection>
   )

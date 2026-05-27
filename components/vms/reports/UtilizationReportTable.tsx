@@ -285,7 +285,7 @@
 
 "use client"
 import { CustomDatePicker } from "@/components/ui/CustomDatePicker"
-import { useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import {
   Table,
   TableBody,
@@ -341,6 +341,19 @@ const formatTime = (decimalHours: number) => {
   else return `${minutes} mins`
 }
 
+const getTodayRange = () => {
+  const today = new Date()
+  const yyyy = today.getFullYear()
+  const mm = String(today.getMonth() + 1).padStart(2, '0')
+  const dd = String(today.getDate()).padStart(2, '0')
+  const dateStr = `${yyyy}-${mm}-${dd}`
+
+  return {
+    from: `${dateStr}T00:00`,
+    to: `${dateStr}T23:59`,
+  }
+}
+
 export function VehicleUtilizationReport() {
   const [fromDate, setFromDate] = useState("")
   const [toDate, setToDate] = useState("")
@@ -350,14 +363,17 @@ export function VehicleUtilizationReport() {
   const [summary, setSummary] = useState<ReportSummary | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
-  const handleGenerateReport = async () => {
-    if (!fromDate || !toDate) return
+  const fetchUtilizationReport = useCallback(async (rangeFrom: string, rangeTo: string) => {
+    if (!rangeFrom || !rangeTo) return
     setIsLoading(true)
     try {
-      const sqlFromDate = fromDate.replace('T', ' ') + ':00'
-      const sqlToDate = toDate.replace('T', ' ') + ':00'
-      const url = `/api/method/vms.api.get_vehicle_utilization?from_datetime=${sqlFromDate}&to_datetime=${sqlToDate}`
-      const response = await fetch(url)
+      const sqlFromDate = `${rangeFrom.replace('T', ' ')}:00`
+      const sqlToDate = `${rangeTo.replace('T', ' ')}:00`
+      const params = new URLSearchParams({
+        from_datetime: sqlFromDate,
+        to_datetime: sqlToDate,
+      })
+      const response = await fetch(`/api/method/vms.api.get_vehicle_utilization?${params.toString()}`)
       const result = await response.json()
 
       if (result.message) {
@@ -370,20 +386,25 @@ export function VehicleUtilizationReport() {
     } finally {
       setIsLoading(false)
     }
+  }, [])
+
+  const handleGenerateReport = () => {
+    void fetchUtilizationReport(fromDate, toDate)
   }
 
   // Set dates to Today
   const handleSetToday = () => {
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, '0');
-    const dd = String(today.getDate()).padStart(2, '0');
-    const dateStr = `${yyyy}-${mm}-${dd}`;
+    const todayRange = getTodayRange()
+    setFromDate(todayRange.from)
+    setToDate(todayRange.to)
+  }
 
-    // Sets 'From' to 12:00 AM and 'To' to 11:59 PM today
-    setFromDate(`${dateStr}T00:00`);
-    setToDate(`${dateStr}T23:59`);
-  };
+  useEffect(() => {
+    const todayRange = getTodayRange()
+    setFromDate(todayRange.from)
+    setToDate(todayRange.to)
+    void fetchUtilizationReport(todayRange.from, todayRange.to)
+  }, [fetchUtilizationReport])
 
   // Filter Logic Updated
   const filteredData = data?.filter((row) => {
@@ -433,26 +454,27 @@ export function VehicleUtilizationReport() {
 
   return (
     <div className="w-full bg-[#F9FAFF] min-h-screen p-4">
-      <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-6 flex flex-wrap items-end gap-4">
-        <div className="space-y-1.5 flex-1 min-w-[200px]">
-          <label className="text-sm font-semibold text-gray-700">From Date & Time</label>
-
-          <CustomDatePicker
-            showTime={true}
-            value={fromDate}
-            onChange={setFromDate}
-          />
+      <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm xl:flex-row xl:items-end xl:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <div className="space-y-1.5 sm:w-[240px] [&>button]:h-10 [&>button]:w-full">
+            <label className="text-sm font-semibold text-gray-700">From Date & Time</label>
+            <CustomDatePicker
+              showTime={true}
+              value={fromDate}
+              onChange={setFromDate}
+            />
+          </div>
+          <div className="space-y-1.5 sm:w-[240px] [&>button]:h-10 [&>button]:w-full">
+            <label className="text-sm font-semibold text-gray-700">To Date & Time</label>
+            <CustomDatePicker
+              showTime={true}
+              value={toDate}
+              onChange={setToDate}
+            />
+          </div>
         </div>
-        <div className="space-y-1.5 flex-1 min-w-[200px]">
-          <label className="text-sm font-semibold text-gray-700">To Date & Time</label>
-          <CustomDatePicker
-            showTime={true}
-            value={toDate}
-            onChange={setToDate}
-          />
-        </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <Button
             variant="outline"
             onClick={handleSetToday}

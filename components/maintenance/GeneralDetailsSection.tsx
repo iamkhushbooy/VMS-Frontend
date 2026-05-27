@@ -417,7 +417,7 @@ export function GeneralDetailsSection({
           <ReusableCombobox options={statusOptions} value={formData.status} onValueChange={(v: string) => handleSelectChange("status", v)} placeholder="Select status" searchPlaceholder="Search..." isLoading={isBusy} />
         </div>
 
-        <div>
+        <div className="[&>button]:h-10 [&>button]:w-full">
           <Label htmlFor="date_and_time_of_job_initiation" className="text-foreground">Date and Time of Job Initiation <span className="text-red-800">*</span></Label>
           <CustomDatePicker
             value={formData.date_and_time_of_job_initiation}
@@ -431,7 +431,7 @@ export function GeneralDetailsSection({
         </div>
 
         {showTimeField &&
-          <div>
+          <div className="[&>button]:h-10 [&>button]:w-full">
             <Label htmlFor="date_and_time_of_job_completion" className="text-foreground">Date and Time of Job Completion</Label>
             <CustomDatePicker
               value={formData.date_and_time_of_job_completion}

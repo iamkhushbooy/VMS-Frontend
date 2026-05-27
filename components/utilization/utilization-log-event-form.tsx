@@ -64,7 +64,7 @@ export function UtilizationLogEventForm({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
 
           {/* Date */}
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 [&>button]:h-10 [&>button]:w-full">
             <Label htmlFor="date" className="text-sm font-medium text-gray-700">Posting Date*</Label>
             <CustomDatePicker
               value={formData.date}
@@ -88,7 +88,7 @@ export function UtilizationLogEventForm({
             />
           </div>
 
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 [&>button]:h-10 [&>button]:w-full">
             <Label htmlFor="fromDate" className="text-sm font-medium text-gray-700">From Date & Time</Label>
             <CustomDatePicker
               value={formData.fromDate}
@@ -99,7 +99,7 @@ export function UtilizationLogEventForm({
             />
           </div>
 
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 [&>button]:h-10 [&>button]:w-full">
             <Label htmlFor="toDate" className="text-sm font-medium text-gray-700">To Date & Time</Label>
             <CustomDatePicker
               value={formData.toDate}

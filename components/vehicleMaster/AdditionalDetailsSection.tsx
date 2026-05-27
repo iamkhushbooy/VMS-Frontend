@@ -45,14 +45,16 @@ const VehicleAdditionalSection: React.FC<VehicleAdditionalSectionProps> = ({
       </InputGroup>
 
       <InputGroup label="Last Carbon Check">
-        <CustomDatePicker
-          value={formData.carbonCheckDate}
+        <div className="[&>button]:h-10 [&>button]:w-full">
+          <CustomDatePicker
+            value={formData.carbonCheckDate}
           onChange={(newDateString) => {
             handleInputChange({
               target: { name: 'carbonCheckDate', value: newDateString }
             } as unknown as React.ChangeEvent<HTMLInputElement>)
           }}
         />
+        </div>
       </InputGroup>
 
       <InputGroup label="Color">

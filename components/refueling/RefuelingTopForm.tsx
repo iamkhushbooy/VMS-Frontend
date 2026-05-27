@@ -154,7 +154,7 @@ export function RefuelingTopForm({
         <div className="w-full">
           <Label>Date*</Label>
 
-          <div className="w-full [&>*]:w-full">
+          <div className="w-full [&>button]:h-10 [&>button]:w-full">
             <CustomDatePicker
               value={formData.date}
               onChange={(newDateString) => {
