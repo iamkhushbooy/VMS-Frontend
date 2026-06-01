@@ -305,7 +305,9 @@ import {
   CheckCircle2,
   AlertTriangle,
   Coffee,
-  Download
+  Download,
+  ChevronLeft,    
+  ChevronRight    
 } from "lucide-react"
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
@@ -363,6 +365,9 @@ export function VehicleUtilizationReport() {
   const [summary, setSummary] = useState<ReportSummary | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 50
+
   const fetchUtilizationReport = useCallback(async (rangeFrom: string, rangeTo: string) => {
     if (!rangeFrom || !rangeTo) return
     setIsLoading(true)
@@ -418,6 +423,11 @@ export function VehicleUtilizationReport() {
     const matchesFilter = statusFilter === 'All' || row.primary_status === statusFilter
     return matchesSearch && matchesFilter
   }) || []
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage)
+  const paginatedData = filteredData.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  )
 
   const toggleFilter = (status: FilterStatus) => {
     setStatusFilter(current => current === status ? 'All' : status)
@@ -574,7 +584,7 @@ export function VehicleUtilizationReport() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredData.length === 0 ? (
+                {paginatedData.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-12 text-gray-500">
                       <div className="flex flex-col items-center justify-center">
@@ -584,7 +594,7 @@ export function VehicleUtilizationReport() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredData.map((report, idx) => (
+                  paginatedData.map((report, idx) => (
                     <TableRow key={idx} className="border-b border-gray-50 hover:bg-blue-50/30 transition-colors">
                       <TableCell className="py-4 px-6">
                         <div className="flex flex-col gap-1">
@@ -614,6 +624,37 @@ export function VehicleUtilizationReport() {
                 )}
               </TableBody>
             </Table>
+            {totalPages > 1 && (
+              <div className="relative flex flex-col items-center justify-center gap-4 px-6 py-4 border-t border-gray-100 bg-gray-50/30 sm:flex-row">
+
+                
+                {/* Centered Pagination Buttons */}
+                <div className="flex items-center justify-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="h-9 rounded-lg shadow-sm bg-white hover:bg-gray-50"
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" /> Prev
+                  </Button>
+                  <span className="text-sm font-medium text-gray-600 px-2 min-w-[5rem] text-center">
+                    {currentPage} / {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="h-9 rounded-lg shadow-sm bg-white hover:bg-gray-50"
+                  >
+                    Next <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+
+              </div>
+            )}
           </div>
         </div>
       )}

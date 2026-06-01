@@ -446,12 +446,11 @@ export function RefuelingTable({
                 />
               </TableHead>
 
-              <TableHead className="text-primary font-semibold">Name</TableHead>
+             <TableHead className="text-primary font-semibold">Issuer Name</TableHead>
               <TableHead className="text-primary font-semibold">Date</TableHead>
               <TableHead className="text-primary font-semibold">Company</TableHead>
                <TableHead className="text-primary font-semibold">Created On</TableHead>
               <TableHead className="text-primary font-semibold">Fuel Item</TableHead>
-              <TableHead className="text-primary font-semibold">Issuer Name</TableHead>
               <TableHead className="text-primary font-semibold">Status</TableHead>
             </TableRow>
           </TableHeader>
@@ -484,7 +483,7 @@ export function RefuelingTable({
                     />
                   </TableCell>
 
-                  <TableCell>{record.name}</TableCell>
+                   <TableCell>{record.issuer_name}</TableCell>
                   <TableCell>{record.date}</TableCell>
                   <TableCell>{record.company}</TableCell>
                    <TableCell className="font-mono">
@@ -497,7 +496,7 @@ export function RefuelingTable({
                     }) : "-"}
                   </TableCell>
                   <TableCell>{record.fuel_item}</TableCell>
-                  <TableCell>{record.issuer_name}</TableCell>
+                 
 
                   <TableCell>
                     <span

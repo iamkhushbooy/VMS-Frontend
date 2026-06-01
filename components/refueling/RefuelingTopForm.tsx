@@ -43,13 +43,11 @@ interface RefuelingFormData {
 interface RefuelingTopFormProps {
   formData: RefuelingFormData
   setFormData: React.Dispatch<React.SetStateAction<RefuelingFormData>>
-  issuerOptions: FrappeDoc[]
   companyOptions: FrappeDoc[]
   warehouseOptions: FrappeDoc[]
   itemOptions: FrappeDoc[]
   costCenterOptions: FrappeDoc[]
   isEditMode: boolean
-  onEmployeeFieldClick: () => void
   onItemSearch: (query: string) => void;
   onFuelItemSelect: (val: string) => void;
   itemLoading: boolean;
@@ -137,7 +135,6 @@ ReusableCombobox.displayName = "ReusableCombobox"
 export function RefuelingTopForm({
   formData,
   setFormData,
-  issuerOptions,
   companyOptions,
   warehouseOptions,
   itemOptions,
@@ -146,7 +143,6 @@ export function RefuelingTopForm({
   onItemSearch,
   onFuelItemSelect,
   itemLoading,
-  onEmployeeFieldClick,
 }: RefuelingTopFormProps) {
   return (
     <div className="bg-slate-100/50 p-5 rounded-lg border border-slate-100">
@@ -203,18 +199,13 @@ export function RefuelingTopForm({
             disabled={!isEditMode}
           />
         </div>
-        <div onMouseDown={onEmployeeFieldClick}>
+        <div>
           <Label>Issuer Name*</Label>
-
-          <ReusableCombobox
-            options={issuerOptions}
+          <Input
             value={formData.issuerName}
-            onValueChange={(v: string) => setFormData({ ...formData, issuerName: v })}
-            placeholder="Select Issuer"
-            searchPlaceholder="Search by ID or Name..."
-            displayField="combined_label"
-            isLoading={isEditMode ? false : true}
-            disabled={!isEditMode}
+            readOnly
+            className="mt-1 bg-input cursor-not-allowed opacity-70"
+            disabled
           />
         </div>
 

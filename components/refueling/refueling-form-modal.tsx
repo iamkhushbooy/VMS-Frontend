@@ -22,6 +22,7 @@ import axios from "axios"
 import { RefuelingTopForm } from "./RefuelingTopForm"
 import { FuelEntryForm } from "./FuelEntryForm"
 import { getApiUrl, config } from "@/lib/config"
+import { useAuthStore } from "@/context/auth_store"
 import { fetchFrappeDoctype, VEHICLE_DOCTYPE } from "../maintenance/MaintenanceShared"
 import { getErrorMessage } from "@/lib/errorMessage"
 import { Pagination } from "./Pagination"
@@ -57,15 +58,26 @@ interface ModalProps {
 }
 
 export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: ModalProps) {
+  const loggedUser = useAuthStore((s: any) => s.user)
   // --- Form State ---
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split("T")[0],
-    issuerName: "",
+    issuerName: loggedUser?.email || "",
     company: "",
     sourceWarehouse: "",
     fuelItem: "",
     costCenter: "",
   })
+
+  // Failsafe to ensure issuerName is populated if auth loads asynchronously
+  useEffect(() => {
+    if (isOpen && loggedUser?.email && !formData.issuerName && !record) {
+      setFormData((prev) => ({
+        ...prev,
+        issuerName: loggedUser.email,
+      }));
+    }
+  }, [isOpen, loggedUser?.email, formData.issuerName, record]);
 
   const [fuelEntries, setFuelEntries] = useState<FuelEntry[]>([])
   const [newEntry, setNewEntry] = useState<Partial<FuelEntry>>({
@@ -79,7 +91,7 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
   const resetForm = () => {
     setFormData({
       date: new Date().toISOString().split("T")[0],
-      issuerName: "",
+      issuerName: loggedUser?.email || "",
       company: companyOptions.length > 0 ? companyOptions[0].name : "",
       sourceWarehouse: "",
       fuelItem: "",
@@ -104,13 +116,11 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
   const [isEditMode, setIsEditMode] = useState(false)
   const [docStatus, setDocStatus] = useState<number>(0)
   const [currentName, setCurrentName] = useState<string | null>(null)
-  const [issuerOptions, setIssuerOptions] = useState<FrappeDoc[]>([])
   const [companyOptions, setCompanyOptions] = useState<FrappeDoc[]>([])
   const [warehouseOptions, setWarehouseOptions] = useState<FrappeDoc[]>([])
   const [itemOptions, setItemOptions] = useState<FrappeDoc[]>([])
   const [costCenterOptions, setCostCenterOptions] = useState<FrappeDoc[]>([])
   const [vehicleOptions, setVehicleOptions] = useState<VehicleDoc[]>([])
-  const [allEmployeeOptions, setAllEmployeeOptions] = useState<FrappeDoc[]>([])
   const [allWarehouseOptions, setAllWarehouseOptions] = useState<FrappeDoc[]>([])
   const [itemLoading, setItemLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -300,25 +310,13 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
           fetchOptions("Warehouse", ["name", "company"]),
           fetchOptions("Cost Center"),
         ]);
-        const empUrl = getApiUrl("/api/method/vms.api.get_all_employees");
-        const empRes = await fetch(empUrl, { method: "GET", credentials: "include" });
-        const eAll = await empRes.json();
-
         if (cancelled) return;
         const filteredCompanies = allCompanies.filter((item: { name: string }) =>
           assignedCompanies.includes(item.name)
         );
 
-
-        const empsWithCombinedLabel = (eAll.message || []).map((emp: any) => ({
-          ...emp,
-          combined_label: `${emp.name} - ${emp.employee_name}`
-        }));
-
-
         setCompanyOptions(filteredCompanies);
         setCostCenterOptions(centers);
-        setAllEmployeeOptions(empsWithCombinedLabel);
         setAllWarehouseOptions(warehousesAll);
         fetchFilteredItems("");
         if (!record && filteredCompanies.length > 0) {
@@ -355,63 +353,23 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
 
   const checkWarehouseSelection = () => {
     if (!formData.costCenter) {
-      showAlert("Error", "Please select a Source Warehouse first to filter the Issuer Name.");
+      showAlert("Error", "Please select a Source Warehouse first.");
       return false;
     }
     return true;
   };
 
   useEffect(() => {
-    const fetchFilteredEmployees = async () => {
-      if (!formData.company) {
-        setIssuerOptions([]);
-        setWarehouseOptions([]);
-        return;
-      }
+    if (!formData.company) {
+      setWarehouseOptions([]);
+      return;
+    }
 
-      const filteredWarehouses = allWarehouseOptions.filter(
-        wh => wh.company === formData.company
-      );
-      setWarehouseOptions(filteredWarehouses);
-
-
-
-      if (formData.costCenter) {
-        setIsLoading(true);
-        try {
-
-          const targetCostCenter = formData.costCenter;
-
-          if (targetCostCenter) {
-            const url = getApiUrl(`/api/resource/Employee?filters=${encodeURIComponent(
-              JSON.stringify([
-                ["company", "=", formData.company],
-                ["payroll_cost_center", "=", targetCostCenter],
-                ["status", "=", "Active"]
-              ])
-            )}&fields=${encodeURIComponent(JSON.stringify(["name", "employee_name", "company", "payroll_cost_center"]))}&limit_page_length=None`);
-
-            const response = await fetch(url, { method: "GET", credentials: "include" });
-            const result = await response.json();
-            const filteredWithLabels = (result.data || []).map((emp: any) => ({
-              ...emp,
-              combined_label: `${emp.name} - ${emp.employee_name}`
-            }));
-            setIssuerOptions(filteredWithLabels);
-          }
-        } catch (error) {
-          console.error("Failed to fetch filtered employees:", error);
-        } finally {
-          setIsLoading(false);
-        }
-      } else {
-        const companyEmployees = allEmployeeOptions.filter(emp => emp.company === formData.company);
-        setIssuerOptions(companyEmployees);
-      }
-    };
-
-    fetchFilteredEmployees();
-  }, [formData.company, formData.costCenter, allWarehouseOptions]);
+    const filteredWarehouses = allWarehouseOptions.filter(
+      wh => wh.company === formData.company
+    );
+    setWarehouseOptions(filteredWarehouses);
+  }, [formData.company, allWarehouseOptions]);
 
   useEffect(() => {
     if (!formData.sourceWarehouse) return;
@@ -721,13 +679,11 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
             <RefuelingTopForm
               formData={formData}
               setFormData={setFormData}
-              issuerOptions={issuerOptions}
               companyOptions={companyOptions}
               warehouseOptions={warehouseOptions}
               itemOptions={itemOptions}
               costCenterOptions={costCenterOptions}
               isEditMode={isEditMode}
-              onEmployeeFieldClick={checkWarehouseSelection}
               onItemSearch={setSearchTerm}
               onFuelItemSelect={handleFuelItemSelect}
               itemLoading={itemLoading}
