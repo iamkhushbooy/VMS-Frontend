@@ -274,7 +274,7 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
       const mapped: FuelEntry[] = (doc.vehicle_refueling_details || []).map(
         (d: any) => ({
           id: d.name,
-          vehicle: d.vehicle,
+          vehicle: d.vehicle||d.registrationName,
           registrationName: d.registration_no,
           date: d.date,
           fuel_qty_in_ltrs: d.fuel_qty_in_ltrs ?? d.fuel_qty_in_ltrs ?? 0,
@@ -533,7 +533,7 @@ export function RefuelingFormModal({ isOpen, onClose, record, onSuccess }: Modal
         cost_center: formData.costCenter,
         submit: 1,
         vehicle_refueling_details: fuelEntries.map((f) => ({
-          vehicle: f.vehicle,
+          vehicle: f.vehicle|| f.registrationName,
           date: f.date,
           fuel_qty_in_ltrs: f.fuel_qty_in_ltrs,
           current_hmrkms: f.current_hmrkms,
